@@ -41,6 +41,7 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash) {
 
 	if block.Transactions().Len() == 0 {
 		log.Println("[!] Empty Block : ", block.NumberU64())
+		return
 	}
 
 	for _, v := range block.Transactions() {
