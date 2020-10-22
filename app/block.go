@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -25,7 +26,20 @@ func subscribeToNewBlocks(client *ethclient.Client) {
 			log.Println("[!] ", err)
 			break
 		case header := <-headerChan:
-			log.Println(header.Hash().Hex())
+			go fetchBlockByHash(client, header.Hash())
 		}
+	}
+}
+
+// Fetching block content using blockHash
+func fetchBlockByHash(client *ethclient.Client, hash common.Hash) {
+	block, err := client.BlockByHash(context.Background(), hash)
+	if err != nil {
+		log.Println("[!] ", err)
+		return
+	}
+
+	for _, v := range block.Transactions() {
+		log.Println(v.ChainId().String(), v.GasPrice().String(), "[ ", block.NumberU64(), " ]")
 	}
 }
