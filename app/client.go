@@ -7,11 +7,10 @@ import (
 )
 
 // Connect to blockchain node
-func getClient() *ethclient.Client{
+func getClient() *ethclient.Client {
 	client, err := ethclient.Dial(get("RPC"))
 	if err != nil {
 		log.Fatalln("[!] ", err)
-		return nil
 	}
 
 	return client
