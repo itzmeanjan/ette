@@ -39,7 +39,23 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash) {
 		return
 	}
 
+	if block.Transactions().Len() == 0 {
+		log.Println("[!] Empty Block : ", block.NumberU64())
+	}
+
 	for _, v := range block.Transactions() {
-		log.Println(v.ChainId().String(), v.GasPrice().String(), "[ ", block.NumberU64(), " ]")
+		receipt, err := client.TransactionReceipt(context.Background(), v.Hash())
+		if err != nil {
+			log.Println("[!] ", err)
+			continue
+		}
+
+		sender, err := client.TransactionSender(context.Background(), v, block.Hash(), receipt.TransactionIndex)
+		if err != nil {
+			log.Println("[!] ", err)
+			continue
+		}
+
+		log.Println(sender.Hex(), v.To().Hex(), "[ ", block.NumberU64(), " ]")
 	}
 }
