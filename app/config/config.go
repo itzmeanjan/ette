@@ -1,9 +1,9 @@
-package app
+package config
 
 import "github.com/spf13/viper"
 
-// Reading .env file content, during application start up
-func read(file string) error {
+// Read - Reading .env file content, during application start up
+func Read(file string) error {
 	viper.SetConfigFile(file)
 
 	return viper.ReadInConfig()
