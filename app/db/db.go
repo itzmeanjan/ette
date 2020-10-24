@@ -28,8 +28,8 @@ func Connect() *gorm.DB {
 	return _db
 }
 
-// Persisting fetched block information in database
-func putBlock(_db *gorm.DB, _block *types.Block) {
+// PutBlock - Persisting fetched block information in database
+func PutBlock(_db *gorm.DB, _block *types.Block) {
 	if err := _db.Create(&Blocks{
 		Hash:       _block.Hash().Hex(),
 		Number:     _block.Number().String(),
@@ -44,8 +44,8 @@ func putBlock(_db *gorm.DB, _block *types.Block) {
 	}
 }
 
-// Persisting transactions present in a block in database
-func putTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) {
+// PutTransaction - Persisting transactions present in a block in database
+func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) {
 	if err := _db.Create(&Transactions{
 		Hash:      _tx.Hash().Hex(),
 		From:      _sender.Hex(),
@@ -54,7 +54,7 @@ func putTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Rece
 		GasPrice:  _tx.GasPrice().String(),
 		Cost:      _tx.Cost().String(),
 		Nonce:     _tx.Nonce(),
-		State:     0,
+		State:     _txReceipt.Status,
 		BlockHash: _txReceipt.BlockHash.Hex(),
 	}); err != nil {
 		log.Println("[!] ", err)

@@ -22,6 +22,6 @@ type Transactions struct {
 	GasPrice  string `gorm:"column:gasprice;type:varchar;not null"`
 	Cost      string `gorm:"column:cost;type:varchar;not null"`
 	Nonce     uint64 `gorm:"column:nonce;type:bigint;not null"`
-	State     uint8  `gorm:"column:state;type:smallint;not null"`
+	State     uint64  `gorm:"column:state;type:smallint;not null"`
 	BlockHash string `gorm:"column:blockhash;type:char(66);not null"`
 }

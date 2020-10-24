@@ -25,8 +25,8 @@ func bootstrap(file string) (*ethclient.Client, *gorm.DB) {
 
 // Run - Application to be invoked from main runner using this function
 func Run(file string) {
-	_client, _ := bootstrap(file)
+	_client, _db := bootstrap(file)
 
-	go blk.SyncToLatestBlock(_client)
-	blk.SubscribeToNewBlocks(_client)
+	go blk.SyncToLatestBlock(_client, _db)
+	blk.SubscribeToNewBlocks(_client, _db)
 }
