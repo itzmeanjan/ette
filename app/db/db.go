@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/ethereum/go-ethereum/core/types"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -24,4 +25,20 @@ func Connect() *gorm.DB {
 
 	_db.AutoMigrate(&Blocks{}, &Transactions{})
 	return _db
+}
+
+// Persisting fetched block information in database
+func putBlock(_db *gorm.DB, _block *types.Block) {
+	if err := _db.Create(&Blocks{
+		Hash:       _block.Hash().Hex(),
+		Number:     _block.Number().String(),
+		Time:       _block.Time(),
+		ParentHash: _block.ParentHash().Hex(),
+		Difficulty: _block.Difficulty().String(),
+		GasUsed:    _block.GasUsed(),
+		GasLimit:   _block.GasLimit(),
+		Nonce:      _block.Nonce(),
+	}).Error; err != nil {
+		log.Println("[!] ", err)
+	}
 }
