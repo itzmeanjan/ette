@@ -4,10 +4,13 @@ import (
 	"context"
 	"log"
 	"math/big"
+	"os"
+	"runtime"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/gammazero/workerpool"
 )
 
 // SyncToLatestBlock - Fetch all blocks upto latest block
@@ -17,9 +20,17 @@ func SyncToLatestBlock(client *ethclient.Client) {
 		log.Fatalln("[!] ", err)
 	}
 
+	wp := workerpool.New(runtime.NumCPU())
+
 	for i := uint64(0); i < latestBlockNum; i++ {
-		fetchBlockByNumber(client, i)
+		blockNum := i
+
+		wp.Submit(func() {
+			fetchBlockByNumber(client, blockNum)
+		})
 	}
+
+	wp.StopWait()
 }
 
 // SubscribeToNewBlocks - Listen for event when new block header is
