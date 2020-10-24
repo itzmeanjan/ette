@@ -9,7 +9,7 @@ func read(file string) error {
 	return viper.ReadInConfig()
 }
 
-// Get config value by key
-func get(key string) string {
+// Get - Get config value by key
+func Get(key string) string {
 	return viper.GetString(key)
 }
