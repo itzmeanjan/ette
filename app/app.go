@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	cfg "github.com/itzmeanjan/ette/app/config"
+	blk "github.com/itzmeanjan/ette/app/block"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
@@ -26,5 +27,5 @@ func bootstrap(file string) (*ethclient.Client, *gorm.DB) {
 func Run(file string) {
 	_client, _ := bootstrap(file)
 
-	subscribeToNewBlocks(_client)
+	blk.SubscribeToNewBlocks(_client)
 }
