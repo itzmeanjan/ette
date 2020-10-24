@@ -19,8 +19,6 @@ func bootstrap(file string) (*ethclient.Client, *gorm.DB) {
 	_client := getClient()
 	_db := db.Connect()
 
-	db.Migrate(_db)
-
 	return _client, _db
 }
 

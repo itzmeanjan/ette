@@ -17,10 +17,11 @@ func Connect() *gorm.DB {
 		log.Fatalln("[!] ", err)
 	}
 
-	db, err := gorm.Open(postgres.Open(fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", cfg.Get("DB_USER"), cfg.Get("DB_PASSWORD"), cfg.Get("DB_HOST"), port, cfg.Get("DB_NAME"))), &gorm.Config{})
+	_db, err := gorm.Open(postgres.Open(fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", cfg.Get("DB_USER"), cfg.Get("DB_PASSWORD"), cfg.Get("DB_HOST"), port, cfg.Get("DB_NAME"))), &gorm.Config{})
 	if err != nil {
 		log.Fatalln("[!] ", err)
 	}
 
-	return db
+	_db.AutoMigrate(&Blocks{}, &Transactions{})
+	return _db
 }
