@@ -1,15 +1,41 @@
-package app
+package block
 
 import (
 	"context"
 	"log"
+	"math/big"
+	"runtime"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/gammazero/workerpool"
 )
 
-func subscribeToNewBlocks(client *ethclient.Client) {
+// SyncToLatestBlock - Fetch all blocks upto latest block
+func SyncToLatestBlock(client *ethclient.Client) {
+	latestBlockNum, err := client.BlockNumber(context.Background())
+	if err != nil {
+		log.Fatalln("[!] ", err)
+	}
+
+	wp := workerpool.New(runtime.NumCPU())
+
+	for i := uint64(0); i < latestBlockNum; i++ {
+		blockNum := i
+
+		wp.Submit(func() {
+			fetchBlockByNumber(client, blockNum)
+		})
+	}
+
+	wp.StopWait()
+}
+
+// SubscribeToNewBlocks - Listen for event when new block header is
+// available, then fetch block content ( including all transactions )
+// in different worker
+func SubscribeToNewBlocks(client *ethclient.Client) {
 	headerChan := make(chan *types.Header)
 
 	subs, err := client.SubscribeNewHead(context.Background(), headerChan)
@@ -39,6 +65,25 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash) {
 		return
 	}
 
+	fetchBlockContent(client, block)
+}
+
+// Fetching block content using block number
+func fetchBlockByNumber(client *ethclient.Client, number uint64) {
+	_num := big.NewInt(0)
+	_num = _num.SetUint64(number)
+
+	block, err := client.BlockByNumber(context.Background(), _num)
+	if err != nil {
+		log.Println("[!] ", err)
+		return
+	}
+
+	fetchBlockContent(client, block)
+}
+
+// Fetching all transactions in this block, along with their receipt
+func fetchBlockContent(client *ethclient.Client, block *types.Block) {
 	if block.Transactions().Len() == 0 {
 		log.Println("[!] Empty Block : ", block.NumberU64())
 		return
