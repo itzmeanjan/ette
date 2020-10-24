@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	"gorm.io/driver/postgres"
@@ -39,6 +40,23 @@ func putBlock(_db *gorm.DB, _block *types.Block) {
 		GasLimit:   _block.GasLimit(),
 		Nonce:      _block.Nonce(),
 	}).Error; err != nil {
+		log.Println("[!] ", err)
+	}
+}
+
+// Persisting transactions present in a block in database
+func putTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) {
+	if err := _db.Create(&Transactions{
+		Hash:      _tx.Hash().Hex(),
+		From:      _sender.Hex(),
+		To:        _tx.To().Hex(),
+		Gas:       _tx.Gas(),
+		GasPrice:  _tx.GasPrice().String(),
+		Cost:      _tx.Cost().String(),
+		Nonce:     _tx.Nonce(),
+		State:     0,
+		BlockHash: _txReceipt.BlockHash.Hex(),
+	}); err != nil {
 		log.Println("[!] ", err)
 	}
 }

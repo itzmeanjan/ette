@@ -1,11 +1,5 @@
 package db
 
-import (
-	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
-)
-
 // Blocks - Mined block info holder table model
 type Blocks struct {
 	Hash         string       `gorm:"column:hash;type:char(66);primaryKey"`
@@ -21,13 +15,13 @@ type Blocks struct {
 
 // Transactions - Blockchain transaction holder table model
 type Transactions struct {
-	Hash      common.Hash    `gorm:"column:hash;type:char(66);primaryKey"`
-	From      common.Address `gorm:"column:from;type:char(42);not null"`
-	To        common.Address `gorm:"column:to;type:char(42); not null"`
-	Gas       uint64         `gorm:"column:gas;type:bigint;not null"`
-	GasPrice  *big.Int       `gorm:"column:gasprice;type:varchar;not null"`
-	Cost      *big.Int       `gorm:"column:cost;type:varchar;not null"`
-	Nonce     uint64         `gorm:"column:nonce;type:bigint;not null"`
-	State     uint8          `gorm:"column:state;type:smallint;not null"`
-	BlockHash common.Hash    `gorm:"column:blockhash;type:char(66);not null"`
+	Hash      string `gorm:"column:hash;type:char(66);primaryKey"`
+	From      string `gorm:"column:from;type:char(42);not null"`
+	To        string `gorm:"column:to;type:char(42); not null"`
+	Gas       uint64 `gorm:"column:gas;type:bigint;not null"`
+	GasPrice  string `gorm:"column:gasprice;type:varchar;not null"`
+	Cost      string `gorm:"column:cost;type:varchar;not null"`
+	Nonce     uint64 `gorm:"column:nonce;type:bigint;not null"`
+	State     uint8  `gorm:"column:state;type:smallint;not null"`
+	BlockHash string `gorm:"column:blockhash;type:char(66);not null"`
 }
