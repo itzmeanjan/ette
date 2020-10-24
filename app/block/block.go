@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"math/big"
-	"os"
 	"runtime"
 
 	"github.com/ethereum/go-ethereum/common"
