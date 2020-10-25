@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"math/big"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -28,6 +29,18 @@ func Connect() *gorm.DB {
 	return _db
 }
 
+// Fetch block by number, from database
+func getBlock(_db *gorm.DB, number *big.Int) *Blocks {
+	var block Blocks
+
+	if err := _db.Where("number = ?", number.String()).First(&block).Error; err != nil {
+		log.Println("[!] ", err)
+		return nil
+	}
+
+	return &block
+}
+
 // PutBlock - Persisting fetched block information in database
 func PutBlock(_db *gorm.DB, _block *types.Block) {
 	if err := _db.Create(&Blocks{
@@ -42,6 +55,18 @@ func PutBlock(_db *gorm.DB, _block *types.Block) {
 	}).Error; err != nil {
 		log.Println("[!] ", err)
 	}
+}
+
+// Fetches tx entry from database, given txhash & containing block hash
+func getTransaction(_db *gorm.DB, blkHash common.Hash, txHash common.Hash) *Transactions {
+	var tx Transactions
+
+	if err := _db.Where("hash = ? and blockhash = ?", txHash.Hex(), blkHash.Hex()).First(&tx).Error; err != nil {
+		log.Println("[!] ", err)
+		return nil
+	}
+
+	return &tx
 }
 
 // PutTransaction - Persisting transactions present in a block in database
