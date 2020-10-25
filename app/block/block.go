@@ -15,7 +15,7 @@ import (
 )
 
 // SyncToLatestBlock - Fetch all blocks upto latest block
-func SyncToLatestBlock(client *ethclient.Client, db *gorm.DB) {
+func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB) {
 	latestBlockNum, err := client.BlockNumber(context.Background())
 	if err != nil {
 		log.Fatalln("[!] ", err)
@@ -27,7 +27,7 @@ func SyncToLatestBlock(client *ethclient.Client, db *gorm.DB) {
 		blockNum := i
 
 		wp.Submit(func() {
-			fetchBlockByNumber(client, blockNum, db)
+			fetchBlockByNumber(client, blockNum, _db)
 		})
 	}
 
@@ -37,7 +37,7 @@ func SyncToLatestBlock(client *ethclient.Client, db *gorm.DB) {
 // SubscribeToNewBlocks - Listen for event when new block header is
 // available, then fetch block content ( including all transactions )
 // in different worker
-func SubscribeToNewBlocks(client *ethclient.Client, db *gorm.DB) {
+func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB) {
 	headerChan := make(chan *types.Header)
 
 	subs, err := client.SubscribeNewHead(context.Background(), headerChan)
@@ -54,7 +54,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, db *gorm.DB) {
 			log.Println("[!] ", err)
 			break
 		case header := <-headerChan:
-			go fetchBlockByHash(client, header.Hash(), db)
+			go fetchBlockByHash(client, header.Hash(), _db)
 		}
 	}
 }
@@ -82,7 +82,10 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB) {
 		return
 	}
 
-	db.PutBlock(_db, block)
+	if res := db.GetBlock(_db, _num); res == nil {
+		db.PutBlock(_db, block)
+	}
+
 	fetchBlockContent(client, block, _db)
 }
 
@@ -94,19 +97,29 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	}
 
 	for _, v := range block.Transactions() {
-		receipt, err := client.TransactionReceipt(context.Background(), v.Hash())
-		if err != nil {
-			log.Println("[!] ", err)
-			continue
-		}
-
-		sender, err := client.TransactionSender(context.Background(), v, block.Hash(), receipt.TransactionIndex)
-		if err != nil {
-			log.Println("[!] ", err)
-			continue
-		}
-
-		db.PutTransaction(_db, v, receipt, sender)
-		log.Println(sender.Hex(), v.To().Hex(), "[ ", block.NumberU64(), " ]")
+		fetchTransactionByHash(client, block, v, _db)
 	}
+}
+
+// Fetching specific transaction related data & persisting in database
+func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB) {
+	// if DB entry already exists for this tx
+	if res := db.GetTransaction(_db, block.Hash(), tx.Hash()); res != nil {
+		return
+	}
+
+	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
+	if err != nil {
+		log.Println("[!] ", err)
+		return
+	}
+
+	sender, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
+	if err != nil {
+		log.Println("[!] ", err)
+		return
+	}
+
+	db.PutTransaction(_db, tx, receipt, sender)
+	log.Println(sender.Hex(), tx.To().Hex(), "[ ", block.Number().String(), " ]")
 }
