@@ -1,5 +1,10 @@
 package db
 
+// Tabler - ...
+type Tabler interface {
+	TableName() string
+}
+
 // Blocks - Mined block info holder table model
 type Blocks struct {
 	Hash         string       `gorm:"column:hash;type:char(66);primaryKey"`
@@ -13,6 +18,11 @@ type Blocks struct {
 	Transactions Transactions `gorm:"foreignKey:blockhash"`
 }
 
+// TableName - Overriding default table name
+func (Blocks) TableName() string {
+	return "blocks";
+}
+
 // Transactions - Blockchain transaction holder table model
 type Transactions struct {
 	Hash      string `gorm:"column:hash;type:char(66);primaryKey"`
@@ -24,4 +34,9 @@ type Transactions struct {
 	Nonce     uint64 `gorm:"column:nonce;type:bigint;not null"`
 	State     uint64  `gorm:"column:state;type:smallint;not null"`
 	BlockHash string `gorm:"column:blockhash;type:char(66);not null"`
+}
+
+// TableName - Overriding default table name
+func (Transactions) TableName() string {
+	return "transactions"
 }
