@@ -121,5 +121,6 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 	}
 
 	db.PutTransaction(_db, tx, receipt, sender)
+	db.PutEvent(_db, receipt)
 	log.Println(sender.Hex(), tx.To().Hex(), "[ ", block.Number().String(), " ]")
 }
