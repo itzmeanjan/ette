@@ -16,11 +16,12 @@ type Blocks struct {
 	GasLimit     uint64       `gorm:"column:gaslimit;type:bigint;not null"`
 	Nonce        uint64       `gorm:"column:nonce;type:bigint;not null"`
 	Transactions Transactions `gorm:"foreignKey:blockhash"`
+	Events       Events       `gorm:"foreignKey:blockhash"`
 }
 
 // TableName - Overriding default table name
 func (Blocks) TableName() string {
-	return "blocks";
+	return "blocks"
 }
 
 // Transactions - Blockchain transaction holder table model
@@ -32,11 +33,27 @@ type Transactions struct {
 	GasPrice  string `gorm:"column:gasprice;type:varchar;not null"`
 	Cost      string `gorm:"column:cost;type:varchar;not null"`
 	Nonce     uint64 `gorm:"column:nonce;type:bigint;not null"`
-	State     uint64  `gorm:"column:state;type:smallint;not null"`
+	State     uint64 `gorm:"column:state;type:smallint;not null"`
 	BlockHash string `gorm:"column:blockhash;type:char(66);not null"`
+	Events    Events `gorm:"foreignKey:txhash"`
 }
 
 // TableName - Overriding default table name
 func (Transactions) TableName() string {
 	return "transactions"
+}
+
+// Events - Events emitted from smart contracts to be held in this table
+type Events struct {
+	Origin          string   `gorm:"column:origin;type:char(42);not null"`
+	Index           uint     `gorm:"column:index;type:integer;not null;primaryKey"`
+	Topics          []string `gorm:"column:topics;type:text[];not null"`
+	Data            []byte   `gorm:"column:data;type:bytea"`
+	TransactionHash string   `gorm:"column:txhash;type:char(66);not null"`
+	BlockHash       string   `gorm:"column:blockhash;type:char(66);not null;primaryKey"`
+}
+
+// TableName - Overriding default table name
+func (Events) TableName() string {
+	return "events"
 }
