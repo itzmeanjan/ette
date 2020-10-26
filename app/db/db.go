@@ -25,7 +25,7 @@ func Connect() *gorm.DB {
 		log.Fatalln("[!] ", err)
 	}
 
-	_db.AutoMigrate(&Blocks{}, &Transactions{})
+	_db.AutoMigrate(&Blocks{}, &Transactions{}, &Events{})
 	return _db
 }
 
@@ -83,5 +83,32 @@ func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Rece
 		BlockHash: _txReceipt.BlockHash.Hex(),
 	}); err != nil {
 		log.Println("[!] ", err)
+	}
+}
+
+// PutEvent - Entering new log events emitted as result of execution of EVM transaction
+// into persistable storage
+func PutEvent(_db *gorm.DB, _txReceipt *types.Receipt) {
+	stringify := func(data []common.Hash) []string {
+		buffer := make([]string, len(data))
+
+		for i := 0; i < len(data); i++ {
+			buffer[i] = data[i].Hex()
+		}
+
+		return buffer
+	}
+
+	for _, v := range _txReceipt.Logs {
+		if err := _db.Create(&Events{
+			Origin:          v.Address.Hex(),
+			Index:           v.Index,
+			Topics:          stringify(v.Topics),
+			Data:            v.Data,
+			TransactionHash: v.TxHash.Hex(),
+			BlockHash:       v.BlockHash.Hex(),
+		}); err != nil {
+			log.Println("[!] ", err)
+		}
 	}
 }
