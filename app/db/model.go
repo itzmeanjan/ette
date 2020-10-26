@@ -1,5 +1,7 @@
 package db
 
+import "github.com/lib/pq"
+
 // Tabler - ...
 type Tabler interface {
 	TableName() string
@@ -45,12 +47,12 @@ func (Transactions) TableName() string {
 
 // Events - Events emitted from smart contracts to be held in this table
 type Events struct {
-	Origin          string   `gorm:"column:origin;type:char(42);not null"`
-	Index           uint     `gorm:"column:index;type:integer;not null;primaryKey"`
-	Topics          []string `gorm:"column:topics;type:text[];not null"`
-	Data            []byte   `gorm:"column:data;type:bytea"`
-	TransactionHash string   `gorm:"column:txhash;type:char(66);not null"`
-	BlockHash       string   `gorm:"column:blockhash;type:char(66);not null;primaryKey"`
+	Origin          string         `gorm:"column:origin;type:char(42);not null"`
+	Index           uint           `gorm:"column:index;type:integer;not null;primaryKey"`
+	Topics          pq.StringArray `gorm:"column:topics;type:text[];not null"`
+	Data            []byte         `gorm:"column:data;type:bytea"`
+	TransactionHash string         `gorm:"column:txhash;type:char(66);not null"`
+	BlockHash       string         `gorm:"column:blockhash;type:char(66);not null;primaryKey"`
 }
 
 // TableName - Overriding default table name
