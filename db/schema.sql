@@ -21,3 +21,15 @@ create table transactions (
     blockhash char(66) not null,
     foreign key (blockhash) references blocks(hash)
 );
+
+create table events (
+    origin char(42) not null,
+    index integer not null,
+    topics text[] not null,
+    data bytea not null,
+    txhash char(66) not null,
+    blockhash char(66) not null,
+    primary key (blockhash, index),
+    foreign key (txhash) references transactions(hash),
+    foreign key (blockhash) references blocks(hash),
+);

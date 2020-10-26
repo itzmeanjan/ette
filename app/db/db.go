@@ -3,8 +3,11 @@ package db
 import (
 	"fmt"
 	"log"
+	"math/big"
 	"strconv"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -22,6 +25,90 @@ func Connect() *gorm.DB {
 		log.Fatalln("[!] ", err)
 	}
 
-	_db.AutoMigrate(&Blocks{}, &Transactions{})
+	_db.AutoMigrate(&Blocks{}, &Transactions{}, &Events{})
 	return _db
+}
+
+// GetBlock - Fetch block by number, from database
+func GetBlock(_db *gorm.DB, number *big.Int) *Blocks {
+	var block Blocks
+
+	if err := _db.Where("number = ?", number.String()).First(&block).Error; err != nil {
+		log.Println("[!] ", err)
+		return nil
+	}
+
+	return &block
+}
+
+// PutBlock - Persisting fetched block information in database
+func PutBlock(_db *gorm.DB, _block *types.Block) {
+	if err := _db.Create(&Blocks{
+		Hash:       _block.Hash().Hex(),
+		Number:     _block.Number().String(),
+		Time:       _block.Time(),
+		ParentHash: _block.ParentHash().Hex(),
+		Difficulty: _block.Difficulty().String(),
+		GasUsed:    _block.GasUsed(),
+		GasLimit:   _block.GasLimit(),
+		Nonce:      _block.Nonce(),
+	}).Error; err != nil {
+		log.Println("[!] ", err)
+	}
+}
+
+// GetTransaction - Fetches tx entry from database, given txhash & containing block hash
+func GetTransaction(_db *gorm.DB, blkHash common.Hash, txHash common.Hash) *Transactions {
+	var tx Transactions
+
+	if err := _db.Where("hash = ? and blockhash = ?", txHash.Hex(), blkHash.Hex()).First(&tx).Error; err != nil {
+		log.Println("[!] ", err)
+		return nil
+	}
+
+	return &tx
+}
+
+// PutTransaction - Persisting transactions present in a block in database
+func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) {
+	if err := _db.Create(&Transactions{
+		Hash:      _tx.Hash().Hex(),
+		From:      _sender.Hex(),
+		To:        _tx.To().Hex(),
+		Gas:       _tx.Gas(),
+		GasPrice:  _tx.GasPrice().String(),
+		Cost:      _tx.Cost().String(),
+		Nonce:     _tx.Nonce(),
+		State:     _txReceipt.Status,
+		BlockHash: _txReceipt.BlockHash.Hex(),
+	}); err != nil {
+		log.Println("[!] ", err)
+	}
+}
+
+// PutEvent - Entering new log events emitted as result of execution of EVM transaction
+// into persistable storage
+func PutEvent(_db *gorm.DB, _txReceipt *types.Receipt) {
+	stringify := func(data []common.Hash) []string {
+		buffer := make([]string, len(data))
+
+		for i := 0; i < len(data); i++ {
+			buffer[i] = data[i].Hex()
+		}
+
+		return buffer
+	}
+
+	for _, v := range _txReceipt.Logs {
+		if err := _db.Create(&Events{
+			Origin:          v.Address.Hex(),
+			Index:           v.Index,
+			Topics:          stringify(v.Topics),
+			Data:            v.Data,
+			TransactionHash: v.TxHash.Hex(),
+			BlockHash:       v.BlockHash.Hex(),
+		}); err != nil {
+			log.Println("[!] ", err)
+		}
+	}
 }
