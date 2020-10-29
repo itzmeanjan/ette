@@ -14,7 +14,7 @@ import (
 func bootstrap(file string) (*ethclient.Client, *gorm.DB) {
 	err := cfg.Read(file)
 	if err != nil {
-		log.Fatalln("[!] ", err)
+		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
 	}
 
 	_client := getClient()

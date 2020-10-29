@@ -3,7 +3,6 @@ package db
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -14,14 +13,9 @@ import (
 
 // Connect - Connecting to postgresql database
 func Connect() *gorm.DB {
-	port, err := strconv.Atoi(cfg.Get("DB_PORT"))
+	_db, err := gorm.Open(postgres.Open(fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", cfg.Get("DB_USER"), cfg.Get("DB_PASSWORD"), cfg.Get("DB_HOST"), cfg.Get("DB_PORT"), cfg.Get("DB_NAME"))), &gorm.Config{})
 	if err != nil {
-		log.Fatalln("[!] ", err)
-	}
-
-	_db, err := gorm.Open(postgres.Open(fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", cfg.Get("DB_USER"), cfg.Get("DB_PASSWORD"), cfg.Get("DB_HOST"), port, cfg.Get("DB_NAME"))), &gorm.Config{})
-	if err != nil {
-		log.Fatalln("[!] ", err)
+		log.Fatalf("[!] Failed to connect to db : %s\n", err.Error())
 	}
 
 	_db.AutoMigrate(&Blocks{}, &Transactions{}, &Events{})
@@ -51,7 +45,7 @@ func PutBlock(_db *gorm.DB, _block *types.Block) {
 		GasLimit:   _block.GasLimit(),
 		Nonce:      _block.Nonce(),
 	}).Error; err != nil {
-		log.Println("[!] ", err)
+		log.Printf("[!] Failed to persist block : %d : %s\n", _block.NumberU64(), err.Error())
 	}
 }
 
@@ -79,7 +73,7 @@ func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Rece
 		State:     _txReceipt.Status,
 		BlockHash: _txReceipt.BlockHash.Hex(),
 	}); err != nil {
-		log.Println("[!] ", err)
+		log.Printf("[!] Failed to persist tx [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error.Error())
 	}
 }
 
@@ -105,7 +99,7 @@ func PutEvent(_db *gorm.DB, _txReceipt *types.Receipt) {
 			TransactionHash: v.TxHash.Hex(),
 			BlockHash:       v.BlockHash.Hex(),
 		}); err != nil {
-			log.Println("[!] ", err)
+			log.Printf("[!] Failed to persist tx log [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error.Error())
 		}
 	}
 }

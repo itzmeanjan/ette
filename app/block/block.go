@@ -18,7 +18,7 @@ import (
 func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB) {
 	latestBlockNum, err := client.BlockNumber(context.Background())
 	if err != nil {
-		log.Fatalln("[!] Failed to fetch latest  block number :", err)
+		log.Fatalf("[!] Failed to fetch latest  block number : %s\n", err.Error())
 	}
 
 	wp := workerpool.New(runtime.NumCPU())
@@ -44,7 +44,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB) {
 
 	subs, err := client.SubscribeNewHead(context.Background(), headerChan)
 	if err != nil {
-		log.Fatalln("[!] Failed to subscribe to block headers :", err)
+		log.Fatalf("[!] Failed to subscribe to block headers : %s\n", err.Error())
 	}
 
 	// Scheduling unsubscribe, to be executed when end of this block is reached
@@ -53,7 +53,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB) {
 	for {
 		select {
 		case err := <-subs.Err():
-			log.Println("[!] Block header subscription failed in mid :", err)
+			log.Printf("[!] Block header subscription failed in mid : %s\n", err.Error())
 			break
 		case header := <-headerChan:
 			go fetchBlockByHash(client, header.Hash(), _db)
@@ -65,7 +65,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB) {
 func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB) {
 	block, err := client.BlockByHash(context.Background(), hash)
 	if err != nil {
-		log.Println("[!] Failed to fetch block by hash :", err)
+		log.Printf("[!] Failed to fetch block by hash : %s\n", err.Error())
 		return
 	}
 
@@ -80,7 +80,7 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB) {
 
 	block, err := client.BlockByNumber(context.Background(), _num)
 	if err != nil {
-		log.Println("[!] Failed to fetch block by number :", err)
+		log.Printf("[!] Failed to fetch block by number : %s\n", err)
 		return
 	}
 
@@ -94,7 +94,7 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB) {
 // Fetching all transactions in this block, along with their receipt
 func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB) {
 	if block.Transactions().Len() == 0 {
-		log.Println("[!] Empty Block : ", block.NumberU64())
+		log.Printf("[!] Empty Block : %d\n", block.NumberU64())
 		return
 	}
 
@@ -112,17 +112,17 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
-		log.Println("[!] Failed to fetch tx receipt :", err)
+		log.Printf("[!] Failed to fetch tx receipt : %s\n", err.Error())
 		return
 	}
 
 	sender, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
 	if err != nil {
-		log.Println("[!] Failed to fetch tx sender :", err)
+		log.Printf("[!] Failed to fetch tx sender : %s\n", err.Error())
 		return
 	}
 
 	db.PutTransaction(_db, tx, receipt, sender)
 	db.PutEvent(_db, receipt)
-	log.Println("[+] Non-empty Block : ", block.NumberU64())
+	log.Printf("[+] Non-empty Block : %d\n", block.NumberU64())
 }

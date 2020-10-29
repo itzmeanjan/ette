@@ -11,7 +11,7 @@ import (
 func getClient() *ethclient.Client {
 	client, err := ethclient.Dial(cfg.Get("RPC"))
 	if err != nil {
-		log.Fatalln("[!] ", err)
+		log.Fatalf("[!] Failed to connect to Blockchain : %s\n", err.Error())
 	}
 
 	return client
