@@ -5,17 +5,19 @@ import (
 	"log"
 	"math/big"
 	"runtime"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gammazero/workerpool"
+	"github.com/itzmeanjan/ette/app"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
 
 // SyncToLatestBlock - Fetch all blocks upto latest block
-func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB) {
+func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex, _synced *app.SyncState) {
 	latestBlockNum, err := client.BlockNumber(context.Background())
 	if err != nil {
 		log.Fatalf("[!] Failed to fetch latest  block number : %s\n", err.Error())
@@ -34,6 +36,13 @@ func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB) {
 	}
 
 	wp.StopWait()
+
+	// Safely updating sync state
+	_lock.Lock()
+	_synced.Synced = true
+	_lock.Unlock()
+
+	log.Printf("[+] Syncing Completed\n")
 }
 
 // SubscribeToNewBlocks - Listen for event when new block header is
