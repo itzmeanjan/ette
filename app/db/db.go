@@ -33,7 +33,6 @@ func GetBlock(_db *gorm.DB, number uint64) *Blocks {
 	var block Blocks
 
 	if err := _db.Where("number = ?", number).First(&block).Error; err != nil {
-		log.Println("[!] ", err)
 		return nil
 	}
 
@@ -61,7 +60,6 @@ func GetTransaction(_db *gorm.DB, blkHash common.Hash, txHash common.Hash) *Tran
 	var tx Transactions
 
 	if err := _db.Where("hash = ? and blockhash = ?", txHash.Hex(), blkHash.Hex()).First(&tx).Error; err != nil {
-		log.Println("[!] ", err)
 		return nil
 	}
 

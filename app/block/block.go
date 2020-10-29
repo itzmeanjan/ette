@@ -24,11 +24,13 @@ func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB) {
 	wp := workerpool.New(runtime.NumCPU())
 
 	for i := uint64(0); i < latestBlockNum; i++ {
-		blockNum := i
 
-		wp.Submit(func() {
-			fetchBlockByNumber(client, blockNum, _db)
-		})
+		func(blockNum uint64) {
+			wp.Submit(func() {
+				fetchBlockByNumber(client, blockNum, _db)
+			})
+		}(i)
+
 	}
 
 	wp.StopWait()
@@ -103,7 +105,7 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 
 // Fetching specific transaction related data & persisting in database
 func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB) {
-	// if DB entry already exists for this tx
+	// If DB entry already exists for this tx
 	if res := db.GetTransaction(_db, block.Hash(), tx.Hash()); res != nil {
 		return
 	}
