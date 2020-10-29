@@ -10,7 +10,7 @@ import (
 func main() {
 	abs, err := filepath.Abs(".env")
 	if err != nil {
-		log.Fatalln("[!] ", err)
+		log.Fatalf("[!] Failed to find `.env` : %s\n", err.Error())
 	}
 
 	app.Run(abs)

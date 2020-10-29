@@ -3,26 +3,20 @@ package db
 import (
 	"fmt"
 	"log"
-	"math/big"
-	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Connect - Connecting to postgresql database
 func Connect() *gorm.DB {
-	port, err := strconv.Atoi(cfg.Get("DB_PORT"))
+	_db, err := gorm.Open(postgres.Open(fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", cfg.Get("DB_USER"), cfg.Get("DB_PASSWORD"), cfg.Get("DB_HOST"), cfg.Get("DB_PORT"), cfg.Get("DB_NAME"))), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
-		log.Fatalln("[!] ", err)
-	}
-
-	_db, err := gorm.Open(postgres.Open(fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", cfg.Get("DB_USER"), cfg.Get("DB_PASSWORD"), cfg.Get("DB_HOST"), port, cfg.Get("DB_NAME"))), &gorm.Config{})
-	if err != nil {
-		log.Fatalln("[!] ", err)
+		log.Fatalf("[!] Failed to connect to db : %s\n", err.Error())
 	}
 
 	_db.AutoMigrate(&Blocks{}, &Transactions{}, &Events{})
@@ -30,11 +24,10 @@ func Connect() *gorm.DB {
 }
 
 // GetBlock - Fetch block by number, from database
-func GetBlock(_db *gorm.DB, number *big.Int) *Blocks {
+func GetBlock(_db *gorm.DB, number uint64) *Blocks {
 	var block Blocks
 
-	if err := _db.Where("number = ?", number.String()).First(&block).Error; err != nil {
-		log.Println("[!] ", err)
+	if err := _db.Where("number = ?", number).First(&block).Error; err != nil {
 		return nil
 	}
 
@@ -45,7 +38,7 @@ func GetBlock(_db *gorm.DB, number *big.Int) *Blocks {
 func PutBlock(_db *gorm.DB, _block *types.Block) {
 	if err := _db.Create(&Blocks{
 		Hash:       _block.Hash().Hex(),
-		Number:     _block.Number().String(),
+		Number:     _block.NumberU64(),
 		Time:       _block.Time(),
 		ParentHash: _block.ParentHash().Hex(),
 		Difficulty: _block.Difficulty().String(),
@@ -53,7 +46,7 @@ func PutBlock(_db *gorm.DB, _block *types.Block) {
 		GasLimit:   _block.GasLimit(),
 		Nonce:      _block.Nonce(),
 	}).Error; err != nil {
-		log.Println("[!] ", err)
+		log.Printf("[!] Failed to persist block : %d : %s\n", _block.NumberU64(), err.Error())
 	}
 }
 
@@ -62,7 +55,6 @@ func GetTransaction(_db *gorm.DB, blkHash common.Hash, txHash common.Hash) *Tran
 	var tx Transactions
 
 	if err := _db.Where("hash = ? and blockhash = ?", txHash.Hex(), blkHash.Hex()).First(&tx).Error; err != nil {
-		log.Println("[!] ", err)
 		return nil
 	}
 
@@ -71,18 +63,38 @@ func GetTransaction(_db *gorm.DB, blkHash common.Hash, txHash common.Hash) *Tran
 
 // PutTransaction - Persisting transactions present in a block in database
 func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) {
-	if err := _db.Create(&Transactions{
-		Hash:      _tx.Hash().Hex(),
-		From:      _sender.Hex(),
-		To:        _tx.To().Hex(),
-		Gas:       _tx.Gas(),
-		GasPrice:  _tx.GasPrice().String(),
-		Cost:      _tx.Cost().String(),
-		Nonce:     _tx.Nonce(),
-		State:     _txReceipt.Status,
-		BlockHash: _txReceipt.BlockHash.Hex(),
-	}); err != nil {
-		log.Println("[!] ", err)
+	var _pTx *Transactions
+
+	// If tx creates contract, then we hold created contract address
+	if _tx.To() == nil {
+		_pTx = &Transactions{
+			Hash:      _tx.Hash().Hex(),
+			From:      _sender.Hex(),
+			Contract:  _txReceipt.ContractAddress.Hex(),
+			Gas:       _tx.Gas(),
+			GasPrice:  _tx.GasPrice().String(),
+			Cost:      _tx.Cost().String(),
+			Nonce:     _tx.Nonce(),
+			State:     _txReceipt.Status,
+			BlockHash: _txReceipt.BlockHash.Hex(),
+		}
+	} else {
+		// This is a normal tx, so we keep contract field empty
+		_pTx = &Transactions{
+			Hash:      _tx.Hash().Hex(),
+			From:      _sender.Hex(),
+			To:        _tx.To().Hex(),
+			Gas:       _tx.Gas(),
+			GasPrice:  _tx.GasPrice().String(),
+			Cost:      _tx.Cost().String(),
+			Nonce:     _tx.Nonce(),
+			State:     _txReceipt.Status,
+			BlockHash: _txReceipt.BlockHash.Hex(),
+		}
+	}
+
+	if err := _db.Create(_pTx).Error; err != nil {
+		log.Printf("[!] Failed to persist tx [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error())
 	}
 }
 
@@ -107,8 +119,8 @@ func PutEvent(_db *gorm.DB, _txReceipt *types.Receipt) {
 			Data:            v.Data,
 			TransactionHash: v.TxHash.Hex(),
 			BlockHash:       v.BlockHash.Hex(),
-		}); err != nil {
-			log.Println("[!] ", err)
+		}).Error; err != nil {
+			log.Printf("[!] Failed to persist tx log [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error())
 		}
 	}
 }
