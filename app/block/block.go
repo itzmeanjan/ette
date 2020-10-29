@@ -124,5 +124,5 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 
 	db.PutTransaction(_db, tx, receipt, sender)
 	db.PutEvent(_db, receipt)
-	log.Printf("[+] Non-empty Block : %d\n", block.NumberU64())
+	log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
 }
