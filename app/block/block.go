@@ -18,7 +18,7 @@ import (
 func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB) {
 	latestBlockNum, err := client.BlockNumber(context.Background())
 	if err != nil {
-		log.Fatalln("[!] ", err)
+		log.Fatalln("[!] Failed to fetch latest  block number :", err)
 	}
 
 	wp := workerpool.New(runtime.NumCPU())
@@ -44,7 +44,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB) {
 
 	subs, err := client.SubscribeNewHead(context.Background(), headerChan)
 	if err != nil {
-		log.Fatalln("[!] ", err)
+		log.Fatalln("[!] Failed to subscribe to block headers :", err)
 	}
 
 	// Scheduling unsubscribe, to be executed when end of this block is reached
@@ -53,7 +53,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB) {
 	for {
 		select {
 		case err := <-subs.Err():
-			log.Println("[!] ", err)
+			log.Println("[!] Block header subscription failed in mid :", err)
 			break
 		case header := <-headerChan:
 			go fetchBlockByHash(client, header.Hash(), _db)
@@ -65,7 +65,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB) {
 func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB) {
 	block, err := client.BlockByHash(context.Background(), hash)
 	if err != nil {
-		log.Println("[!] ", err)
+		log.Println("[!] Failed to fetch block by hash :", err)
 		return
 	}
 
@@ -80,7 +80,7 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB) {
 
 	block, err := client.BlockByNumber(context.Background(), _num)
 	if err != nil {
-		log.Println("[!] ", err)
+		log.Println("[!] Failed to fetch block by number :", err)
 		return
 	}
 
@@ -112,17 +112,17 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
-		log.Println("[!] ", err)
+		log.Println("[!] Failed to fetch tx receipt :", err)
 		return
 	}
 
 	sender, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
 	if err != nil {
-		log.Println("[!] ", err)
+		log.Println("[!] Failed to fetch tx sender :", err)
 		return
 	}
 
 	db.PutTransaction(_db, tx, receipt, sender)
 	db.PutEvent(_db, receipt)
-	log.Println(sender.Hex(), tx.To().Hex(), "[ ", block.Number().String(), " ]")
+	log.Println("[+] Non-empty Block : ", block.NumberU64())
 }
