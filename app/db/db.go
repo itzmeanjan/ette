@@ -9,11 +9,12 @@ import (
 	cfg "github.com/itzmeanjan/ette/app/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Connect - Connecting to postgresql database
 func Connect() *gorm.DB {
-	_db, err := gorm.Open(postgres.Open(fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", cfg.Get("DB_USER"), cfg.Get("DB_PASSWORD"), cfg.Get("DB_HOST"), cfg.Get("DB_PORT"), cfg.Get("DB_NAME"))), &gorm.Config{})
+	_db, err := gorm.Open(postgres.Open(fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", cfg.Get("DB_USER"), cfg.Get("DB_PASSWORD"), cfg.Get("DB_HOST"), cfg.Get("DB_PORT"), cfg.Get("DB_NAME"))), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		log.Fatalf("[!] Failed to connect to db : %s\n", err.Error())
 	}
@@ -72,8 +73,8 @@ func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Rece
 		Nonce:     _tx.Nonce(),
 		State:     _txReceipt.Status,
 		BlockHash: _txReceipt.BlockHash.Hex(),
-	}); err != nil {
-		log.Printf("[!] Failed to persist tx [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error.Error())
+	}).Error; err != nil {
+		log.Printf("[!] Failed to persist tx [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error())
 	}
 }
 
@@ -98,8 +99,8 @@ func PutEvent(_db *gorm.DB, _txReceipt *types.Receipt) {
 			Data:            v.Data,
 			TransactionHash: v.TxHash.Hex(),
 			BlockHash:       v.BlockHash.Hex(),
-		}); err != nil {
-			log.Printf("[!] Failed to persist tx log [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error.Error())
+		}).Error; err != nil {
+			log.Printf("[!] Failed to persist tx log [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error())
 		}
 	}
 }
