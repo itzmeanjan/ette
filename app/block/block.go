@@ -82,7 +82,7 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB) {
 		return
 	}
 
-	if res := db.GetBlock(_db, _num); res == nil {
+	if res := db.GetBlock(_db, number); res == nil {
 		db.PutBlock(_db, block)
 	}
 

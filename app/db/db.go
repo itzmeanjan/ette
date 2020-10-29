@@ -3,7 +3,6 @@ package db
 import (
 	"fmt"
 	"log"
-	"math/big"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -30,10 +29,10 @@ func Connect() *gorm.DB {
 }
 
 // GetBlock - Fetch block by number, from database
-func GetBlock(_db *gorm.DB, number *big.Int) *Blocks {
+func GetBlock(_db *gorm.DB, number uint64) *Blocks {
 	var block Blocks
 
-	if err := _db.Where("number = ?", number.String()).First(&block).Error; err != nil {
+	if err := _db.Where("number = ?", number).First(&block).Error; err != nil {
 		log.Println("[!] ", err)
 		return nil
 	}
@@ -45,7 +44,7 @@ func GetBlock(_db *gorm.DB, number *big.Int) *Blocks {
 func PutBlock(_db *gorm.DB, _block *types.Block) {
 	if err := _db.Create(&Blocks{
 		Hash:       _block.Hash().Hex(),
-		Number:     _block.Number().String(),
+		Number:     _block.NumberU64(),
 		Time:       _block.Time(),
 		ParentHash: _block.ParentHash().Hex(),
 		Difficulty: _block.Difficulty().String(),
