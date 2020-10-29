@@ -63,17 +63,37 @@ func GetTransaction(_db *gorm.DB, blkHash common.Hash, txHash common.Hash) *Tran
 
 // PutTransaction - Persisting transactions present in a block in database
 func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) {
-	if err := _db.Create(&Transactions{
-		Hash:      _tx.Hash().Hex(),
-		From:      _sender.Hex(),
-		To:        _tx.To().Hex(),
-		Gas:       _tx.Gas(),
-		GasPrice:  _tx.GasPrice().String(),
-		Cost:      _tx.Cost().String(),
-		Nonce:     _tx.Nonce(),
-		State:     _txReceipt.Status,
-		BlockHash: _txReceipt.BlockHash.Hex(),
-	}).Error; err != nil {
+	var _pTx *Transactions
+
+	// If tx creates contract, then we hold created contract address
+	if _tx.To() == nil {
+		_pTx = &Transactions{
+			Hash:      _tx.Hash().Hex(),
+			From:      _sender.Hex(),
+			Contract:  _txReceipt.ContractAddress.Hex(),
+			Gas:       _tx.Gas(),
+			GasPrice:  _tx.GasPrice().String(),
+			Cost:      _tx.Cost().String(),
+			Nonce:     _tx.Nonce(),
+			State:     _txReceipt.Status,
+			BlockHash: _txReceipt.BlockHash.Hex(),
+		}
+	} else {
+		// This is a normal tx, so we keep contract field empty
+		_pTx = &Transactions{
+			Hash:      _tx.Hash().Hex(),
+			From:      _sender.Hex(),
+			To:        _tx.To().Hex(),
+			Gas:       _tx.Gas(),
+			GasPrice:  _tx.GasPrice().String(),
+			Cost:      _tx.Cost().String(),
+			Nonce:     _tx.Nonce(),
+			State:     _txReceipt.Status,
+			BlockHash: _txReceipt.BlockHash.Hex(),
+		}
+	}
+
+	if err := _db.Create(_pTx).Error; err != nil {
 		log.Printf("[!] Failed to persist tx [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error())
 	}
 }

@@ -30,7 +30,8 @@ func (Blocks) TableName() string {
 type Transactions struct {
 	Hash      string `gorm:"column:hash;type:char(66);primaryKey"`
 	From      string `gorm:"column:from;type:char(42);not null"`
-	To        string `gorm:"column:to;type:char(42); not null"`
+	To        string `gorm:"column:to;type:char(42)"`
+	Contract  string `gorm:"column:contract;type:char(42)"`
 	Gas       uint64 `gorm:"column:gas;type:bigint;not null"`
 	GasPrice  string `gorm:"column:gasprice;type:varchar;not null"`
 	Cost      string `gorm:"column:cost;type:varchar;not null"`
