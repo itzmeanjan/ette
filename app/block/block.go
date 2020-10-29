@@ -17,19 +17,14 @@ import (
 )
 
 // SyncToLatestBlock - Fetch all blocks upto latest block
-func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
-	latestBlockNum, err := client.BlockNumber(context.Background())
-	if err != nil {
-		log.Fatalf("[!] Failed to fetch latest  block number : %s\n", err.Error())
-	}
-
+func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB, blockNum uint64, _lock *sync.Mutex, _synced *d.SyncState) {
 	wp := workerpool.New(runtime.NumCPU())
 
-	for i := uint64(0); i < latestBlockNum; i++ {
+	for i := uint64(0); i < blockNum; i++ {
 
-		func(blockNum uint64) {
+		func(num uint64) {
 			wp.Submit(func() {
-				fetchBlockByNumber(client, blockNum, _db)
+				fetchBlockByNumber(client, num, _db)
 			})
 		}(i)
 
@@ -48,7 +43,7 @@ func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex
 // SubscribeToNewBlocks - Listen for event when new block header is
 // available, then fetch block content ( including all transactions )
 // in different worker
-func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB) {
+func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 	headerChan := make(chan *types.Header)
 
 	subs, err := client.SubscribeNewHead(context.Background(), headerChan)
@@ -59,12 +54,27 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB) {
 	// Scheduling unsubscribe, to be executed when end of this block is reached
 	defer subs.Unsubscribe()
 
+	// Flag to check for whether this is first time block header being received
+	// or not
+	//
+	// If yes, we'll start syncer to fetch all block starting from 0 to this block
+	first := true
+
 	for {
 		select {
 		case err := <-subs.Err():
 			log.Printf("[!] Block header subscription failed in mid : %s\n", err.Error())
 			break
 		case header := <-headerChan:
+			if first {
+				// Starting syncer in another thread, where it'll keep fetching
+				// blocks starting from genesis to this block
+				go SyncToLatestBlock(client, _db, header.Number.Uint64(), _lock, _synced)
+				// Making sure on when next latest block header is received, it'll not
+				// start another syncer
+				first = false
+			}
+
 			go fetchBlockByHash(client, header.Hash(), _db)
 		}
 	}
