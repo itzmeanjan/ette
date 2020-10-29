@@ -6,13 +6,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	blk "github.com/itzmeanjan/ette/app/block"
+	d "github.com/itzmeanjan/ette/app/data"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
 
 // Setting ground up
-func bootstrap(file string) (*ethclient.Client, *gorm.DB, *sync.Mutex, *SyncState) {
+func bootstrap(file string) (*ethclient.Client, *gorm.DB, *sync.Mutex, *d.SyncState) {
 	err := cfg.Read(file)
 	if err != nil {
 		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
@@ -22,7 +23,7 @@ func bootstrap(file string) (*ethclient.Client, *gorm.DB, *sync.Mutex, *SyncStat
 	_db := db.Connect()
 
 	_lock := &sync.Mutex{}
-	_synced := &SyncState{Synced: false}
+	_synced := &d.SyncState{Synced: false}
 
 	return _client, _db, _lock, _synced
 }
