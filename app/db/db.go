@@ -98,6 +98,22 @@ func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Rece
 	}
 }
 
+// Given tx receipt, it finds out whether all log entries are persisted or not
+func checkPersistanceStatusOfEventsInTx(_db *gorm.DB, _txReceipt *types.Receipt) bool {
+	count := 0
+
+	for _, v := range _txReceipt.Logs {
+		var _event Events
+
+		if err := _db.Where("index = ? and blockhash = ?", v.Index, v.BlockHash.Hex()).First(&_event).Error; err == nil {
+			count++
+		}
+
+	}
+
+	return count == len(_txReceipt.Logs)
+}
+
 // PutEvent - Entering new log events emitted as result of execution of EVM transaction
 // into persistable storage
 func PutEvent(_db *gorm.DB, _txReceipt *types.Receipt) {
