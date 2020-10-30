@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/ethereum/go-ethereum v1.9.23
 	github.com/gammazero/workerpool v1.1.1
+	github.com/gin-gonic/gin v1.6.3
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/lib/pq v1.3.0
 	github.com/spf13/viper v1.7.1
