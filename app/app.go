@@ -9,6 +9,7 @@ import (
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
+	"github.com/itzmeanjan/ette/app/rest"
 	"gorm.io/gorm"
 )
 
@@ -36,5 +37,6 @@ func Run(file string) {
 	go blk.SubscribeToNewBlocks(_client, _db, _lock, _synced)
 
 	// Starting http server on main thread
-	runHTTPServer(_lock, _synced)
+
+	rest.RunHTTPServer(_db, _lock, _synced)
 }

@@ -1,4 +1,4 @@
-package app
+package rest
 
 import (
 	"fmt"
@@ -7,10 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
+	"gorm.io/gorm"
 )
 
-// Holds definition for all REST API(s) to be exposed
-func runHTTPServer(_lock *sync.Mutex, _synced *d.SyncState) {
+// RunHTTPServer - Holds definition for all REST API(s) to be exposed
+func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 	router := gin.Default()
 
 	grp := router.Group("/v1")
