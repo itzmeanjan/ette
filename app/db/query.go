@@ -97,3 +97,15 @@ func GetBlocksByTimeRange(db *gorm.DB, from string, to string) *data.Blocks {
 
 	return &blocks
 }
+
+// GetTransactionsByBlockHash - Given block hash, returns all transactions
+// present in that block
+func GetTransactionsByBlockHash(db *gorm.DB, hash common.Hash) *data.Transactions {
+	var tx data.Transactions
+
+	if res := db.Model(&Transactions{}).Where("blockhash = ?", hash).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
+		return nil
+	}
+
+	return &tx
+}
