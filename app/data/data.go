@@ -49,3 +49,32 @@ func (b *Blocks) ToJSON() []byte {
 
 	return data
 }
+
+// Transaction - Transaction holder struct, to be supplied when queried using tx hash
+type Transaction struct {
+	Hash     string `json:"hash"`
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Contract string `json:"contract"`
+	Gas      uint64 `json:"gas"`
+	GasPrice string `json:"gasPrice"`
+	Cost     string `json:"cost"`
+	Nonce    uint64 `json:"nonce"`
+	State    uint64 `json:"state"`
+}
+
+// Transactions - Multiple transactions holder struct
+type Transactions struct {
+	Transactions []Transaction `json:"transactions"`
+}
+
+// ToJSON - Encoding into JSON, to be invoked when delivering to client
+func (t *Transactions) ToJSON() []byte {
+	data, err := json.Marshal(t)
+	if err != nil {
+		log.Printf("[!] Failed to encode transaction data to JSON : %s\n", err.Error())
+		return nil
+	}
+
+	return data
+}
