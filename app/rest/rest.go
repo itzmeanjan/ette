@@ -109,6 +109,32 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				return
 			}
 
+			// Query blocks by timestamp range, at max 60 seconds of timestamp
+			// can be mentioned, otherwise request to be rejected
+			fromTime := c.Query("fromTime")
+			toTime := c.Query("toTime")
+
+			if fromTime != "" && toTime != "" {
+				if blocks := db.GetBlocksByTimeRange(_db, fromTime, toTime); blocks != nil {
+
+					if data := blocks.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNoContent, gin.H{
+					"msg": "Bad block timestamp range",
+				})
+				return
+			}
+
 			c.JSON(http.StatusBadRequest, gin.H{
 				"msg": "Bad query param(s)",
 			})
