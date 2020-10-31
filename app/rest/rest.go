@@ -32,10 +32,10 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		}
 
 		if !(_to-_from < limit) {
-			return _from, _to, nil
+			return 0, 0, errors.New("Range too long")
 		}
 
-		return 0, 0, errors.New("Failed to parse integer")
+		return _from, _to, nil
 	}
 
 	// Extracted block number from URL query string, gets parsed into
