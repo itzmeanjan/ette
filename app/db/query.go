@@ -1,9 +1,6 @@
 package db
 
 import (
-	"log"
-	"strconv"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
@@ -25,15 +22,10 @@ func GetBlockByHash(db *gorm.DB, hash common.Hash) *data.Block {
 // GetBlockByNumber - Fetch block using block number
 //
 // If not found, returns nil
-func GetBlockByNumber(db *gorm.DB, number string) *data.Block {
-	_num, err := strconv.ParseUint(number, 10, 64)
-	if err != nil {
-		return nil
-	}
-
+func GetBlockByNumber(db *gorm.DB, number uint64) *data.Block {
 	var block data.Block
 
-	if res := db.Model(&Blocks{}).Where("number = ?", _num).First(&block); res.Error != nil {
+	if res := db.Model(&Blocks{}).Where("number = ?", number).First(&block); res.Error != nil {
 		return nil
 	}
 
@@ -78,30 +70,27 @@ func GetBlocksByTimeRange(db *gorm.DB, from uint64, to uint64) *data.Blocks {
 // GetTransactionsByBlockHash - Given block hash, returns all transactions
 // present in that block
 func GetTransactionsByBlockHash(db *gorm.DB, hash common.Hash) *data.Transactions {
-	var tx data.Transactions
+	var tx []data.Transaction
 
 	if res := db.Model(&Transactions{}).Where("blockhash = ?", hash).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
-		log.Println(res.Error.Error())
 		return nil
 	}
 
-	return &tx
+	return &data.Transactions{
+		Transactions: tx,
+	}
 }
 
 // GetTransactionsByBlockNumber - Given block number, returns all transactions
 // present in that block
-func GetTransactionsByBlockNumber(db *gorm.DB, number string) *data.Transactions {
-	_num, err := strconv.ParseUint(number, 10, 64)
-	if err != nil {
+func GetTransactionsByBlockNumber(db *gorm.DB, number uint64) *data.Transactions {
+	var tx []data.Transaction
+
+	if res := db.Model(&Transactions{}).Where("blockhash = ?", db.Model(&Blocks{}).Where("number = ?", number).Select("hash")).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
 		return nil
 	}
 
-	var tx data.Transactions
-
-	if res := db.Model(&Transactions{}).Where("blockhash = ?", db.Model(&Blocks{}).Where("number = ?", _num).Select("hash")).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
-		log.Println(res.Error.Error())
-		return nil
+	return &data.Transactions{
+		Transactions: tx,
 	}
-
-	return &tx
 }

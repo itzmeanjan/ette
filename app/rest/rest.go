@@ -36,6 +36,15 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		return 0, 0, errors.New("Failed to parse integer")
 	}
 
+	parseBlockNumber := func(number string) (uint64, error) {
+		_num, err := strconv.ParseUint(number, 10, 64)
+		if err != nil {
+			return 0, errors.New("Failed to parse integer")
+		}
+
+		return _num, nil
+	}
+
 	router := gin.Default()
 
 	grp := router.Group("/v1")
@@ -82,7 +91,16 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			// Given block number, finds out all tx(s) present in that block
 			if number != "" && tx == "yes" {
-				if tx := db.GetTransactionsByBlockNumber(_db, number); tx != nil {
+
+				_num, err := parseBlockNumber(number)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsByBlockNumber(_db, _num); tx != nil {
 					if data := tx.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", tx.ToJSON())
 						return
@@ -124,7 +142,16 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			// Block number based single block retrieval request handler
 			if number != "" {
-				if block := db.GetBlockByNumber(_db, number); block != nil {
+
+				_num, err := parseBlockNumber(number)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number",
+					})
+					return
+				}
+
+				if block := db.GetBlockByNumber(_db, _num); block != nil {
 
 					if data := block.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
