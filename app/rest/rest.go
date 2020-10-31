@@ -33,11 +33,29 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		})
 
 		// Query block data using block hash
-		grp.GET("/block/:hash", func(c *gin.Context) {
+		grp.GET("/block", func(c *gin.Context) {
 
-			if block := db.GetBlockByHash(_db, common.HexToHash(c.Param("hash"))); block != nil {
-				c.Data(http.StatusOK, "application/json", block.ToJSON())
+			hash := c.Query("hash")
+			if hash == "" {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"msg": "Block hash expected",
+				})
 				return
+			}
+
+			if block := db.GetBlockByHash(_db, common.HexToHash(hash)); block != nil {
+
+				data := block.ToJSON()
+				if data == nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+				}
+
+				c.Data(http.StatusOK, "application/json", data)
+				return
+
 			}
 
 			c.JSON(http.StatusNoContent, gin.H{
