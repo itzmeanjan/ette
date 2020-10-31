@@ -32,23 +32,23 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 		})
 
-		// Query block data using block hash
+		// Query block data using block hash/ number/ block number range ( 10 at max )
 		grp.GET("/block", func(c *gin.Context) {
 
+			// Block hash based single block retrieval query
 			hash := c.Query("hash")
 
 			if hash != "" {
 				if block := db.GetBlockByHash(_db, common.HexToHash(hash)); block != nil {
 
-					data := block.ToJSON()
-					if data == nil {
-						c.JSON(http.StatusInternalServerError, gin.H{
-							"msg": "JSON encoding failed",
-						})
+					if data := block.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
 						return
 					}
 
-					c.Data(http.StatusOK, "application/json", data)
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
 					return
 
 				}
@@ -59,20 +59,20 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				return
 			}
 
+			// Block number based single block retrieval query
 			number := c.Query("number")
 
 			if number != "" {
 				if block := db.GetBlockByNumber(_db, number); block != nil {
 
-					data := block.ToJSON()
-					if data == nil {
-						c.JSON(http.StatusInternalServerError, gin.H{
-							"msg": "JSON encoding failed",
-						})
+					if data := block.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
 						return
 					}
 
-					c.Data(http.StatusOK, "application/json", data)
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
 					return
 
 				}
@@ -83,8 +83,34 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				return
 			}
 
+			// Block number range based query
+			// At max 10 blocks at a time to be returned
+			fromBlock := c.Query("fromBlock")
+			toBlock := c.Query("toBlock")
+
+			if fromBlock != "" && toBlock != "" {
+				if blocks := db.GetBlocksByNumberRange(_db, fromBlock, toBlock); blocks != nil {
+
+					if data := blocks.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNoContent, gin.H{
+					"msg": "Bad block number range",
+				})
+				return
+			}
+
 			c.JSON(http.StatusBadRequest, gin.H{
-				"msg": "Block hash/ number expected",
+				"msg": "Bad query param(s)",
 			})
 
 		})

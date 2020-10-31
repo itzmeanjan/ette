@@ -57,7 +57,7 @@ func GetBlocksByNumberRange(db *gorm.DB, from string, to string) *data.Blocks {
 		return nil
 	}
 
-	if !(_toNum-_fromNum <= 10) {
+	if !(_toNum-_fromNum < 10) {
 		return nil
 	}
 
