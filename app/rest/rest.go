@@ -36,6 +36,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		grp.GET("/block", func(c *gin.Context) {
 
 			hash := c.Query("hash")
+			number := c.Query("number")
 			tx := c.Query("tx")
 
 			// Block hash based all tx in block retrieval request handler
@@ -54,6 +55,26 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 				c.JSON(http.StatusNoContent, gin.H{
 					"msg": "Bad block hash",
+				})
+				return
+			}
+
+			// Given block number, finds out all tx(s) present in that block
+			if number != "" && tx == "yes" {
+				if tx := db.GetTransactionsByBlockNumber(_db, number); tx != nil {
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", tx.ToJSON())
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+				}
+
+				c.JSON(http.StatusNoContent, gin.H{
+					"msg": "Bad block number",
 				})
 				return
 			}
@@ -80,8 +101,6 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				return
 			}
 
-			number := c.Query("number")
-
 			// Block number based single block retrieval request handler
 			if number != "" {
 				if block := db.GetBlockByNumber(_db, number); block != nil {
@@ -99,7 +118,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				c.JSON(http.StatusNoContent, gin.H{
-					"msg": "Bad block hash",
+					"msg": "Bad block number",
 				})
 				return
 			}
