@@ -36,31 +36,58 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		grp.GET("/block", func(c *gin.Context) {
 
 			hash := c.Query("hash")
-			if hash == "" {
+			number := c.Query("number")
+
+			if hash == "" && number == "" {
 				c.JSON(http.StatusBadRequest, gin.H{
-					"msg": "Block hash expected",
+					"msg": "Block hash/ number expected",
 				})
 				return
 			}
 
-			if block := db.GetBlockByHash(_db, common.HexToHash(hash)); block != nil {
+			if hash != "" {
+				if block := db.GetBlockByHash(_db, common.HexToHash(hash)); block != nil {
 
-				data := block.ToJSON()
-				if data == nil {
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					data := block.ToJSON()
+					if data == nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"msg": "JSON encoding failed",
+						})
+						return
+					}
+
+					c.Data(http.StatusOK, "application/json", data)
 					return
+
 				}
 
-				c.Data(http.StatusOK, "application/json", data)
+				c.JSON(http.StatusNoContent, gin.H{
+					"msg": "Bad block hash",
+				})
 				return
-
 			}
 
-			c.JSON(http.StatusNoContent, gin.H{
-				"msg": "Bad block hash",
-			})
+			if number != "" {
+				if block := db.GetBlockByNumber(_db, number); block != nil {
+
+					data := block.ToJSON()
+					if data == nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"msg": "JSON encoding failed",
+						})
+						return
+					}
+
+					c.Data(http.StatusOK, "application/json", data)
+					return
+
+				}
+
+				c.JSON(http.StatusNoContent, gin.H{
+					"msg": "Bad block hash",
+				})
+				return
+			}
 
 		})
 	}
