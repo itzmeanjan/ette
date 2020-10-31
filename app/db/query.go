@@ -72,7 +72,7 @@ func GetBlocksByTimeRange(db *gorm.DB, from uint64, to uint64) *data.Blocks {
 func GetTransactionsByBlockHash(db *gorm.DB, hash common.Hash) *data.Transactions {
 	var tx []data.Transaction
 
-	if res := db.Model(&Transactions{}).Where("blockhash = ?", hash).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
+	if res := db.Model(&Transactions{}).Where("blockhash = ?", hash.Hex()).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
 		return nil
 	}
 
@@ -86,7 +86,7 @@ func GetTransactionsByBlockHash(db *gorm.DB, hash common.Hash) *data.Transaction
 func GetTransactionsByBlockNumber(db *gorm.DB, number uint64) *data.Transactions {
 	var tx []data.Transaction
 
-	if res := db.Model(&Transactions{}).Where("blockhash = ?", db.Model(&Blocks{}).Where("number = ?", number).Select("hash")).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
+	if res := db.Model(&Transactions{}).Where("blockhash = (?)", db.Model(&Blocks{}).Where("number = ?", number).Select("hash")).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
 		return nil
 	}
 
