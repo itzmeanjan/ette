@@ -109,3 +109,20 @@ func GetTransactionsByBlockHash(db *gorm.DB, hash common.Hash) *data.Transaction
 
 	return &tx
 }
+
+// GetTransactionsByBlockNumber - Given block number, returns all transactions
+// present in that block
+func GetTransactionsByBlockNumber(db *gorm.DB, number string) *data.Transactions {
+	_num, err := strconv.ParseUint(number, 10, 64)
+	if err != nil {
+		return nil
+	}
+
+	var tx data.Transactions
+
+	if res := db.Model(&Transactions{}).Where("blockhash = ?", db.Model(&Blocks{}).Where("number = ?", _num).Select("hash")).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
+		return nil
+	}
+
+	return &tx
+}
