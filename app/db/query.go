@@ -1,6 +1,7 @@
 package db
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -61,13 +62,15 @@ func GetBlocksByNumberRange(db *gorm.DB, from string, to string) *data.Blocks {
 		return nil
 	}
 
-	var blocks data.Blocks
+	var blocks []data.Block
 
 	if res := db.Model(&Blocks{}).Where("number >= ? and number <= ?", _fromNum, _toNum).Order("number asc").Find(&blocks); res.Error != nil {
 		return nil
 	}
 
-	return &blocks
+	return &data.Blocks{
+		Blocks: blocks,
+	}
 }
 
 // GetBlocksByTimeRange - Given time range ( of 60 sec span at max ), returns blocks
@@ -89,13 +92,15 @@ func GetBlocksByTimeRange(db *gorm.DB, from string, to string) *data.Blocks {
 		return nil
 	}
 
-	var blocks data.Blocks
+	var blocks []data.Block
 
 	if res := db.Model(&Blocks{}).Where("time >= ? and time <= ?", _fromTime, _toTime).Order("number asc").Find(&blocks); res.Error != nil {
 		return nil
 	}
 
-	return &blocks
+	return &data.Blocks{
+		Blocks: blocks,
+	}
 }
 
 // GetTransactionsByBlockHash - Given block hash, returns all transactions
@@ -104,6 +109,7 @@ func GetTransactionsByBlockHash(db *gorm.DB, hash common.Hash) *data.Transaction
 	var tx data.Transactions
 
 	if res := db.Model(&Transactions{}).Where("blockhash = ?", hash).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
+		log.Println(res.Error.Error())
 		return nil
 	}
 
@@ -121,6 +127,7 @@ func GetTransactionsByBlockNumber(db *gorm.DB, number string) *data.Transactions
 	var tx data.Transactions
 
 	if res := db.Model(&Transactions{}).Where("blockhash = ?", db.Model(&Blocks{}).Where("number = ?", _num).Select("hash")).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
+		log.Println(res.Error.Error())
 		return nil
 	}
 
