@@ -17,6 +17,25 @@ import (
 
 // RunHTTPServer - Holds definition for all REST API(s) to be exposed
 func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
+
+	rangeChecker := func(from string, to string, limit uint64) (uint64, uint64, error) {
+		_from, err := strconv.ParseUint(from, 10, 64)
+		if err != nil {
+			return 0, 0, errors.New("Failed to parse integer")
+		}
+
+		_to, err := strconv.ParseUint(to, 10, 64)
+		if err != nil {
+			return 0, 0, errors.New("Failed to parse integer")
+		}
+
+		if !(_to-_from < limit) {
+			return _from, _to, nil
+		}
+
+		return 0, 0, errors.New("Failed to parse integer")
+	}
+
 	router := gin.Default()
 
 	grp := router.Group("/v1")
@@ -125,31 +144,22 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				return
 			}
 
-			rangeChecker := func(from string, to string, limit uint64) (uint64, uint64, error) {
-				_from, err := strconv.ParseUint(from, 10, 64)
-				if err != nil {
-					return 0, 0, errors.New("Failed to parse integer")
-				}
-
-				_to, err := strconv.ParseUint(to, 10, 64)
-				if err != nil {
-					return 0, 0, errors.New("Failed to parse integer")
-				}
-
-				if !(_to-_from < limit) {
-					return _from, _to, nil
-				}
-
-				return 0, 0, errors.New("Failed to parse integer")
-			}
-
 			// Block number range based query
 			// At max 10 blocks at a time to be returned
 			fromBlock := c.Query("fromBlock")
 			toBlock := c.Query("toBlock")
 
 			if fromBlock != "" && toBlock != "" {
-				if blocks := db.GetBlocksByNumberRange(_db, fromBlock, toBlock); blocks != nil {
+
+				_from, _to, err := rangeChecker(fromBlock, toBlock, 10)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number range",
+					})
+					return
+				}
+
+				if blocks := db.GetBlocksByNumberRange(_db, _from, _to); blocks != nil {
 
 					if data := blocks.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
@@ -175,7 +185,16 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			toTime := c.Query("toTime")
 
 			if fromTime != "" && toTime != "" {
-				if blocks := db.GetBlocksByTimeRange(_db, fromTime, toTime); blocks != nil {
+
+				_from, _to, err := rangeChecker(fromTime, toTime, 60)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block time range",
+					})
+					return
+				}
+
+				if blocks := db.GetBlocksByTimeRange(_db, _from, _to); blocks != nil {
 
 					if data := blocks.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)

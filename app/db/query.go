@@ -47,24 +47,10 @@ func GetBlockByNumber(db *gorm.DB, number string) *data.Block {
 //
 // If more blocks are requested, simply to be rejected
 // In that case, consider splitting them such that they satisfy criteria
-func GetBlocksByNumberRange(db *gorm.DB, from string, to string) *data.Blocks {
-	_fromNum, err := strconv.ParseUint(from, 10, 64)
-	if err != nil {
-		return nil
-	}
-
-	_toNum, err := strconv.ParseUint(to, 10, 64)
-	if err != nil {
-		return nil
-	}
-
-	if !(_toNum-_fromNum < 10) {
-		return nil
-	}
-
+func GetBlocksByNumberRange(db *gorm.DB, from uint64, to uint64) *data.Blocks {
 	var blocks []data.Block
 
-	if res := db.Model(&Blocks{}).Where("number >= ? and number <= ?", _fromNum, _toNum).Order("number asc").Find(&blocks); res.Error != nil {
+	if res := db.Model(&Blocks{}).Where("number >= ? and number <= ?", from, to).Order("number asc").Find(&blocks); res.Error != nil {
 		return nil
 	}
 
@@ -77,24 +63,10 @@ func GetBlocksByNumberRange(db *gorm.DB, from string, to string) *data.Blocks {
 // mined in that time span
 //
 // If asked to find out blocks in time span larger than 60 sec, simply drops query request
-func GetBlocksByTimeRange(db *gorm.DB, from string, to string) *data.Blocks {
-	_fromTime, err := strconv.ParseUint(from, 10, 64)
-	if err != nil {
-		return nil
-	}
-
-	_toTime, err := strconv.ParseUint(to, 10, 64)
-	if err != nil {
-		return nil
-	}
-
-	if !(_toTime-_fromTime < 60) {
-		return nil
-	}
-
+func GetBlocksByTimeRange(db *gorm.DB, from uint64, to uint64) *data.Blocks {
 	var blocks []data.Block
 
-	if res := db.Model(&Blocks{}).Where("time >= ? and time <= ?", _fromTime, _toTime).Order("number asc").Find(&blocks); res.Error != nil {
+	if res := db.Model(&Blocks{}).Where("time >= ? and time <= ?", from, to).Order("number asc").Find(&blocks); res.Error != nil {
 		return nil
 	}
 
