@@ -18,6 +18,8 @@ import (
 // RunHTTPServer - Holds definition for all REST API(s) to be exposed
 func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
+	// Extracted from, to field of range based block query ( using block numbers/ time stamps )
+	// gets parsed into unsigned integers
 	rangeChecker := func(from string, to string, limit uint64) (uint64, uint64, error) {
 		_from, err := strconv.ParseUint(from, 10, 64)
 		if err != nil {
@@ -36,6 +38,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		return 0, 0, errors.New("Failed to parse integer")
 	}
 
+	// Extracted block number from URL query string, gets parsed into
+	// unsigned integer
 	parseBlockNumber := func(number string) (uint64, error) {
 		_num, err := strconv.ParseUint(number, 10, 64)
 		if err != nil {
