@@ -32,3 +32,20 @@ func (b *Block) ToJSON() []byte {
 
 	return data
 }
+
+// Blocks - A set of blocks to be held, extracted from DB query result
+// also to be supplied to client in JSON encoded form
+type Blocks struct {
+	Blocks []Block `json:"blocks"`
+}
+
+// ToJSON - Encoding into JSON, to be invoked when delivering query result to client
+func (b *Blocks) ToJSON() []byte {
+	data, err := json.Marshal(b)
+	if err != nil {
+		log.Printf("[!] Failed to encode block data to JSON : %s\n", err.Error())
+		return nil
+	}
+
+	return data
+}
