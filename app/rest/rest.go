@@ -77,7 +77,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			if hash != "" && tx == "yes" {
 				if tx := db.GetTransactionsByBlockHash(_db, common.HexToHash(hash)); tx != nil {
 					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", tx.ToJSON())
+						c.Data(http.StatusOK, "application/json", data)
 						return
 					}
 
@@ -106,7 +106,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 				if tx := db.GetTransactionsByBlockNumber(_db, _num); tx != nil {
 					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", tx.ToJSON())
+						c.Data(http.StatusOK, "application/json", data)
 						return
 					}
 
