@@ -1,8 +1,10 @@
 package rest
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -15,6 +17,38 @@ import (
 
 // RunHTTPServer - Holds definition for all REST API(s) to be exposed
 func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
+
+	// Extracted from, to field of range based block query ( using block numbers/ time stamps )
+	// gets parsed into unsigned integers
+	rangeChecker := func(from string, to string, limit uint64) (uint64, uint64, error) {
+		_from, err := strconv.ParseUint(from, 10, 64)
+		if err != nil {
+			return 0, 0, errors.New("Failed to parse integer")
+		}
+
+		_to, err := strconv.ParseUint(to, 10, 64)
+		if err != nil {
+			return 0, 0, errors.New("Failed to parse integer")
+		}
+
+		if !(_to-_from < limit) {
+			return 0, 0, errors.New("Range too long")
+		}
+
+		return _from, _to, nil
+	}
+
+	// Extracted block number from URL query string, gets parsed into
+	// unsigned integer
+	parseBlockNumber := func(number string) (uint64, error) {
+		_num, err := strconv.ParseUint(number, 10, 64)
+		if err != nil {
+			return 0, errors.New("Failed to parse integer")
+		}
+
+		return _num, nil
+	}
+
 	router := gin.Default()
 
 	grp := router.Group("/v1")
@@ -35,9 +69,60 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		// Query block data using block hash/ number/ block number range ( 10 at max )
 		grp.GET("/block", func(c *gin.Context) {
 
-			// Block hash based single block retrieval query
 			hash := c.Query("hash")
+			number := c.Query("number")
+			tx := c.Query("tx")
 
+			// Block hash based all tx in block retrieval request handler
+			if hash != "" && tx == "yes" {
+				if tx := db.GetTransactionsByBlockHash(_db, common.HexToHash(hash)); tx != nil {
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+			}
+
+			// Given block number, finds out all tx(s) present in that block
+			if number != "" && tx == "yes" {
+
+				_num, err := parseBlockNumber(number)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsByBlockNumber(_db, _num); tx != nil {
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+			}
+
+			// Block hash based single block retrieval request handler
 			if hash != "" {
 				if block := db.GetBlockByHash(_db, common.HexToHash(hash)); block != nil {
 
@@ -53,17 +138,24 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 				}
 
-				c.JSON(http.StatusNoContent, gin.H{
-					"msg": "Bad block hash",
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
 				})
 				return
 			}
 
-			// Block number based single block retrieval query
-			number := c.Query("number")
-
+			// Block number based single block retrieval request handler
 			if number != "" {
-				if block := db.GetBlockByNumber(_db, number); block != nil {
+
+				_num, err := parseBlockNumber(number)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number",
+					})
+					return
+				}
+
+				if block := db.GetBlockByNumber(_db, _num); block != nil {
 
 					if data := block.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
@@ -77,8 +169,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 				}
 
-				c.JSON(http.StatusNoContent, gin.H{
-					"msg": "Bad block hash",
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
 				})
 				return
 			}
@@ -89,7 +181,16 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			toBlock := c.Query("toBlock")
 
 			if fromBlock != "" && toBlock != "" {
-				if blocks := db.GetBlocksByNumberRange(_db, fromBlock, toBlock); blocks != nil {
+
+				_from, _to, err := rangeChecker(fromBlock, toBlock, 10)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number range",
+					})
+					return
+				}
+
+				if blocks := db.GetBlocksByNumberRange(_db, _from, _to); blocks != nil {
 
 					if data := blocks.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
@@ -103,8 +204,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 				}
 
-				c.JSON(http.StatusNoContent, gin.H{
-					"msg": "Bad block number range",
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
 				})
 				return
 			}
@@ -115,7 +216,16 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			toTime := c.Query("toTime")
 
 			if fromTime != "" && toTime != "" {
-				if blocks := db.GetBlocksByTimeRange(_db, fromTime, toTime); blocks != nil {
+
+				_from, _to, err := rangeChecker(fromTime, toTime, 60)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block time range",
+					})
+					return
+				}
+
+				if blocks := db.GetBlocksByTimeRange(_db, _from, _to); blocks != nil {
 
 					if data := blocks.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
@@ -129,8 +239,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 				}
 
-				c.JSON(http.StatusNoContent, gin.H{
-					"msg": "Bad block timestamp range",
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
 				})
 				return
 			}
