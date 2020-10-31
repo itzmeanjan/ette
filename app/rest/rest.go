@@ -1,8 +1,10 @@
 package rest
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -121,6 +123,24 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 					"msg": "Not found",
 				})
 				return
+			}
+
+			rangeChecker := func(from string, to string, limit uint64) (uint64, uint64, error) {
+				_from, err := strconv.ParseUint(from, 10, 64)
+				if err != nil {
+					return 0, 0, errors.New("Failed to parse integer")
+				}
+
+				_to, err := strconv.ParseUint(to, 10, 64)
+				if err != nil {
+					return 0, 0, errors.New("Failed to parse integer")
+				}
+
+				if !(_to-_from < limit) {
+					return _from, _to, nil
+				}
+
+				return 0, 0, errors.New("Failed to parse integer")
 			}
 
 			// Block number range based query
