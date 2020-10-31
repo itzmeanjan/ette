@@ -9,6 +9,7 @@ import (
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
+	"github.com/itzmeanjan/ette/app/rest"
 	"gorm.io/gorm"
 )
 
@@ -32,5 +33,10 @@ func bootstrap(file string) (*ethclient.Client, *gorm.DB, *sync.Mutex, *d.SyncSt
 func Run(file string) {
 	_client, _db, _lock, _synced := bootstrap(file)
 
-	blk.SubscribeToNewBlocks(_client, _db, _lock, _synced)
+	// Pushing block header propagation listener to another thread of execution
+	go blk.SubscribeToNewBlocks(_client, _db, _lock, _synced)
+
+	// Starting http server on main thread
+
+	rest.RunHTTPServer(_db, _lock, _synced)
 }
