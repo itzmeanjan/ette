@@ -36,14 +36,6 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		grp.GET("/block", func(c *gin.Context) {
 
 			hash := c.Query("hash")
-			number := c.Query("number")
-
-			if hash == "" && number == "" {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"msg": "Block hash/ number expected",
-				})
-				return
-			}
 
 			if hash != "" {
 				if block := db.GetBlockByHash(_db, common.HexToHash(hash)); block != nil {
@@ -67,6 +59,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				return
 			}
 
+			number := c.Query("number")
+
 			if number != "" {
 				if block := db.GetBlockByNumber(_db, number); block != nil {
 
@@ -88,6 +82,10 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				})
 				return
 			}
+
+			c.JSON(http.StatusBadRequest, gin.H{
+				"msg": "Block hash/ number expected",
+			})
 
 		})
 	}
