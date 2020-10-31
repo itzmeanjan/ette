@@ -38,3 +38,34 @@ func GetBlockByNumber(db *gorm.DB, number string) *data.Block {
 
 	return &block
 }
+
+// GetBlocksByNumberRange - Given block numbers as range, it'll extract out those blocks
+// by number, while returning them in ascendically sorted form in terms of block numbers
+//
+// Note : Can return at max 10 blocks in a single query
+//
+// If more blocks are requested, simply to be rejected
+// In that case, consider splitting them such that they satisfy criteria
+func GetBlocksByNumberRange(db *gorm.DB, from string, to string) *data.Blocks {
+	_fromNum, err := strconv.ParseUint(from, 10, 64)
+	if err != nil {
+		return nil
+	}
+
+	_toNum, err := strconv.ParseUint(to, 10, 64)
+	if err != nil {
+		return nil
+	}
+
+	if !(_toNum-_fromNum <= 10) {
+		return nil
+	}
+
+	var blocks data.Blocks
+
+	if res := db.Model(&Blocks{}).Where("number >= ? and number <= ?", _fromNum, _toNum).Order("number asc").Find(&blocks); res.Error != nil {
+		return nil
+	}
+
+	return &blocks
+}
