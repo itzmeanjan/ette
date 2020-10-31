@@ -54,7 +54,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
-					"msg": "Bad block hash",
+					"msg": "Not found",
 				})
 				return
 			}
@@ -74,7 +74,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
-					"msg": "Bad block number",
+					"msg": "Not found",
 				})
 				return
 			}
@@ -96,7 +96,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
-					"msg": "Bad block hash",
+					"msg": "Not found",
 				})
 				return
 			}
@@ -118,7 +118,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
-					"msg": "Bad block number",
+					"msg": "Not found",
 				})
 				return
 			}
@@ -144,7 +144,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
-					"msg": "Bad block number range",
+					"msg": "Not found",
 				})
 				return
 			}
@@ -170,7 +170,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
-					"msg": "Bad block timestamp range",
+					"msg": "Not found",
 				})
 				return
 			}
