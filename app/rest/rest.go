@@ -277,6 +277,43 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				return
 			}
 
+			fromBlock := c.Query("fromBlock")
+			toBlock := c.Query("toBlock")
+			account := c.Query("account")
+
+			// Given block number range & account, can find out all tx performed
+			// from account
+			if fromBlock != "" && toBlock != "" && account != "" {
+
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number range",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsFromAccountByBlockNumberRange(_db, common.HexToAddress(account), _fromBlock, _toBlock); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
 			c.JSON(http.StatusBadRequest, gin.H{
 				"msg": "Bad query param(s)",
 			})
