@@ -88,11 +88,28 @@ func (t *Transaction) ToJSON() []byte {
 
 // Transactions - Multiple transactions holder struct
 type Transactions struct {
-	Transactions []Transaction `json:"transactions"`
+	Transactions []*Transaction `json:"transactions"`
 }
 
 // ToJSON - Encoding into JSON, to be invoked when delivering to client
 func (t *Transactions) ToJSON() []byte {
+
+	// Replacing contract address/ to address of tx
+	// using empty string, if tx is normal tx/ creates contract
+	// respectively
+	//
+	// We'll save some data transfer burden
+	for _, v := range t.Transactions {
+		if !strings.HasPrefix(v.Contract, "0x") {
+			v.Contract = ""
+		}
+
+		// When tx creates contract
+		if !strings.HasPrefix(v.To, "0x") {
+			v.To = ""
+		}
+	}
+
 	data, err := json.Marshal(t)
 	if err != nil {
 		log.Printf("[!] Failed to encode transaction data to JSON : %s\n", err.Error())
