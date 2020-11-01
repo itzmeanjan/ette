@@ -70,9 +70,9 @@ func GetBlocksByTimeRange(db *gorm.DB, from uint64, to uint64) *data.Blocks {
 // GetTransactionsByBlockHash - Given block hash, returns all transactions
 // present in that block
 func GetTransactionsByBlockHash(db *gorm.DB, hash common.Hash) *data.Transactions {
-	var tx []data.Transaction
+	var tx []*data.Transaction
 
-	if res := db.Model(&Transactions{}).Where("blockhash = ?", hash.Hex()).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
+	if res := db.Model(&Transactions{}).Where("blockhash = ?", hash.Hex()).Find(&tx); res.Error != nil {
 		return nil
 	}
 
@@ -84,9 +84,48 @@ func GetTransactionsByBlockHash(db *gorm.DB, hash common.Hash) *data.Transaction
 // GetTransactionsByBlockNumber - Given block number, returns all transactions
 // present in that block
 func GetTransactionsByBlockNumber(db *gorm.DB, number uint64) *data.Transactions {
-	var tx []data.Transaction
+	var tx []*data.Transaction
 
-	if res := db.Model(&Transactions{}).Where("blockhash = (?)", db.Model(&Blocks{}).Where("number = ?", number).Select("hash")).Select("hash", "from", "to", "contract", "gas", "gasprice", "cost", "nonce", "state").Find(&tx); res.Error != nil {
+	if res := db.Model(&Transactions{}).Where("blockhash = (?)", db.Model(&Blocks{}).Where("number = ?", number).Select("hash")).Find(&tx); res.Error != nil {
+		return nil
+	}
+
+	return &data.Transactions{
+		Transactions: tx,
+	}
+}
+
+// GetTransactionByHash - Given tx hash, extracts out transaction related data
+func GetTransactionByHash(db *gorm.DB, hash common.Hash) *data.Transaction {
+	var tx data.Transaction
+
+	if err := db.Model(&Transactions{}).Where("hash = ?", hash.Hex()).First(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &tx
+}
+
+// GetTransactionsFromAccountByBlockNumberRange - Given account address & block number range, it can find out
+// all transactions which are performed from this account
+func GetTransactionsFromAccountByBlockNumberRange(db *gorm.DB, account common.Address, from uint64, to uint64) *data.Transactions {
+	var tx []*data.Transaction
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.from = ? and blocks.number >= ? and blocks.number <= ?", account.Hex(), from, to).Select("transactions.hash, transactions.from, transactions.to, transactions.contract, transactions.gas, transactions.gasprice, transactions.cost, transactions.nonce, transactions.state, transactions.blockhash").Find(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &data.Transactions{
+		Transactions: tx,
+	}
+}
+
+// GetTransactionsFromAccountByBlockTimeRange - Given account address & block mining time stamp range, it can find out
+// all tx(s) performed from this account, with in that time span
+func GetTransactionsFromAccountByBlockTimeRange(db *gorm.DB, account common.Address, from uint64, to uint64) *data.Transactions {
+	var tx []*data.Transaction
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.from = ? and blocks.time >= ? and blocks.time <= ?", account.Hex(), from, to).Select("transactions.hash, transactions.from, transactions.to, transactions.contract, transactions.gas, transactions.gasprice, transactions.cost, transactions.nonce, transactions.state, transactions.blockhash").Find(&tx).Error; err != nil {
 		return nil
 	}
 

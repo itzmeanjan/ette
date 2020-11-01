@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -73,8 +74,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			number := c.Query("number")
 			tx := c.Query("tx")
 
-			// Block hash based all tx in block retrieval request handler
-			if hash != "" && tx == "yes" {
+			// Block hash based all tx retrieval request handler
+			if strings.HasPrefix(hash, "0x") && len(hash) == 66 && tx == "yes" {
 				if tx := db.GetTransactionsByBlockHash(_db, common.HexToHash(hash)); tx != nil {
 					if data := tx.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
@@ -123,7 +124,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			}
 
 			// Block hash based single block retrieval request handler
-			if hash != "" {
+			if strings.HasPrefix(hash, "0x") && len(hash) == 66 {
 				if block := db.GetBlockByHash(_db, common.HexToHash(hash)); block != nil {
 
 					if data := block.ToJSON(); data != nil {
@@ -243,6 +244,112 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 					"msg": "Not found",
 				})
 				return
+			}
+
+			c.JSON(http.StatusBadRequest, gin.H{
+				"msg": "Bad query param(s)",
+			})
+
+		})
+
+		// Transaction fetch ( by query params ) request handler
+		grp.GET("/transaction", func(c *gin.Context) {
+
+			hash := c.Query("hash")
+
+			// Simply returns single tx object, when queried using tx hash
+			if strings.HasPrefix(hash, "0x") && len(hash) == 66 {
+				if tx := db.GetTransactionByHash(_db, common.HexToHash(hash)); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+			}
+
+			fromBlock := c.Query("fromBlock")
+			toBlock := c.Query("toBlock")
+			account := c.Query("account")
+
+			// Given block number range & account, can find out all tx performed
+			// from account
+			if fromBlock != "" && toBlock != "" && strings.HasPrefix(account, "0x") && len(account) == 42 {
+
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number range",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsFromAccountByBlockNumberRange(_db, common.HexToAddress(account), _fromBlock, _toBlock); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			fromTime := c.Query("fromTime")
+			toTime := c.Query("toTime")
+
+			// Given block mining time stamp range & account address, returns all outgoing tx
+			// from this account in that given time span
+			if fromTime != "" && toTime != "" && strings.HasPrefix(account, "0x") && len(account) == 42 {
+
+				_fromTime, _toTime, err := rangeChecker(fromBlock, toBlock, 600)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block time range",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsFromAccountByBlockTimeRange(_db, common.HexToAddress(account), _fromTime, _toTime); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
 			}
 
 			c.JSON(http.StatusBadRequest, gin.H{
