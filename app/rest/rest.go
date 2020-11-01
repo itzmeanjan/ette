@@ -281,11 +281,16 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			fromBlock := c.Query("fromBlock")
 			toBlock := c.Query("toBlock")
-			account := c.Query("account")
+
+			fromTime := c.Query("fromTime")
+			toTime := c.Query("toTime")
+
+			fromAccount := c.Query("fromAccount")
+			toAccount := c.Query("toAccount")
 
 			// Given block number range & account, can find out all tx performed
 			// from account
-			if fromBlock != "" && toBlock != "" && strings.HasPrefix(account, "0x") && len(account) == 42 {
+			if fromBlock != "" && toBlock != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
 
 				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
 				if err != nil {
@@ -295,7 +300,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 					return
 				}
 
-				if tx := db.GetTransactionsFromAccountByBlockNumberRange(_db, common.HexToAddress(account), _fromBlock, _toBlock); tx != nil {
+				if tx := db.GetTransactionsFromAccountByBlockNumberRange(_db, common.HexToAddress(fromAccount), _fromBlock, _toBlock); tx != nil {
 
 					if data := tx.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
@@ -316,12 +321,75 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			}
 
-			fromTime := c.Query("fromTime")
-			toTime := c.Query("toTime")
-
 			// Given block mining time stamp range & account address, returns all outgoing tx
 			// from this account in that given time span
-			if fromTime != "" && toTime != "" && strings.HasPrefix(account, "0x") && len(account) == 42 {
+			if fromTime != "" && toTime != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
+
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block time range",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsFromAccountByBlockTimeRange(_db, common.HexToAddress(fromAccount), _fromTime, _toTime); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			// Given block number range & account address, returns all incoming tx
+			// to this account in that block range
+			if fromBlock != "" && toBlock != "" && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
+
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number range",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsToAccountByBlockNumberRange(_db, common.HexToAddress(toAccount), _fromBlock, _toBlock); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			// Given block mining time stamp range & account address, returns all incoming tx
+			// to this account in that given time span
+			if fromTime != "" && toTime != "" && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
 
 				_fromTime, _toTime, err := rangeChecker(fromBlock, toBlock, 600)
 				if err != nil {
@@ -331,7 +399,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 					return
 				}
 
-				if tx := db.GetTransactionsFromAccountByBlockTimeRange(_db, common.HexToAddress(account), _fromTime, _toTime); tx != nil {
+				if tx := db.GetTransactionsToAccountByBlockTimeRange(_db, common.HexToAddress(toAccount), _fromTime, _toTime); tx != nil {
 
 					if data := tx.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
