@@ -52,15 +52,16 @@ func (b *Blocks) ToJSON() []byte {
 
 // Transaction - Transaction holder struct, to be supplied when queried using tx hash
 type Transaction struct {
-	Hash     string `json:"hash" gorm:"column:hash"`
-	From     string `json:"from" gorm:"column:from"`
-	To       string `json:"to" gorm:"column:to"`
-	Contract string `json:"contract" gorm:"column:contract"`
-	Gas      uint64 `json:"gas" gorm:"column:gas"`
-	GasPrice string `json:"gasPrice" gorm:"column:gasprice"`
-	Cost     string `json:"cost" gorm:"column:cost"`
-	Nonce    uint64 `json:"nonce" gorm:"column:nonce"`
-	State    uint64 `json:"state" gorm:"column:state"`
+	Hash      string `json:"hash" gorm:"column:hash"`
+	From      string `json:"from" gorm:"column:from"`
+	To        string `json:"to" gorm:"column:to"`
+	Contract  string `json:"contract" gorm:"column:contract"`
+	Gas       uint64 `json:"gas" gorm:"column:gas"`
+	GasPrice  string `json:"gasPrice" gorm:"column:gasprice"`
+	Cost      string `json:"cost" gorm:"column:cost"`
+	Nonce     uint64 `json:"nonce" gorm:"column:nonce"`
+	State     uint64 `json:"state" gorm:"column:state"`
+	BlockHash string `json:"blockHash" gorm:"column:blockhash"`
 }
 
 // Transactions - Multiple transactions holder struct
