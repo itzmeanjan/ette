@@ -3,6 +3,7 @@ package data
 import (
 	"encoding/json"
 	"log"
+	"strings"
 )
 
 // SyncState - Whether `ette` is synced with blockchain or not
@@ -66,6 +67,16 @@ type Transaction struct {
 
 // ToJSON - JSON encoder, to be invoked before delivering tx query data to client
 func (t *Transaction) ToJSON() []byte {
+	// When tx doesn't create contract i.e. normal tx
+	if !strings.HasPrefix(t.Contract, "0x") {
+		t.Contract = ""
+	}
+
+	// When tx creates contract
+	if !strings.HasPrefix(t.To, "0x") {
+		t.To = ""
+	}
+
 	data, err := json.Marshal(t)
 	if err != nil {
 		log.Printf("[!] Failed to encode transaction data to JSON : %s\n", err.Error())
