@@ -257,6 +257,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			hash := c.Query("hash")
 
+			// Simply returns single tx object, when queried using tx hash
 			if strings.HasPrefix(hash, "0x") && len(hash) == 66 {
 				if tx := db.GetTransactionByHash(_db, common.HexToHash(hash)); tx != nil {
 
@@ -295,6 +296,42 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if tx := db.GetTransactionsFromAccountByBlockNumberRange(_db, common.HexToAddress(account), _fromBlock, _toBlock); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			fromTime := c.Query("fromTime")
+			toTime := c.Query("toTime")
+
+			// Given block mining time stamp range & account address, returns all outgoing tx
+			// from this account in that given time span
+			if fromTime != "" && toTime != "" && strings.HasPrefix(account, "0x") && len(account) == 42 {
+
+				_fromTime, _toTime, err := rangeChecker(fromBlock, toBlock, 600)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block time range",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsFromAccountByBlockTimeRange(_db, common.HexToAddress(account), _fromTime, _toTime); tx != nil {
 
 					if data := tx.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
