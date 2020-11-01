@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -73,8 +74,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			number := c.Query("number")
 			tx := c.Query("tx")
 
-			// Block hash based all tx in block retrieval request handler
-			if hash != "" && tx == "yes" {
+			// Block hash based all tx retrieval request handler
+			if strings.HasPrefix(hash, "0x") && len(hash) == 66 && tx == "yes" {
 				if tx := db.GetTransactionsByBlockHash(_db, common.HexToHash(hash)); tx != nil {
 					if data := tx.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
@@ -123,7 +124,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			}
 
 			// Block hash based single block retrieval request handler
-			if hash != "" {
+			if strings.HasPrefix(hash, "0x") && len(hash) == 66 {
 				if block := db.GetBlockByHash(_db, common.HexToHash(hash)); block != nil {
 
 					if data := block.ToJSON(); data != nil {
@@ -256,7 +257,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			hash := c.Query("hash")
 
-			if hash != "" {
+			if strings.HasPrefix(hash, "0x") && len(hash) == 66 {
 				if tx := db.GetTransactionByHash(_db, common.HexToHash(hash)); tx != nil {
 
 					if data := tx.ToJSON(); data != nil {
@@ -283,7 +284,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			// Given block number range & account, can find out all tx performed
 			// from account
-			if fromBlock != "" && toBlock != "" && account != "" {
+			if fromBlock != "" && toBlock != "" && strings.HasPrefix(account, "0x") && len(account) == 42 {
 
 				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
 				if err != nil {
