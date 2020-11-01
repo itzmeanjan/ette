@@ -287,12 +287,81 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			fromTime := c.Query("fromTime")
 			toTime := c.Query("toTime")
 
+			// Contract deployer address
+			deployer := c.Query("deployer")
+
 			// account pair, in between this pair tx(s) to be extracted out in time span range/ block number range
 			//
 			// only single one can be supplied to enforce tx search
 			// for incoming/ outgoing tx to & from an account
 			fromAccount := c.Query("fromAccount")
 			toAccount := c.Query("toAccount")
+
+			// Responds with all contract creation tx(s) sent from specific account
+			// ( i.e. deployer ) with in given block number range
+			if fromBlock != "" && toBlock != "" && strings.HasPrefix(deployer, "0x") && len(deployer) == 42 {
+
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number range",
+					})
+					return
+				}
+
+				if tx := db.GetContractCreationTransactionsFromAccountByBlockNumberRange(_db, common.HexToAddress(deployer), _fromBlock, _toBlock); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			// Responds with all contract creation tx(s) sent from specific account
+			// ( i.e. deployer ) with in given time frame
+			if fromTime != "" && toTime != "" && strings.HasPrefix(deployer, "0x") && len(deployer) == 42 {
+
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block time range",
+					})
+					return
+				}
+
+				if tx := db.GetContractCreationTransactionsFromAccountByBlockTimeRange(_db, common.HexToAddress(deployer), _fromTime, _toTime); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
 
 			// Given block number range & a pair of accounts, can find out all tx performed
 			// between that pair, where `from` & `to` fields are fixed
