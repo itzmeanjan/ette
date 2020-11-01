@@ -203,3 +203,17 @@ func GetContractCreationTransactionsFromAccountByBlockNumberRange(db *gorm.DB, a
 		Transactions: tx,
 	}
 }
+
+// GetContractCreationTransactionsFromAccountByBlockTimeRange - Fetch all contract creation tx(s) from given account
+// with in specific block time span range
+func GetContractCreationTransactionsFromAccountByBlockTimeRange(db *gorm.DB, account common.Address, from uint64, to uint64) *data.Transactions {
+	var tx []*data.Transaction
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.from = ? and transactions.contract <> '' and blocks.time >= ? and blocks.time <= ?", account.Hex(), from, to).Select("transactions.hash, transactions.from, transactions.to, transactions.contract, transactions.gas, transactions.gasprice, transactions.cost, transactions.nonce, transactions.state, transactions.blockhash").Find(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &data.Transactions{
+		Transactions: tx,
+	}
+}
