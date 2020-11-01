@@ -250,6 +250,38 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			})
 
 		})
+
+		// Transaction fetch ( by query params ) request handler
+		grp.GET("/transaction", func(c *gin.Context) {
+
+			hash := c.Query("hash")
+
+			if hash != "" {
+				if tx := db.GetTransactionByHash(_db, common.HexToHash(hash)); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+			}
+
+			c.JSON(http.StatusBadRequest, gin.H{
+				"msg": "Bad query param(s)",
+			})
+
+		})
 	}
 
 	router.Run(fmt.Sprintf(":%s", cfg.Get("PORT")))
