@@ -94,3 +94,14 @@ func GetTransactionsByBlockNumber(db *gorm.DB, number uint64) *data.Transactions
 		Transactions: tx,
 	}
 }
+
+// GetTransactionByHash - Given tx hash, extracts out transaction related data
+func GetTransactionByHash(db *gorm.DB, hash common.Hash) *data.Transaction {
+	var tx data.Transaction
+
+	if err := db.Model(&Transactions{}).Where("hash = ?", hash.Hex()).First(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &tx
+}
