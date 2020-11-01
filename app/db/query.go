@@ -105,3 +105,17 @@ func GetTransactionByHash(db *gorm.DB, hash common.Hash) *data.Transaction {
 
 	return &tx
 }
+
+// GetTransactionsFromAccountByBlockNumberRange - Given account address & block number range, it can find out
+// all transactions which are performed from this account
+func GetTransactionsFromAccountByBlockNumberRange(db *gorm.DB, account common.Address, from uint64, to uint64) *data.Transactions {
+	var tx []*data.Transaction
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.from = ? and blocks.number >= ? and blocks.number <= ?", account.Hex(), from, to).Select("transactions.hash, transactions.from, transactions.to, transactions.contract, transactions.gas, transactions.gasprice, transactions.cost, transactions.nonce, transactions.state, transactions.blockhash").Find(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &data.Transactions{
+		Transactions: tx,
+	}
+}
