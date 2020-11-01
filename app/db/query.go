@@ -119,3 +119,17 @@ func GetTransactionsFromAccountByBlockNumberRange(db *gorm.DB, account common.Ad
 		Transactions: tx,
 	}
 }
+
+// GetTransactionsFromAccountByBlockTimeRange - Given account address & block mining time stamp range, it can find out
+// all tx(s) performed from this account, with in that time span
+func GetTransactionsFromAccountByBlockTimeRange(db *gorm.DB, account common.Address, from uint64, to uint64) *data.Transactions {
+	var tx []*data.Transaction
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.from = ? and blocks.time >= ? and blocks.time <= ?", account.Hex(), from, to).Select("transactions.hash, transactions.from, transactions.to, transactions.contract, transactions.gas, transactions.gasprice, transactions.cost, transactions.nonce, transactions.state, transactions.blockhash").Find(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &data.Transactions{
+		Transactions: tx,
+	}
+}
