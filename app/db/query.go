@@ -133,3 +133,59 @@ func GetTransactionsFromAccountByBlockTimeRange(db *gorm.DB, account common.Addr
 		Transactions: tx,
 	}
 }
+
+// GetTransactionsToAccountByBlockNumberRange - Given account address & block number range, returns transactions where
+// `account` was in `to` field
+func GetTransactionsToAccountByBlockNumberRange(db *gorm.DB, account common.Address, from uint64, to uint64) *data.Transactions {
+	var tx []*data.Transaction
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.to = ? and blocks.number >= ? and blocks.number <= ?", account.Hex(), from, to).Select("transactions.hash, transactions.from, transactions.to, transactions.contract, transactions.gas, transactions.gasprice, transactions.cost, transactions.nonce, transactions.state, transactions.blockhash").Find(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &data.Transactions{
+		Transactions: tx,
+	}
+}
+
+// GetTransactionsToAccountByBlockTimeRange - Given account address which is present in `to` field of tx(s)
+// held in blocks mined with in given time range
+func GetTransactionsToAccountByBlockTimeRange(db *gorm.DB, account common.Address, from uint64, to uint64) *data.Transactions {
+	var tx []*data.Transaction
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.to = ? and blocks.time >= ? and blocks.time <= ?", account.Hex(), from, to).Select("transactions.hash, transactions.from, transactions.to, transactions.contract, transactions.gas, transactions.gasprice, transactions.cost, transactions.nonce, transactions.state, transactions.blockhash").Find(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &data.Transactions{
+		Transactions: tx,
+	}
+}
+
+// GetTransactionsBetweenAccountsByBlockNumberRange - Given from & to account addresses & block number range,
+// returns transactions where `from` & `to` fields are matching
+func GetTransactionsBetweenAccountsByBlockNumberRange(db *gorm.DB, fromAccount common.Address, toAccount common.Address, from uint64, to uint64) *data.Transactions {
+	var tx []*data.Transaction
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.from = ? and transactions.to = ? and blocks.number >= ? and blocks.number <= ?", fromAccount.Hex(), toAccount.Hex(), from, to).Select("transactions.hash, transactions.from, transactions.to, transactions.contract, transactions.gas, transactions.gasprice, transactions.cost, transactions.nonce, transactions.state, transactions.blockhash").Find(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &data.Transactions{
+		Transactions: tx,
+	}
+}
+
+// GetTransactionsBetweenAccountsByBlockTimeRange - Given from & to account addresses & block mining time range,
+// returns transactions where `from` & `to` fields are matching
+func GetTransactionsBetweenAccountsByBlockTimeRange(db *gorm.DB, fromAccount common.Address, toAccount common.Address, from uint64, to uint64) *data.Transactions {
+	var tx []*data.Transaction
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.from = ? and transactions.to = ? and blocks.time >= ? and blocks.time <= ?", fromAccount.Hex(), toAccount.Hex(), from, to).Select("transactions.hash, transactions.from, transactions.to, transactions.contract, transactions.gas, transactions.gasprice, transactions.cost, transactions.nonce, transactions.state, transactions.blockhash").Find(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &data.Transactions{
+		Transactions: tx,
+	}
+}

@@ -279,13 +279,24 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				return
 			}
 
+			// block number range
 			fromBlock := c.Query("fromBlock")
 			toBlock := c.Query("toBlock")
-			account := c.Query("account")
 
-			// Given block number range & account, can find out all tx performed
-			// from account
-			if fromBlock != "" && toBlock != "" && strings.HasPrefix(account, "0x") && len(account) == 42 {
+			// block time span range
+			fromTime := c.Query("fromTime")
+			toTime := c.Query("toTime")
+
+			// account pair, in between this pair tx(s) to be extracted out in time span range/ block number range
+			//
+			// only single one can be supplied to enforce tx search
+			// for incoming/ outgoing tx to & from an account
+			fromAccount := c.Query("fromAccount")
+			toAccount := c.Query("toAccount")
+
+			// Given block number range & a pair of accounts, can find out all tx performed
+			// between that pair, where `from` & `to` fields are fixed
+			if fromBlock != "" && toBlock != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
 
 				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
 				if err != nil {
@@ -295,7 +306,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 					return
 				}
 
-				if tx := db.GetTransactionsFromAccountByBlockNumberRange(_db, common.HexToAddress(account), _fromBlock, _toBlock); tx != nil {
+				if tx := db.GetTransactionsBetweenAccountsByBlockNumberRange(_db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _fromBlock, _toBlock); tx != nil {
 
 					if data := tx.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
@@ -316,12 +327,141 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			}
 
-			fromTime := c.Query("fromTime")
-			toTime := c.Query("toTime")
+			// Given block time range & a pair of accounts, can find out all tx performed
+			// between that pair, where `from` & `to` fields are fixed
+			if fromTime != "" && toTime != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
+
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block time range",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsBetweenAccountsByBlockTimeRange(_db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _fromTime, _toTime); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			// Given block number range & account, can find out all tx performed
+			// from account
+			if fromBlock != "" && toBlock != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
+
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number range",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsFromAccountByBlockNumberRange(_db, common.HexToAddress(fromAccount), _fromBlock, _toBlock); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
 
 			// Given block mining time stamp range & account address, returns all outgoing tx
 			// from this account in that given time span
-			if fromTime != "" && toTime != "" && strings.HasPrefix(account, "0x") && len(account) == 42 {
+			if fromTime != "" && toTime != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
+
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block time range",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsFromAccountByBlockTimeRange(_db, common.HexToAddress(fromAccount), _fromTime, _toTime); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			// Given block number range & account address, returns all incoming tx
+			// to this account in that block range
+			if fromBlock != "" && toBlock != "" && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
+
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number range",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionsToAccountByBlockNumberRange(_db, common.HexToAddress(toAccount), _fromBlock, _toBlock); tx != nil {
+
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			// Given block mining time stamp range & account address, returns all incoming tx
+			// to this account in that given time span
+			if fromTime != "" && toTime != "" && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
 
 				_fromTime, _toTime, err := rangeChecker(fromBlock, toBlock, 600)
 				if err != nil {
@@ -331,7 +471,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 					return
 				}
 
-				if tx := db.GetTransactionsFromAccountByBlockTimeRange(_db, common.HexToAddress(account), _fromTime, _toTime); tx != nil {
+				if tx := db.GetTransactionsToAccountByBlockTimeRange(_db, common.HexToAddress(toAccount), _fromTime, _toTime); tx != nil {
 
 					if data := tx.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
