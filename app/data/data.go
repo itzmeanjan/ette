@@ -64,6 +64,17 @@ type Transaction struct {
 	BlockHash string `json:"blockHash" gorm:"column:blockhash"`
 }
 
+// ToJSON - JSON encoder, to be invoked before delivering tx query data to client
+func (t *Transaction) ToJSON() []byte {
+	data, err := json.Marshal(t)
+	if err != nil {
+		log.Printf("[!] Failed to encode transaction data to JSON : %s\n", err.Error())
+		return nil
+	}
+
+	return data
+}
+
 // Transactions - Multiple transactions holder struct
 type Transactions struct {
 	Transactions []Transaction `json:"transactions"`
