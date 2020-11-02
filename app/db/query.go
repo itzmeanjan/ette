@@ -217,3 +217,14 @@ func GetContractCreationTransactionsFromAccountByBlockTimeRange(db *gorm.DB, acc
 		Transactions: tx,
 	}
 }
+
+// GetTransactionFromAccountWithNonce - Given tx sender address & account nonce, finds out tx, satisfying condition
+func GetTransactionFromAccountWithNonce(db *gorm.DB, account common.Address, nonce uint64) *data.Transaction {
+	var tx data.Transaction
+
+	if err := db.Model(&Transactions{}).Where("transactions.from = ? and transactions.nonce = ?", account.Hex(), nonce).First(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &tx
+}
