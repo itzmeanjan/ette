@@ -302,7 +302,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			nonce := c.Query("nonce")
 
 			// Responds with tx sent from account with specified nonce
-			if strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
+			if nonce != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
 
 				_nonce, err := parseNumber(nonce)
 				if err != nil {
