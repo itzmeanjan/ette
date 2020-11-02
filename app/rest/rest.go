@@ -39,9 +39,9 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		return _from, _to, nil
 	}
 
-	// Extracted block number from URL query string, gets parsed into
+	// Extracted numeric query param, gets parsed into
 	// unsigned integer
-	parseBlockNumber := func(number string) (uint64, error) {
+	parseNumber := func(number string) (uint64, error) {
 		_num, err := strconv.ParseUint(number, 10, 64)
 		if err != nil {
 			return 0, errors.New("Failed to parse integer")
@@ -97,7 +97,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			// Given block number, finds out all tx(s) present in that block
 			if number != "" && tx == "yes" {
 
-				_num, err := parseBlockNumber(number)
+				_num, err := parseNumber(number)
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number",
@@ -148,7 +148,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			// Block number based single block retrieval request handler
 			if number != "" {
 
-				_num, err := parseBlockNumber(number)
+				_num, err := parseNumber(number)
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number",
@@ -296,6 +296,40 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			// for incoming/ outgoing tx to & from an account
 			fromAccount := c.Query("fromAccount")
 			toAccount := c.Query("toAccount")
+
+			// Account nonce, to be used for finding
+			// tx, in combination with `fromAccount`
+			nonce := c.Query("nonce")
+
+			// Responds with tx sent from account with specified nonce
+			if strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
+
+				_nonce, err := parseNumber(nonce)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad account nonce",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionFromAccountWithNonce(_db, common.HexToAddress(fromAccount), _nonce); tx != nil {
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
 
 			// Responds with all contract creation tx(s) sent from specific account
 			// ( i.e. deployer ) with in given block number range
