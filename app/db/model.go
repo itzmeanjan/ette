@@ -48,12 +48,12 @@ func (Transactions) TableName() string {
 
 // Events - Events emitted from smart contracts to be held in this table
 type Events struct {
-	Origin          string         `gorm:"column:origin;type:char(42);not null"`
-	Index           uint           `gorm:"column:index;type:integer;not null;primaryKey"`
-	Topics          pq.StringArray `gorm:"column:topics;type:text[];not null"`
-	Data            []byte         `gorm:"column:data;type:bytea"`
-	TransactionHash string         `gorm:"column:txhash;type:char(66);not null"`
-	BlockHash       string         `gorm:"column:blockhash;type:char(66);not null;primaryKey"`
+	Origin          string         `gorm:"column:origin;type:char(42);not null" json:"origin"`
+	Index           uint           `gorm:"column:index;type:integer;not null;primaryKey" json:"index"`
+	Topics          pq.StringArray `gorm:"column:topics;type:text[];not null" json:"topics"`
+	Data            []byte         `gorm:"column:data;type:bytea" json:"data"`
+	TransactionHash string         `gorm:"column:txhash;type:char(66);not null" json:"txHash"`
+	BlockHash       string         `gorm:"column:blockhash;type:char(66);not null;primaryKey" json:"blockHash"`
 }
 
 // TableName - Overriding default table name
