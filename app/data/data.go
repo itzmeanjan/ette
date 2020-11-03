@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
+
+	"github.com/itzmeanjan/ette/app/db"
 )
 
 // SyncState - Whether `ette` is synced with blockchain or not
@@ -117,4 +119,22 @@ func (t *Transactions) ToJSON() []byte {
 	}
 
 	return data
+}
+
+// Events - A collection of event holder, to be delivered to client in this form
+type Events struct {
+	Events []*db.Events `json:"events"`
+}
+
+// ToJSON - Encoding to JSON
+func (e *Events) ToJSON() []byte {
+
+	data, err := json.Marshal(e)
+	if err != nil {
+		log.Printf("[!] Failed to encode events to JSON : %s\n", err.Error())
+		return nil
+	}
+
+	return data
+
 }
