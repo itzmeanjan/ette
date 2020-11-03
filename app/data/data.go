@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
-
-	"github.com/itzmeanjan/ette/app/db"
 )
 
 // SyncState - Whether `ette` is synced with blockchain or not
@@ -121,9 +119,32 @@ func (t *Transactions) ToJSON() []byte {
 	return data
 }
 
+// Event - Single event entity holder, extracted from db
+type Event struct {
+	Origin          string   `gorm:"column:origin" json:"origin"`
+	Index           uint     `gorm:"column:index" json:"index"`
+	Topics          []string `gorm:"column:topics" json:"topics"`
+	Data            []byte   `gorm:"column:data" json:"data"`
+	TransactionHash string   `gorm:"column:txhash" json:"txHash"`
+	BlockHash       string   `gorm:"column:blockhash" json:"blockHash"`
+}
+
+// ToJSON - Encoding into JSON
+func (e *Event) ToJSON() []byte {
+
+	data, err := json.Marshal(e)
+	if err != nil {
+		log.Printf("[!] Failed to encode event to JSON : %s\n", err.Error())
+		return nil
+	}
+
+	return data
+
+}
+
 // Events - A collection of event holder, to be delivered to client in this form
 type Events struct {
-	Events []*db.Events `json:"events"`
+	Events []*Event `json:"events"`
 }
 
 // ToJSON - Encoding to JSON
