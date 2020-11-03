@@ -600,6 +600,52 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			})
 
 		})
+
+		// Event(s) fetch by query params handler end point
+		grp.GET("/event", func(c *gin.Context) {
+
+			fromBlock := c.Query("fromBlock")
+			toBlock := c.Query("toBlock")
+
+			contract := c.Query("contract")
+
+			// Given block number range & contract address, finds out all events emitted by this contract
+			if fromBlock != "" && toBlock != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
+
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 10)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number range",
+					})
+					return
+				}
+
+				if event := db.GetEventsFromContractByBlockNumberRange(_db, common.HexToAddress(contract), _fromBlock, _toBlock); event != nil {
+
+					if data := event.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			c.JSON(http.StatusBadRequest, gin.H{
+				"msg": "Bad query param(s)",
+			})
+
+		})
 	}
 
 	router.Run(fmt.Sprintf(":%s", cfg.Get("PORT")))
