@@ -228,3 +228,19 @@ func GetTransactionFromAccountWithNonce(db *gorm.DB, account common.Address, non
 
 	return &tx
 }
+
+// GetEventsFromContractByBlockNumberRange - Given block number range & contract address, extracts out all
+// events emitted by this contract this those block span
+func GetEventsFromContractByBlockNumberRange(db *gorm.DB, contract common.Address, from uint64, to uint64) *data.Events {
+
+	var events []*data.Event
+
+	if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and blocks.number >= ? and blocks.number <= ?", contract.Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+		return nil
+	}
+
+	return &data.Events{
+		Events: events,
+	}
+
+}
