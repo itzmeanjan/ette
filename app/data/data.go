@@ -1,7 +1,9 @@
 package data
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 
@@ -129,6 +131,14 @@ type Event struct {
 	Data            []byte         `gorm:"column:data" json:"data"`
 	TransactionHash string         `gorm:"column:txhash" json:"txHash"`
 	BlockHash       string         `gorm:"column:blockhash" json:"blockHash"`
+}
+
+// MarshalJSON - Custom JSON encoder
+func (e *Event) MarshalJSON() ([]byte, error) {
+
+	json := fmt.Sprintf(`{"origin":%s,"index":%d,"topics":%v,"data":%s,"txHash":%s,"blockHash":%s}`, e.Origin, e.Index, e.Topics, hex.EncodeToString(e.Data), e.TransactionHash, e.BlockHash)
+	return []byte(json), nil
+
 }
 
 // ToJSON - Encoding into JSON
