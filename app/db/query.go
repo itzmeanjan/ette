@@ -286,3 +286,19 @@ func GetEventsByTransactionHash(db *gorm.DB, txHash common.Hash) *data.Events {
 		Events: events,
 	}
 }
+
+// GetEventsFromContractWithTopic0ByBlockNumberRange - Given block number range, contract address & topic 0 of event log, extracts out all
+// events emitted by this contract during block span with topic 0 signature
+func GetEventsFromContractWithTopic0ByBlockNumberRange(db *gorm.DB, contract common.Address, topic common.Hash, from uint64, to uint64) *data.Events {
+
+	var events []*data.Event
+
+	if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and and blocks.number >= ? and blocks.number <= ?", contract.Hex(), topic.Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+		return nil
+	}
+
+	return &data.Events{
+		Events: events,
+	}
+
+}
