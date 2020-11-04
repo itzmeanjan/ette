@@ -1,9 +1,13 @@
 package data
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
+
+	"github.com/lib/pq"
 )
 
 // SyncState - Whether `ette` is synced with blockchain or not
@@ -121,12 +125,30 @@ func (t *Transactions) ToJSON() []byte {
 
 // Event - Single event entity holder, extracted from db
 type Event struct {
-	Origin          string   `gorm:"column:origin" json:"origin"`
-	Index           uint     `gorm:"column:index" json:"index"`
-	Topics          []string `gorm:"column:topics" json:"topics"`
-	Data            []byte   `gorm:"column:data" json:"data"`
-	TransactionHash string   `gorm:"column:txhash" json:"txHash"`
-	BlockHash       string   `gorm:"column:blockhash" json:"blockHash"`
+	Origin          string         `gorm:"column:origin"`
+	Index           uint           `gorm:"column:index"`
+	Topics          pq.StringArray `gorm:"column:topics"`
+	Data            []byte         `gorm:"column:data"`
+	TransactionHash string         `gorm:"column:txhash"`
+	BlockHash       string         `gorm:"column:blockhash"`
+}
+
+// MarshalJSON - Custom JSON encoder
+func (e *Event) MarshalJSON() ([]byte, error) {
+
+	data := ""
+	if hex.EncodeToString(e.Data) != "" {
+		data = fmt.Sprintf("0x%s", hex.EncodeToString(e.Data))
+	}
+
+	return []byte(fmt.Sprintf(`{"origin":%q,"index":%d,"topics":%v,"data":%q,"txHash":%q,"blockHash":%q}`,
+		e.Origin,
+		e.Index,
+		strings.Join(
+			strings.Fields(
+				fmt.Sprintf("%q", e.Topics)), ","),
+		data, e.TransactionHash, e.BlockHash)), nil
+
 }
 
 // ToJSON - Encoding into JSON
