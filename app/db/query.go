@@ -217,3 +217,72 @@ func GetContractCreationTransactionsFromAccountByBlockTimeRange(db *gorm.DB, acc
 		Transactions: tx,
 	}
 }
+
+// GetTransactionFromAccountWithNonce - Given tx sender address & account nonce, finds out tx, satisfying condition
+func GetTransactionFromAccountWithNonce(db *gorm.DB, account common.Address, nonce uint64) *data.Transaction {
+	var tx data.Transaction
+
+	if err := db.Model(&Transactions{}).Where("transactions.from = ? and transactions.nonce = ?", account.Hex(), nonce).First(&tx).Error; err != nil {
+		return nil
+	}
+
+	return &tx
+}
+
+// GetEventsFromContractByBlockNumberRange - Given block number range & contract address, extracts out all
+// events emitted by this contract during block span
+func GetEventsFromContractByBlockNumberRange(db *gorm.DB, contract common.Address, from uint64, to uint64) *data.Events {
+
+	var events []*data.Event
+
+	if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and blocks.number >= ? and blocks.number <= ?", contract.Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+		return nil
+	}
+
+	return &data.Events{
+		Events: events,
+	}
+
+}
+
+// GetEventsFromContractByBlockTimeRange - Given block time range & contract address, extracts out all
+// events emitted by this contract during time span
+func GetEventsFromContractByBlockTimeRange(db *gorm.DB, contract common.Address, from uint64, to uint64) *data.Events {
+
+	var events []*data.Event
+
+	if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and blocks.time >= ? and blocks.time <= ?", contract.Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+		return nil
+	}
+
+	return &data.Events{
+		Events: events,
+	}
+
+}
+
+// GetEventsByBlockHash - Given block hash retrieves all events from all tx present in that block
+func GetEventsByBlockHash(db *gorm.DB, blockHash common.Hash) *data.Events {
+	var events []*data.Event
+
+	if err := db.Model(&Events{}).Where("events.blockhash = ?", blockHash.Hex()).Find(&events).Error; err != nil {
+		return nil
+	}
+
+	return &data.Events{
+		Events: events,
+	}
+}
+
+// GetEventsByTransactionHash - Given tx hash, returns all events emitted during contract interaction ( i.e. tx execution )
+func GetEventsByTransactionHash(db *gorm.DB, txHash common.Hash) *data.Events {
+	var events []*data.Event
+
+	if err := db.Model(&Events{}).Where("events.txhash = ?", txHash.Hex()).Find(&events).Error; err != nil {
+		return nil
+	}
+
+	return &data.Events{
+		Events: events,
+	}
+}

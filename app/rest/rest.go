@@ -39,9 +39,9 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		return _from, _to, nil
 	}
 
-	// Extracted block number from URL query string, gets parsed into
+	// Extracted numeric query param, gets parsed into
 	// unsigned integer
-	parseBlockNumber := func(number string) (uint64, error) {
+	parseNumber := func(number string) (uint64, error) {
 		_num, err := strconv.ParseUint(number, 10, 64)
 		if err != nil {
 			return 0, errors.New("Failed to parse integer")
@@ -97,7 +97,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			// Given block number, finds out all tx(s) present in that block
 			if number != "" && tx == "yes" {
 
-				_num, err := parseBlockNumber(number)
+				_num, err := parseNumber(number)
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number",
@@ -148,7 +148,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			// Block number based single block retrieval request handler
 			if number != "" {
 
-				_num, err := parseBlockNumber(number)
+				_num, err := parseNumber(number)
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number",
@@ -296,6 +296,40 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			// for incoming/ outgoing tx to & from an account
 			fromAccount := c.Query("fromAccount")
 			toAccount := c.Query("toAccount")
+
+			// Account nonce, to be used for finding
+			// tx, in combination with `fromAccount`
+			nonce := c.Query("nonce")
+
+			// Responds with tx sent from account with specified nonce
+			if nonce != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
+
+				_nonce, err := parseNumber(nonce)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad account nonce",
+					})
+					return
+				}
+
+				if tx := db.GetTransactionFromAccountWithNonce(_db, common.HexToAddress(fromAccount), _nonce); tx != nil {
+					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
 
 			// Responds with all contract creation tx(s) sent from specific account
 			// ( i.e. deployer ) with in given block number range
@@ -543,6 +577,139 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				if tx := db.GetTransactionsToAccountByBlockTimeRange(_db, common.HexToAddress(toAccount), _fromTime, _toTime); tx != nil {
 
 					if data := tx.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			c.JSON(http.StatusBadRequest, gin.H{
+				"msg": "Bad query param(s)",
+			})
+
+		})
+
+		// Event(s) fetched by query params handler end point
+		grp.GET("/event", func(c *gin.Context) {
+
+			fromBlock := c.Query("fromBlock")
+			toBlock := c.Query("toBlock")
+
+			fromTime := c.Query("fromTime")
+			toTime := c.Query("toTime")
+
+			contract := c.Query("contract")
+
+			blockHash := c.Query("blockHash")
+			txHash := c.Query("txHash")
+
+			// Given blockhash, retrieves all events emitted by tx present in block
+			if strings.HasPrefix(blockHash, "0x") && len(blockHash) == 66 {
+
+				if event := db.GetEventsByBlockHash(_db, common.HexToHash(blockHash)); event != nil {
+
+					if data := event.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			// Given txhash, retrieves all events emitted by that tx ( i.e. during tx execution )
+			if strings.HasPrefix(txHash, "0x") && len(txHash) == 66 {
+
+				if event := db.GetEventsByTransactionHash(_db, common.HexToHash(txHash)); event != nil {
+
+					if data := event.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			// Given block number range & contract address, finds out all events emitted by this contract
+			if fromBlock != "" && toBlock != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
+
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 10)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block number range",
+					})
+					return
+				}
+
+				if event := db.GetEventsFromContractByBlockNumberRange(_db, common.HexToAddress(contract), _fromBlock, _toBlock); event != nil {
+
+					if data := event.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			// Given block time span & contract address, returns a list of
+			// events emitted by this contract during time span
+			if fromTime != "" && toTime != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
+
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block time range",
+					})
+					return
+				}
+
+				if event := db.GetEventsFromContractByBlockTimeRange(_db, common.HexToAddress(contract), _fromTime, _toTime); event != nil {
+
+					if data := event.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
 						return
 					}
