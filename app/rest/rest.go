@@ -698,6 +698,39 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			}
 
+			// Given time span, contract address & topic 0 of log event, returns
+			// events satisfying criteria
+			if fromTime != "" && toTime != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 && strings.HasPrefix(topic0, "0x") && len(topic0) == 66 {
+
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block time range",
+					})
+					return
+				}
+
+				if event := db.GetEventsFromContractWithTopic0ByBlockTimeRange(_db, common.HexToAddress(contract), common.HexToHash(topic0), _fromTime, _toTime); event != nil {
+
+					if data := event.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
 			// Given block number range & contract address, finds out all events emitted by this contract
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
 
