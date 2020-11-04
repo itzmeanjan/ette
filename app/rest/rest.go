@@ -601,11 +601,14 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 		})
 
-		// Event(s) fetch by query params handler end point
+		// Event(s) fetched by query params handler end point
 		grp.GET("/event", func(c *gin.Context) {
 
 			fromBlock := c.Query("fromBlock")
 			toBlock := c.Query("toBlock")
+
+			fromTime := c.Query("fromTime")
+			toTime := c.Query("toTime")
 
 			contract := c.Query("contract")
 
@@ -621,6 +624,39 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if event := db.GetEventsFromContractByBlockNumberRange(_db, common.HexToAddress(contract), _fromBlock, _toBlock); event != nil {
+
+					if data := event.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			// Given block time span & contract address, returns a list of
+			// events emitted by this contract during time span
+			if fromTime != "" && toTime != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
+
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad block time range",
+					})
+					return
+				}
+
+				if event := db.GetEventsFromContractByBlockTimeRange(_db, common.HexToAddress(contract), _fromTime, _toTime); event != nil {
 
 					if data := event.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
