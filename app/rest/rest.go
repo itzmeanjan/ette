@@ -50,6 +50,28 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		return _num, nil
 	}
 
+	// Return topics to be used for finding out events in hex form
+	// topics are extracted out from query params in string form
+	getTopics := func(topics ...string) []common.Hash {
+		if topics[0] != "" && topics[1] != "" && topics[2] != "" && topics[3] != "" {
+			return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2]), common.HexToHash(topics[3])}
+		}
+
+		if topics[0] != "" && topics[1] != "" && topics[2] != "" {
+			return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2])}
+		}
+
+		if topics[0] != "" && topics[1] != "" {
+			return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1])}
+		}
+
+		if topics[0] != "" {
+			return []common.Hash{common.HexToHash(topics[0])}
+		}
+
+		return nil
+	}
+
 	router := gin.Default()
 
 	grp := router.Group("/v1")
@@ -613,6 +635,9 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			contract := c.Query("contract")
 
 			topic0 := c.Query("topic0")
+			topic1 := c.Query("topic1")
+			topic2 := c.Query("topic2")
+			topic3 := c.Query("topic3")
 
 			blockHash := c.Query("blockHash")
 			txHash := c.Query("txHash")
@@ -667,7 +692,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			// Given block number range, contract address & topic 0 of log event, returns
 			// events satisfying criteria
-			if fromBlock != "" && toBlock != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 && strings.HasPrefix(topic0, "0x") && len(topic0) == 66 {
+			if fromBlock != "" && toBlock != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 && (strings.HasPrefix(topic0, "0x") && len(topic0) == 66 || strings.HasPrefix(topic1, "0x") && len(topic1) == 66 || strings.HasPrefix(topic2, "0x") && len(topic2) == 66 || strings.HasPrefix(topic3, "0x") && len(topic3) == 66) {
 
 				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 10)
 				if err != nil {
@@ -677,7 +702,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 					return
 				}
 
-				if event := db.GetEventsFromContractWithTopic0ByBlockNumberRange(_db, common.HexToAddress(contract), common.HexToHash(topic0), _fromBlock, _toBlock); event != nil {
+				if event := db.GetEventsFromContractWithTopicsByBlockNumberRange(_db, common.HexToAddress(contract), _fromBlock, _toBlock, getTopics([]string{topic0, topic1, topic2, topic3}...)...); event != nil {
 
 					if data := event.ToJSON(); data != nil {
 						c.Data(http.StatusOK, "application/json", data)
