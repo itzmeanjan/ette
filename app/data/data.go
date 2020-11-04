@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
+
+	"github.com/lib/pq"
 )
 
 // SyncState - Whether `ette` is synced with blockchain or not
@@ -121,12 +123,12 @@ func (t *Transactions) ToJSON() []byte {
 
 // Event - Single event entity holder, extracted from db
 type Event struct {
-	Origin          string   `gorm:"column:origin" json:"origin"`
-	Index           uint     `gorm:"column:index" json:"index"`
-	Topics          []string `gorm:"column:topics" json:"topics"`
-	Data            []byte   `gorm:"column:data" json:"data"`
-	TransactionHash string   `gorm:"column:txhash" json:"txHash"`
-	BlockHash       string   `gorm:"column:blockhash" json:"blockHash"`
+	Origin          string         `gorm:"column:origin" json:"origin"`
+	Index           uint           `gorm:"column:index" json:"index"`
+	Topics          pq.StringArray `gorm:"column:topics" json:"topics"`
+	Data            []byte         `gorm:"column:data" json:"data"`
+	TransactionHash string         `gorm:"column:txhash" json:"txHash"`
+	BlockHash       string         `gorm:"column:blockhash" json:"blockHash"`
 }
 
 // ToJSON - Encoding into JSON
