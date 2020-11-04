@@ -125,18 +125,22 @@ func (t *Transactions) ToJSON() []byte {
 
 // Event - Single event entity holder, extracted from db
 type Event struct {
-	Origin          string         `gorm:"column:origin" json:"origin"`
-	Index           uint           `gorm:"column:index" json:"index"`
-	Topics          pq.StringArray `gorm:"column:topics" json:"topics"`
-	Data            []byte         `gorm:"column:data" json:"data"`
-	TransactionHash string         `gorm:"column:txhash" json:"txHash"`
-	BlockHash       string         `gorm:"column:blockhash" json:"blockHash"`
+	Origin          string         `gorm:"column:origin"`
+	Index           uint           `gorm:"column:index"`
+	Topics          pq.StringArray `gorm:"column:topics"`
+	Data            []byte         `gorm:"column:data"`
+	TransactionHash string         `gorm:"column:txhash"`
+	BlockHash       string         `gorm:"column:blockhash"`
 }
 
 // MarshalJSON - Custom JSON encoder
 func (e *Event) MarshalJSON() ([]byte, error) {
 
-	json := fmt.Sprintf(`{"origin":%s,"index":%d,"topics":%v,"data":%s,"txHash":%s,"blockHash":%s}`, e.Origin, e.Index, e.Topics, hex.EncodeToString(e.Data), e.TransactionHash, e.BlockHash)
+	json := fmt.Sprintf(`{"origin":%q,"index":%d,"topics":%v,"data":%q,"txHash":%q,"blockHash":%q}`,
+		e.Origin, e.Index,
+		strings.Join(strings.Fields(fmt.Sprintf("%q", e.Topics)), ","),
+		hex.EncodeToString(e.Data),
+		e.TransactionHash, e.BlockHash)
 	return []byte(json), nil
 
 }
