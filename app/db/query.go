@@ -260,3 +260,16 @@ func GetEventsFromContractByBlockTimeRange(db *gorm.DB, contract common.Address,
 	}
 
 }
+
+// GetEventsByBlockHash - Given block hash retrieves all events from all tx present in that block
+func GetEventsByBlockHash(db *gorm.DB, blockhash common.Hash) *data.Events {
+	var events []*data.Event
+
+	if err := db.Model(&Events{}).Where("events.blockhash = ?", blockhash.Hex()).Find(&events).Error; err != nil {
+		return nil
+	}
+
+	return &data.Events{
+		Events: events,
+	}
+}
