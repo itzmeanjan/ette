@@ -316,6 +316,10 @@ func GetEventsFromContractWithTopicsByBlockNumberRange(db *gorm.DB, contract com
 		}
 	}
 
+	if len(events) == 0 {
+		return nil
+	}
+
 	return &data.Events{
 		Events: events,
 	}
