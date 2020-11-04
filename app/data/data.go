@@ -136,16 +136,18 @@ type Event struct {
 // MarshalJSON - Custom JSON encoder
 func (e *Event) MarshalJSON() ([]byte, error) {
 
+	data := ""
+	if hex.EncodeToString(e.Data) != "" {
+		data = fmt.Sprintf("0x%s", hex.EncodeToString(e.Data))
+	}
+
 	return []byte(fmt.Sprintf(`{"origin":%q,"index":%d,"topics":%v,"data":%q,"txHash":%q,"blockHash":%q}`,
 		e.Origin,
 		e.Index,
 		strings.Join(
 			strings.Fields(
 				fmt.Sprintf("%q", e.Topics)), ","),
-		fmt.Sprintf("0x%s",
-			hex.EncodeToString(e.Data)),
-		e.TransactionHash,
-		e.BlockHash)), nil
+		data, e.TransactionHash, e.BlockHash)), nil
 
 }
 
