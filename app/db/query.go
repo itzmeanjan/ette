@@ -230,12 +230,28 @@ func GetTransactionFromAccountWithNonce(db *gorm.DB, account common.Address, non
 }
 
 // GetEventsFromContractByBlockNumberRange - Given block number range & contract address, extracts out all
-// events emitted by this contract this those block span
+// events emitted by this contract during block span
 func GetEventsFromContractByBlockNumberRange(db *gorm.DB, contract common.Address, from uint64, to uint64) *data.Events {
 
 	var events []*data.Event
 
 	if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and blocks.number >= ? and blocks.number <= ?", contract.Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+		return nil
+	}
+
+	return &data.Events{
+		Events: events,
+	}
+
+}
+
+// GetEventsFromContractByBlockTimeRange - Given block time range & contract address, extracts out all
+// events emitted by this contract during time span
+func GetEventsFromContractByBlockTimeRange(db *gorm.DB, contract common.Address, from uint64, to uint64) *data.Events {
+
+	var events []*data.Event
+
+	if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and blocks.time >= ? and blocks.time <= ?", contract.Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
 		return nil
 	}
 
