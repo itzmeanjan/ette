@@ -287,14 +287,29 @@ func GetEventsByTransactionHash(db *gorm.DB, txHash common.Hash) *data.Events {
 	}
 }
 
-// GetEventsFromContractWithTopic0ByBlockNumberRange - Given block number range, contract address & topic 0 of event log, extracts out all
-// events emitted by this contract during block span with topic 0 signature
-func GetEventsFromContractWithTopic0ByBlockNumberRange(db *gorm.DB, contract common.Address, topic common.Hash, from uint64, to uint64) *data.Events {
+// GetEventsFromContractWithTopic0ByBlockNumberRange - Given block number range, contract address & topics ( var arg topic, at max 4 ) of event log, extracts out all
+// events emitted by this contract during block span with topic signatures matching
+func GetEventsFromContractWithTopic0ByBlockNumberRange(db *gorm.DB, contract common.Address, from uint64, to uint64, topics ...common.Hash) *data.Events {
 
 	var events []*data.Event
 
-	if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and and blocks.number >= ? and blocks.number <= ?", contract.Hex(), topic.Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
-		return nil
+	switch len(topics) {
+	case 1:
+		if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and blocks.number >= ? and blocks.number <= ?", contract.Hex(), topics[0].Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+			return nil
+		}
+	case 2:
+		if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and events.topics[2] = ? and blocks.number >= ? and blocks.number <= ?", contract.Hex(), topics[0].Hex(), topics[1].Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+			return nil
+		}
+	case 3:
+		if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and events.topics[2] = ? and events.topics[3] = ? and blocks.number >= ? and blocks.number <= ?", contract.Hex(), topics[0].Hex(), topics[1].Hex(), topics[2].Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+			return nil
+		}
+	case 4:
+		if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and events.topics[2] = ? and events.topics[3] = ? and events.topics[4] = ? and blocks.number >= ? and blocks.number <= ?", contract.Hex(), topics[0].Hex(), topics[1].Hex(), topics[2].Hex(), topics[3].Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+			return nil
+		}
 	}
 
 	return &data.Events{
