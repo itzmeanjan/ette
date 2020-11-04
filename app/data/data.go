@@ -127,7 +127,7 @@ func (t *Transactions) ToJSON() []byte {
 type Event struct {
 	Origin          string         `gorm:"column:origin"`
 	Index           uint           `gorm:"column:index"`
-	Topics          pq.StringArray `gorm:"column:topics"`
+	Topics          pq.StringArray `gorm:"column:topics;type:text[]"`
 	Data            []byte         `gorm:"column:data"`
 	TransactionHash string         `gorm:"column:txhash"`
 	BlockHash       string         `gorm:"column:blockhash"`
