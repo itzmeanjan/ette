@@ -291,6 +291,10 @@ func GetEventsByTransactionHash(db *gorm.DB, txHash common.Hash) *data.Events {
 // events emitted by this contract during block span with topic signatures matching
 func GetEventsFromContractWithTopicsByBlockNumberRange(db *gorm.DB, contract common.Address, from uint64, to uint64, topics ...common.Hash) *data.Events {
 
+	if topics == nil {
+		return nil
+	}
+
 	var events []*data.Event
 
 	switch len(topics) {
