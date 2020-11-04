@@ -612,6 +612,32 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			contract := c.Query("contract")
 
+			blockHash := c.Query("blockHash")
+
+			// Given blockhash, retrieves all events emitted by tx present in block
+			if strings.HasPrefix(blockHash, "0x") && len(blockHash) == 66 {
+
+				if event := db.GetEventsByBlockHash(_db, common.HexToHash(blockHash)); event != nil {
+
+					if data := event.ToJSON(); data != nil {
+						c.Data(http.StatusOK, "application/json", data)
+						return
+					}
+
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "JSON encoding failed",
+					})
+					return
+
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
 			// Given block number range & contract address, finds out all events emitted by this contract
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
 
