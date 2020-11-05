@@ -655,8 +655,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 	wsGrp := router.Group("/v1/ws")
 
 	{
-		wsGrp.GET("/", func(c *gin.Context) {
-			conn, err := upgrader.Upgrade(c.Writer, c.Request, c.Request.Header)
+		wsGrp.GET("/echo", func(c *gin.Context) {
+			conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 			if err != nil {
 				log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
 				return
