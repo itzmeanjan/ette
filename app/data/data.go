@@ -184,5 +184,6 @@ func (e *Events) ToJSON() []byte {
 
 // Channel - Channel which is to be subscribed to, over websocket endpoint
 type Channel struct {
-	Name string
+	Name string `json:"name"`
+	Type string `json:"type"`
 }

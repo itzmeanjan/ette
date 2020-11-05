@@ -668,15 +668,17 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			// Communication with client handling logic
 			for {
-				msgType, msg, err := conn.ReadMessage()
+				var channel d.Channel
+
+				err := conn.ReadJSON(&channel)
 				if err != nil {
 					log.Printf("[!] Failed to read message : %s\n", err.Error())
 					break
 				}
 
-				log.Printf("[+] Received %s [ %d ]\n", msg, msgType)
+				log.Printf("[+] Subscribed to %v\n", channel)
 
-				err = conn.WriteMessage(msgType, msg)
+				err = conn.WriteJSON(&channel)
 				if err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 					break
