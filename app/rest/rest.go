@@ -654,6 +654,18 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 	wsGrp := router.Group("/v1/ws")
 
+	validateMessage := func(channel *d.Channel) bool {
+		if !(channel.Type == "subscribe" || channel.Type == "unsubscribe") {
+			return false
+		}
+
+		if !(channel.Name == "block") {
+			return false
+		}
+
+		return true
+	}
+
 	{
 		wsGrp.GET("/echo", func(c *gin.Context) {
 			conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -673,6 +685,18 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				err := conn.ReadJSON(&channel)
 				if err != nil {
 					log.Printf("[!] Failed to read message : %s\n", err.Error())
+					break
+				}
+
+				// Validating incoming request on websocket subscription channel
+				if !validateMessage(&channel) {
+					if err := conn.WriteJSON(struct {
+						Message string `json:"msg"`
+					}{
+						Message: "Bad request",
+					}); err != nil {
+						log.Printf("[!] Failed to write message : %s\n", err.Error())
+					}
 					break
 				}
 
