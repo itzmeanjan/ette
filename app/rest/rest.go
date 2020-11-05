@@ -3,6 +3,7 @@ package rest
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
@@ -645,6 +647,41 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				"msg": "Bad query param(s)",
 			})
 
+		})
+	}
+
+	upgrader := websocket.Upgrader{}
+
+	wsGrp := router.Group("/v1/ws")
+
+	{
+		wsGrp.GET("/", func(c *gin.Context) {
+			conn, err := upgrader.Upgrade(c.Writer, c.Request, c.Request.Header)
+			if err != nil {
+				log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
+				return
+			}
+
+			// Registering websocket connection closing, to be executed when leaving
+			// this function block
+			defer conn.Close()
+
+			// Communication with client handling logic
+			for {
+				msgType, msg, err := conn.ReadMessage()
+				if err != nil {
+					log.Printf("[!] Failed to read message : %s\n", err.Error())
+					break
+				}
+
+				log.Printf("[+] Received %s [ %d ]\n", msg, msgType)
+
+				err = conn.WriteMessage(msgType, msg)
+				if err != nil {
+					log.Printf("[!] Failed to write message : %s\n", err.Error())
+					break
+				}
+			}
 		})
 	}
 
