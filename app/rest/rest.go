@@ -574,7 +574,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			// Given time span, contract address & topic 0 of log event, returns
 			// events satisfying criteria
-			if fromTime != "" && toTime != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 && strings.HasPrefix(topic0, "0x") && len(topic0) == 66 {
+			if fromTime != "" && toTime != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 && ((strings.HasPrefix(topic0, "0x") && len(topic0) == 66) || (strings.HasPrefix(topic1, "0x") && len(topic1) == 66) || (strings.HasPrefix(topic2, "0x") && len(topic2) == 66) || (strings.HasPrefix(topic3, "0x") && len(topic3) == 66)) {
 
 				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
 				if err != nil {
@@ -584,7 +584,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 					return
 				}
 
-				if event := db.GetEventsFromContractWithTopic0ByBlockTimeRange(_db, common.HexToAddress(contract), common.HexToHash(topic0), _fromTime, _toTime); event != nil {
+				if event := db.GetEventsFromContractWithTopicsByBlockTimeRange(_db, common.HexToAddress(contract), _fromTime, _toTime, getTopics([]string{topic0, topic1, topic2, topic3}...)...); event != nil {
 					respondWithJSON(event.ToJSON(), c)
 					return
 				}
