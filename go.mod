@@ -3,6 +3,7 @@ module github.com/itzmeanjan/ette
 go 1.15
 
 require (
+	github.com/adjust/rmq/v3 v3.0.0 // indirect
 	github.com/ethereum/go-ethereum v1.9.23
 	github.com/gammazero/workerpool v1.1.1
 	github.com/gin-gonic/gin v1.6.3
