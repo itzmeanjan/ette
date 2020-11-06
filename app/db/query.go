@@ -364,19 +364,3 @@ func GetEventsFromContractWithTopicsByBlockTimeRange(db *gorm.DB, contract commo
 	}
 
 }
-
-// GetEventsFromContractWithTopic0ByBlockTimeRange - Given block time range, contract address & topic 0 of event log, extracts out all
-// events emitted by this contract during time span with topic 0 signature
-func GetEventsFromContractWithTopic0ByBlockTimeRange(db *gorm.DB, contract common.Address, topic common.Hash, from uint64, to uint64) *data.Events {
-
-	var events []*data.Event
-
-	if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and and blocks.time >= ? and blocks.time <= ?", contract.Hex(), topic.Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
-		return nil
-	}
-
-	return &data.Events{
-		Events: events,
-	}
-
-}
