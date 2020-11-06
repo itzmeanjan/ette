@@ -22,7 +22,7 @@ func getClient() *ethclient.Client {
 func getRedisConnection() rmq.Connection {
 	errChan := make(chan error)
 
-	conn, err := rmq.OpenConnection("ette", cfg.Get("RedisConnection"), cfg.Get("RedisAddress"), 1, errChan)
+	conn, err := rmq.OpenConnection("ette", cfg.Get("RedisConnectionType"), cfg.Get("RedisAddress"), 1, errChan)
 
 	if err != nil {
 		log.Fatalf("[!] Failed to connect to redis : %s\n", err.Error())
