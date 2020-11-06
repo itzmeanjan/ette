@@ -561,6 +561,13 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 					return
 				}
 
+				if _count > 50 {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Too many events requested",
+					})
+					return
+				}
+
 				if event := db.GetLastXEventsFromContract(_db, common.HexToAddress(contract), _count); event != nil {
 					respondWithJSON(event.ToJSON(), c)
 					return
