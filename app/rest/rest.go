@@ -510,6 +510,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			contract := c.Query("contract")
 
+			count := c.Query("count")
+
 			topic0 := c.Query("topic0")
 			topic1 := c.Query("topic1")
 			topic2 := c.Query("topic2")
@@ -537,6 +539,29 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			if strings.HasPrefix(txHash, "0x") && len(txHash) == 66 {
 
 				if event := db.GetEventsByTransactionHash(_db, common.HexToHash(txHash)); event != nil {
+					respondWithJSON(event.ToJSON(), c)
+					return
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
+			// Finds out last `x` events emitted by contract
+			if count != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
+
+				_count, err := strconv.Atoi(count)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad event count",
+					})
+					return
+				}
+
+				if event := db.GetLastXEventsFromContract(_db, common.HexToAddress(contract), _count); event != nil {
 					respondWithJSON(event.ToJSON(), c)
 					return
 				}
