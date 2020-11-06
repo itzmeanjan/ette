@@ -364,3 +364,22 @@ func GetEventsFromContractWithTopicsByBlockTimeRange(db *gorm.DB, contract commo
 	}
 
 }
+
+// GetLastXEventsFromContract - Finds out last `x` events emitted by contract
+func GetLastXEventsFromContract(db *gorm.DB, contract common.Address, x int) *data.Events {
+
+	var events []*data.Event
+
+	if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ?", contract.Hex()).Order("blocks.number desc").Limit(x).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+		return nil
+	}
+
+	if len(events) == 0 {
+		return nil
+	}
+
+	return &data.Events{
+		Events: events,
+	}
+
+}
