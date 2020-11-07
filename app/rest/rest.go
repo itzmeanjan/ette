@@ -740,7 +740,12 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 				case "subscribe":
 					v, ok := topics[req.Name]
 					if !ok {
-						log.Printf("[+] Subscribed to %v [ %s ]\n", req, conn.RemoteAddr().String())
+						if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 1, Message: fmt.Sprintf("Subscribed to `%s`", req.Name)}); err != nil {
+							log.Printf("[!] Failed to write message : %s\n", err.Error())
+							break
+						}
+
+						log.Printf("[+] Subscribed to %v : [ %s ]\n", req, conn.RemoteAddr().String())
 
 						topics[req.Name] = true
 						_blockQueue.AddConsumer("block-consumer", &d.BlockConsumer{Connection: conn})
@@ -749,13 +754,16 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 					}
 
 					if v {
-
 						if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: fmt.Sprintf("Already subscribed to `%s`", req.Name)}); err != nil {
 							log.Printf("[!] Failed to write message : %s\n", err.Error())
 							break
 						}
 						continue
+					}
 
+					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 1, Message: fmt.Sprintf("Subscribed to `%s`", req.Name)}); err != nil {
+						log.Printf("[!] Failed to write message : %s\n", err.Error())
+						break
 					}
 
 					log.Printf("[+] Subscribed to %v : [ %s ]\n", req, conn.RemoteAddr().String())
@@ -779,6 +787,11 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 							break
 						}
 						continue
+					}
+
+					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 1, Message: fmt.Sprintf("Unsubscribed from `%s`", req.Name)}); err != nil {
+						log.Printf("[!] Failed to write message : %s\n", err.Error())
+						break
 					}
 
 					log.Printf("[+] Unsubscribed from %v [ %s ]\n", req, conn.RemoteAddr().String())
