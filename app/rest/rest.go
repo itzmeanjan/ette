@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/adjust/rmq/v3"
 	"github.com/ethereum/go-ethereum/common"
@@ -87,8 +86,6 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 		})
 		return
 	}
-
-	_blockQueue.StartConsuming(10, time.Second)
 
 	router := gin.Default()
 
