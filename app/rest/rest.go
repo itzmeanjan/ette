@@ -719,6 +719,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 			// or unsubscrribed from
 			topics := make(map[string]bool)
 
+			var blockConsumer d.BlockConsumer
+
 			// Communication with client handling logic
 			for {
 				var req d.SubscriptionRequest
@@ -748,7 +750,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 						log.Printf("[+] Subscribed to %v : [ %s ]\n", req, conn.RemoteAddr().String())
 
 						topics[req.Name] = true
-						_blockQueue.AddConsumer("block-consumer", &d.BlockConsumer{Connection: conn})
+						blockConsumer = d.BlockConsumer{Connection: conn, Enabled: true}
+						_blockQueue.AddConsumer("block-consumer", &blockConsumer)
 
 						continue
 					}
@@ -769,7 +772,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 					log.Printf("[+] Subscribed to %v : [ %s ]\n", req, conn.RemoteAddr().String())
 
 					topics[req.Name] = true
-					_blockQueue.AddConsumer("block-consumer", &d.BlockConsumer{Connection: conn})
+					blockConsumer.Enabled = true
 
 				case "unsubscribe":
 					v, ok := topics[req.Name]
@@ -795,7 +798,9 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 					}
 
 					log.Printf("[+] Unsubscribed from %v [ %s ]\n", req, conn.RemoteAddr().String())
+
 					topics[req.Name] = false
+					blockConsumer.Enabled = false
 				}
 			}
 		})

@@ -191,7 +191,7 @@ type SubscriptionRequest struct {
 	Type string `json:"type"`
 }
 
-// SubscriptionResponse - Real time data subscription/ unsubscription request to be responded with 
+// SubscriptionResponse - Real time data subscription/ unsubscription request to be responded with
 // in this form
 type SubscriptionResponse struct {
 	Code    uint   `json:"code"`
@@ -201,6 +201,7 @@ type SubscriptionResponse struct {
 // BlockConsumer - Block data consumer to keep websocket connection handle
 // so when data is delivered, it can let client application know about it
 type BlockConsumer struct {
+	Enabled    bool
 	Connection *websocket.Conn
 }
 
@@ -221,7 +222,9 @@ func (b *BlockConsumer) Consume(delivery rmq.Delivery) {
 		return
 	}
 
-	b.Connection.WriteJSON(&block)
+	if b.Enabled {
+		b.Connection.WriteJSON(&block)
+	}
 
 	if err := delivery.Ack(); err != nil {
 		log.Printf("[!] Failed to acknowledge delivery for block : %s\n", err.Error())
