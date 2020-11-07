@@ -7,6 +7,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/adjust/rmq/v3"
+	"github.com/gorilla/websocket"
 	"github.com/lib/pq"
 )
 
@@ -186,4 +188,34 @@ func (e *Events) ToJSON() []byte {
 type Channel struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
+}
+
+// BlockConsumer - Block data consumer to keep websocket connection handle
+// so when data is delivered, it can let client application know about it
+type BlockConsumer struct {
+	Connection websocket.Conn
+}
+
+// Consume - When data is available on subscribed channel, consumer
+// to be notified by invoking this method, where we send block data to client
+// application ( which actually subscribed to  this channel )
+// over websocket connection
+func (b *BlockConsumer) Consume(delivery rmq.Delivery) {
+	var block Block
+
+	if err := json.Unmarshal([]byte(delivery.Payload()), &block); err != nil {
+
+		log.Printf("[!] Bad delivery in block consumer : %s\n", err.Error())
+		if err := delivery.Reject(); err != nil {
+			log.Printf("[!] Failed to reject delivery from block consumer : %s\n", err.Error())
+		}
+
+		return
+	}
+
+	b.Connection.WriteJSON(block.ToJSON())
+
+	if err := delivery.Ack(); err != nil {
+		log.Printf("[!] Failed to acknowledge delivery for block : %s\n", err.Error())
+	}
 }
