@@ -8,7 +8,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/adjust/rmq/v3"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -19,7 +21,7 @@ import (
 )
 
 // RunHTTPServer - Holds definition for all REST API(s) to be exposed
-func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
+func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _blockQueue rmq.Queue) {
 
 	// Extracted from, to field of range based block query ( using block numbers/ time stamps )
 	// gets parsed into unsigned integers
@@ -85,6 +87,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		})
 		return
 	}
+
+	_blockQueue.StartConsuming(10, time.Second)
 
 	router := gin.Default()
 
@@ -710,7 +714,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			// this function block
 			defer conn.Close()
 
-			// Communication with client handling logic
+			// Handling communication with client
 			for {
 				var channel d.Channel
 
@@ -739,6 +743,44 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 					break
 				}
+			}
+		})
+
+		wsGrp.GET("/block", func(c *gin.Context) {
+			conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+			if err != nil {
+				log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
+				return
+			}
+
+			// Registering websocket connection closing, to be executed when leaving
+			// this function block
+			defer conn.Close()
+
+			// Communication with client handling logic
+			for {
+				var channel d.Channel
+
+				err := conn.ReadJSON(&channel)
+				if err != nil {
+					log.Printf("[!] Failed to read message : %s\n", err.Error())
+					break
+				}
+
+				// Validating incoming request on websocket subscription channel
+				if !validateMessage(&channel) {
+					if err := conn.WriteJSON(struct {
+						Message string `json:"msg"`
+					}{
+						Message: "Bad request",
+					}); err != nil {
+						log.Printf("[!] Failed to write message : %s\n", err.Error())
+					}
+					break
+				}
+
+				log.Printf("[+] Subscribed to %v\n", channel)
+				_blockQueue.AddConsumer("block-consumer", &d.BlockConsumer{})
 			}
 		})
 	}
