@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/adjust/rmq/v3"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -48,7 +49,7 @@ func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB, fromBlock uint64,
 // SubscribeToNewBlocks - Listen for event when new block header is
 // available, then fetch block content ( including all transactions )
 // in different worker
-func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
+func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, queue rmq.Queue) {
 	headerChan := make(chan *types.Header)
 
 	subs, err := client.SubscribeNewHead(context.Background(), headerChan)
@@ -78,6 +79,19 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 				// Making sure on when next latest block header is received, it'll not
 				// start another syncer
 				first = false
+			}
+
+			if err := queue.PublishBytes((&d.Block{
+				Hash:       header.Hash().Hex(),
+				Number:     header.Number.Uint64(),
+				Time:       header.Time,
+				ParentHash: header.ParentHash.Hex(),
+				Difficulty: header.Difficulty.String(),
+				GasUsed:    header.GasUsed,
+				GasLimit:   header.GasLimit,
+				Nonce:      header.Nonce.Uint64(),
+			}).ToJSON()); err != nil {
+				log.Printf("[!] Failed to publish block %d in channel\n", header.Number.Uint64())
 			}
 
 			go fetchBlockByHash(client, header.Hash(), _db)

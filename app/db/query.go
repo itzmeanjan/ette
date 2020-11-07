@@ -326,13 +326,55 @@ func GetEventsFromContractWithTopicsByBlockNumberRange(db *gorm.DB, contract com
 
 }
 
-// GetEventsFromContractWithTopic0ByBlockTimeRange - Given block time range, contract address & topic 0 of event log, extracts out all
-// events emitted by this contract during time span with topic 0 signature
-func GetEventsFromContractWithTopic0ByBlockTimeRange(db *gorm.DB, contract common.Address, topic common.Hash, from uint64, to uint64) *data.Events {
+// GetEventsFromContractWithTopicsByBlockTimeRange - Given time range, contract address & topics ( var arg topic, at max 4 ) of event log, extracts out all
+// events emitted by this contract during block span with topic signatures matching
+func GetEventsFromContractWithTopicsByBlockTimeRange(db *gorm.DB, contract common.Address, from uint64, to uint64, topics ...common.Hash) *data.Events {
+
+	if topics == nil {
+		return nil
+	}
 
 	var events []*data.Event
 
-	if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and and blocks.time >= ? and blocks.time <= ?", contract.Hex(), topic.Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+	switch len(topics) {
+	case 1:
+		if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and blocks.time >= ? and blocks.time <= ?", contract.Hex(), topics[0].Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+			return nil
+		}
+	case 2:
+		if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and events.topics[2] = ? and blocks.time >= ? and blocks.time <= ?", contract.Hex(), topics[0].Hex(), topics[1].Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+			return nil
+		}
+	case 3:
+		if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and events.topics[2] = ? and events.topics[3] = ? and blocks.time >= ? and blocks.time <= ?", contract.Hex(), topics[0].Hex(), topics[1].Hex(), topics[2].Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+			return nil
+		}
+	case 4:
+		if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ? and events.topics[1] = ? and events.topics[2] = ? and events.topics[3] = ? and events.topics[4] = ? and blocks.time >= ? and blocks.time <= ?", contract.Hex(), topics[0].Hex(), topics[1].Hex(), topics[2].Hex(), topics[3].Hex(), from, to).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+			return nil
+		}
+	}
+
+	if len(events) == 0 {
+		return nil
+	}
+
+	return &data.Events{
+		Events: events,
+	}
+
+}
+
+// GetLastXEventsFromContract - Finds out last `x` events emitted by contract
+func GetLastXEventsFromContract(db *gorm.DB, contract common.Address, x int) *data.Events {
+
+	var events []*data.Event
+
+	if err := db.Model(&Events{}).Joins("left join blocks on events.blockhash = blocks.hash").Where("events.origin = ?", contract.Hex()).Order("blocks.number desc").Limit(x).Select("events.origin, events.index, events.topics, events.data, events.txhash, events.blockhash").Find(&events).Error; err != nil {
+		return nil
+	}
+
+	if len(events) == 0 {
 		return nil
 	}
 

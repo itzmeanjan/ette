@@ -3,13 +3,17 @@ package rest
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/adjust/rmq/v3"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
@@ -17,7 +21,7 @@ import (
 )
 
 // RunHTTPServer - Holds definition for all REST API(s) to be exposed
-func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
+func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _blockQueue rmq.Queue) {
 
 	// Extracted from, to field of range based block query ( using block numbers/ time stamps )
 	// gets parsed into unsigned integers
@@ -72,6 +76,20 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 		return nil
 	}
 
+	respondWithJSON := func(data []byte, c *gin.Context) {
+		if data != nil {
+			c.Data(http.StatusOK, "application/json", data)
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": "JSON encoding failed",
+		})
+		return
+	}
+
+	_blockQueue.StartConsuming(10, time.Second)
+
 	router := gin.Default()
 
 	grp := router.Group("/v1")
@@ -99,14 +117,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			// Block hash based all tx retrieval request handler
 			if strings.HasPrefix(hash, "0x") && len(hash) == 66 && tx == "yes" {
 				if tx := db.GetTransactionsByBlockHash(_db, common.HexToHash(hash)); tx != nil {
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
 				}
 
@@ -128,14 +139,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if tx := db.GetTransactionsByBlockNumber(_db, _num); tx != nil {
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
 				}
 
@@ -148,17 +152,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			// Block hash based single block retrieval request handler
 			if strings.HasPrefix(hash, "0x") && len(hash) == 66 {
 				if block := db.GetBlockByHash(_db, common.HexToHash(hash)); block != nil {
-
-					if data := block.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(block.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -179,17 +174,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if block := db.GetBlockByNumber(_db, _num); block != nil {
-
-					if data := block.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(block.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -214,17 +200,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if blocks := db.GetBlocksByNumberRange(_db, _from, _to); blocks != nil {
-
-					if data := blocks.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(blocks.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -249,17 +226,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if blocks := db.GetBlocksByTimeRange(_db, _from, _to); blocks != nil {
-
-					if data := blocks.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(blocks.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -282,17 +250,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			// Simply returns single tx object, when queried using tx hash
 			if strings.HasPrefix(hash, "0x") && len(hash) == 66 {
 				if tx := db.GetTransactionByHash(_db, common.HexToHash(hash)); tx != nil {
-
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -335,14 +294,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if tx := db.GetTransactionFromAccountWithNonce(_db, common.HexToAddress(fromAccount), _nonce); tx != nil {
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
 				}
 
@@ -366,17 +318,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if tx := db.GetContractCreationTransactionsFromAccountByBlockNumberRange(_db, common.HexToAddress(deployer), _fromBlock, _toBlock); tx != nil {
-
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -399,17 +342,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if tx := db.GetContractCreationTransactionsFromAccountByBlockTimeRange(_db, common.HexToAddress(deployer), _fromTime, _toTime); tx != nil {
-
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -432,17 +366,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if tx := db.GetTransactionsBetweenAccountsByBlockNumberRange(_db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _fromBlock, _toBlock); tx != nil {
-
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -465,17 +390,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if tx := db.GetTransactionsBetweenAccountsByBlockTimeRange(_db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _fromTime, _toTime); tx != nil {
-
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -498,17 +414,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if tx := db.GetTransactionsFromAccountByBlockNumberRange(_db, common.HexToAddress(fromAccount), _fromBlock, _toBlock); tx != nil {
-
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -531,17 +438,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if tx := db.GetTransactionsFromAccountByBlockTimeRange(_db, common.HexToAddress(fromAccount), _fromTime, _toTime); tx != nil {
-
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -564,17 +462,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if tx := db.GetTransactionsToAccountByBlockNumberRange(_db, common.HexToAddress(toAccount), _fromBlock, _toBlock); tx != nil {
-
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -597,17 +486,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if tx := db.GetTransactionsToAccountByBlockTimeRange(_db, common.HexToAddress(toAccount), _fromTime, _toTime); tx != nil {
-
-					if data := tx.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(tx.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -634,6 +514,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			contract := c.Query("contract")
 
+			count := c.Query("count")
+
 			topic0 := c.Query("topic0")
 			topic1 := c.Query("topic1")
 			topic2 := c.Query("topic2")
@@ -646,17 +528,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			if strings.HasPrefix(blockHash, "0x") && len(blockHash) == 66 {
 
 				if event := db.GetEventsByBlockHash(_db, common.HexToHash(blockHash)); event != nil {
-
-					if data := event.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(event.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -670,17 +543,38 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 			if strings.HasPrefix(txHash, "0x") && len(txHash) == 66 {
 
 				if event := db.GetEventsByTransactionHash(_db, common.HexToHash(txHash)); event != nil {
+					respondWithJSON(event.ToJSON(), c)
+					return
+				}
 
-					if data := event.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
 
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
+			}
+
+			// Finds out last `x` events emitted by contract
+			if count != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
+
+				_count, err := strconv.Atoi(count)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad event count",
 					})
 					return
+				}
 
+				if _count > 50 {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Too many events requested",
+					})
+					return
+				}
+
+				if event := db.GetLastXEventsFromContract(_db, common.HexToAddress(contract), _count); event != nil {
+					respondWithJSON(event.ToJSON(), c)
+					return
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -703,17 +597,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if event := db.GetEventsFromContractWithTopicsByBlockNumberRange(_db, common.HexToAddress(contract), _fromBlock, _toBlock, getTopics([]string{topic0, topic1, topic2, topic3}...)...); event != nil {
-
-					if data := event.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(event.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -725,7 +610,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 			// Given time span, contract address & topic 0 of log event, returns
 			// events satisfying criteria
-			if fromTime != "" && toTime != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 && strings.HasPrefix(topic0, "0x") && len(topic0) == 66 {
+			if fromTime != "" && toTime != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 && ((strings.HasPrefix(topic0, "0x") && len(topic0) == 66) || (strings.HasPrefix(topic1, "0x") && len(topic1) == 66) || (strings.HasPrefix(topic2, "0x") && len(topic2) == 66) || (strings.HasPrefix(topic3, "0x") && len(topic3) == 66)) {
 
 				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
 				if err != nil {
@@ -735,18 +620,9 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 					return
 				}
 
-				if event := db.GetEventsFromContractWithTopic0ByBlockTimeRange(_db, common.HexToAddress(contract), common.HexToHash(topic0), _fromTime, _toTime); event != nil {
-
-					if data := event.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+				if event := db.GetEventsFromContractWithTopicsByBlockTimeRange(_db, common.HexToAddress(contract), _fromTime, _toTime, getTopics([]string{topic0, topic1, topic2, topic3}...)...); event != nil {
+					respondWithJSON(event.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -768,17 +644,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if event := db.GetEventsFromContractByBlockNumberRange(_db, common.HexToAddress(contract), _fromBlock, _toBlock); event != nil {
-
-					if data := event.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(event.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -801,17 +668,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				}
 
 				if event := db.GetEventsFromContractByBlockTimeRange(_db, common.HexToAddress(contract), _fromTime, _toTime); event != nil {
-
-					if data := event.ToJSON(); data != nil {
-						c.Data(http.StatusOK, "application/json", data)
-						return
-					}
-
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"msg": "JSON encoding failed",
-					})
+					respondWithJSON(event.ToJSON(), c)
 					return
-
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -825,6 +683,105 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 				"msg": "Bad query param(s)",
 			})
 
+		})
+	}
+
+	upgrader := websocket.Upgrader{}
+
+	wsGrp := router.Group("/v1/ws")
+
+	validateMessage := func(channel *d.Channel) bool {
+		if !(channel.Type == "subscribe" || channel.Type == "unsubscribe") {
+			return false
+		}
+
+		if !(channel.Name == "block") {
+			return false
+		}
+
+		return true
+	}
+
+	{
+		wsGrp.GET("/echo", func(c *gin.Context) {
+			conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+			if err != nil {
+				log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
+				return
+			}
+
+			// Registering websocket connection closing, to be executed when leaving
+			// this function block
+			defer conn.Close()
+
+			// Handling communication with client
+			for {
+				var channel d.Channel
+
+				err := conn.ReadJSON(&channel)
+				if err != nil {
+					log.Printf("[!] Failed to read message : %s\n", err.Error())
+					break
+				}
+
+				// Validating incoming request on websocket subscription channel
+				if !validateMessage(&channel) {
+					if err := conn.WriteJSON(struct {
+						Message string `json:"msg"`
+					}{
+						Message: "Bad request",
+					}); err != nil {
+						log.Printf("[!] Failed to write message : %s\n", err.Error())
+					}
+					break
+				}
+
+				log.Printf("[+] Subscribed to %v\n", channel)
+
+				err = conn.WriteJSON(&channel)
+				if err != nil {
+					log.Printf("[!] Failed to write message : %s\n", err.Error())
+					break
+				}
+			}
+		})
+
+		wsGrp.GET("/block", func(c *gin.Context) {
+			conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+			if err != nil {
+				log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
+				return
+			}
+
+			// Registering websocket connection closing, to be executed when leaving
+			// this function block
+			defer conn.Close()
+
+			// Communication with client handling logic
+			for {
+				var channel d.Channel
+
+				err := conn.ReadJSON(&channel)
+				if err != nil {
+					log.Printf("[!] Failed to read message : %s\n", err.Error())
+					break
+				}
+
+				// Validating incoming request on websocket subscription channel
+				if !validateMessage(&channel) {
+					if err := conn.WriteJSON(struct {
+						Message string `json:"msg"`
+					}{
+						Message: "Bad request",
+					}); err != nil {
+						log.Printf("[!] Failed to write message : %s\n", err.Error())
+					}
+					break
+				}
+
+				log.Printf("[+] Subscribed to %v\n", channel)
+				_blockQueue.AddConsumer("block-consumer", &d.BlockConsumer{Connection: conn})
+			}
 		})
 	}
 
