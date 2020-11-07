@@ -36,6 +36,7 @@ func Run(file string) {
 	_client, _conn, _db, _lock, _synced := bootstrap(file)
 
 	_blockQueue := getRedisMessageQueue(_conn, "block")
+	defer _blockQueue.Destroy()
 
 	// Pushing block header propagation listener to another thread of execution
 	go blk.SubscribeToNewBlocks(_client, _db, _lock, _synced, _blockQueue)
