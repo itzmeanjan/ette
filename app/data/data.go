@@ -213,7 +213,7 @@ func (b *BlockConsumer) Consume(delivery rmq.Delivery) {
 		return
 	}
 
-	b.Connection.WriteJSON(block.ToJSON())
+	b.Connection.WriteJSON(&block)
 
 	if err := delivery.Ack(); err != nil {
 		log.Printf("[!] Failed to acknowledge delivery for block : %s\n", err.Error())
