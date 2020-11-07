@@ -184,10 +184,18 @@ func (e *Events) ToJSON() []byte {
 
 }
 
-// Channel - Channel which is to be subscribed to, over websocket endpoint
-type Channel struct {
+// SubscriptionRequest - Real time data subscription/ unsubscription request
+// needs to be sent in this form, from client application
+type SubscriptionRequest struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
+}
+
+// SubscriptionResponse - Real time data subscription/ unsubscription request to be responded with 
+// in this form
+type SubscriptionResponse struct {
+	Code    uint   `json:"code"`
+	Message string `json:"msg"`
 }
 
 // BlockConsumer - Block data consumer to keep websocket connection handle
