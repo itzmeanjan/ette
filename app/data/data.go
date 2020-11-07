@@ -193,7 +193,7 @@ type Channel struct {
 // BlockConsumer - Block data consumer to keep websocket connection handle
 // so when data is delivered, it can let client application know about it
 type BlockConsumer struct {
-	Connection websocket.Conn
+	Connection *websocket.Conn
 }
 
 // Consume - When data is available on subscribed channel, consumer
