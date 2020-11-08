@@ -221,10 +221,28 @@ func (b *BlockConsumer) Consume(delivery rmq.Delivery) {
 		return
 	}
 
+	// bufferring connections to be removed, which are either unreachable
+	// or unsubscribe from blocks topic
+	//
+	// removed connections to be considered as they've unsubscribed from
+	// topic, so we won't attempt sending them block mining notification
+	closedConnections := make([]*websocket.Conn, 0)
+
 	for k, v := range b.Connections {
 		if v {
-			k.WriteJSON(&block)
+			if err := k.WriteJSON(&block); err != nil {
+				closedConnections = append(closedConnections, k)
+			}
+			continue
 		}
+
+		closedConnections = append(closedConnections, k)
+	}
+
+	// iterating over all those connections to be removed
+	// and deleting them from map
+	for _, v := range closedConnections {
+		delete(b.Connections, v)
 	}
 
 	if err := delivery.Ack(); err != nil {
