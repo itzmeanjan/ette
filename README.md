@@ -8,7 +8,7 @@ Ethereum Blockchain Analyser 😎
 
 ## Nomenclature
 
-I was seaching for one catching, single word name for my new project, which will expose some functionalities for analysing EVM based blockchain's historical data, will also provide real time notification for events happening on blockchain. And I came across the term `ETHER`, where I made a simple tweak & `ette` - I like the term because it reads same from both sides.
+I was seaching for one catchy, single word name for my new project, which will expose some functionalities for analysing EVM based blockchain's historical data, will also provide real time notification for events happening on blockchain. And I came across the term `ETHER`, where I made a simple tweak & `ette` - I like the term because it reads same from both sides.
 
 ## Inspiration
 
