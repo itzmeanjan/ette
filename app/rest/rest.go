@@ -698,6 +698,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 	upgrader := websocket.Upgrader{}
 	var blockConsumer d.BlockConsumer
 
+	_blockQueue.AddConsumer("block-consumer", &blockConsumer)
+
 	router.GET("/v1/ws", func(c *gin.Context) {
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
@@ -743,7 +745,6 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 
 					topics[req.Name] = true
 					blockConsumer.Connections[conn] = true
-					_blockQueue.AddConsumer("block-consumer", &blockConsumer)
 
 					continue
 				}
