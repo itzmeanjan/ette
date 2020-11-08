@@ -696,7 +696,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 	}
 
 	upgrader := websocket.Upgrader{}
-	var blockConsumer d.BlockConsumer
+	blockConsumer := d.BlockConsumer{Connections: make(map[*websocket.Conn]bool)}
 
 	_blockQueue.AddConsumer("block-consumer", &blockConsumer)
 
