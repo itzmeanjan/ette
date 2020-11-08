@@ -3,6 +3,7 @@ package app
 import (
 	"log"
 	"sync"
+	"time"
 
 	"github.com/adjust/rmq/v3"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -36,6 +37,8 @@ func Run(file string) {
 	_client, _conn, _db, _lock, _synced := bootstrap(file)
 
 	_blockQueue := getRedisMessageQueue(_conn, "block")
+	defer _blockQueue.Destroy()
+	_blockQueue.StartConsuming(10, time.Second)
 
 	// Pushing block header propagation listener to another thread of execution
 	go blk.SubscribeToNewBlocks(_client, _db, _lock, _synced, _blockQueue)

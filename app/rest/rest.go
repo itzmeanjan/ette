@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/adjust/rmq/v3"
 	"github.com/ethereum/go-ethereum/common"
@@ -87,8 +86,6 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 		})
 		return
 	}
-
-	_blockQueue.StartConsuming(10, time.Second)
 
 	router := gin.Default()
 
@@ -686,10 +683,6 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 		})
 	}
 
-	upgrader := websocket.Upgrader{}
-
-	wsGrp := router.Group("/v1/ws")
-
 	validateMessage := func(req *d.SubscriptionRequest) bool {
 		if !(req.Type == "subscribe" || req.Type == "unsubscribe") {
 			return false
@@ -702,68 +695,47 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 		return true
 	}
 
-	{
+	upgrader := websocket.Upgrader{}
+	blockConsumer := d.BlockConsumer{Connections: make(map[*websocket.Conn]bool)}
 
-		wsGrp.GET("/", func(c *gin.Context) {
-			conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-			if err != nil {
-				log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
-				return
+	_blockQueue.AddConsumer("block-consumer", &blockConsumer)
+
+	router.GET("/v1/ws", func(c *gin.Context) {
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
+			return
+		}
+
+		// Registering websocket connection closing, to be executed when leaving
+		// this function block
+		defer conn.Close()
+
+		// keeping track of which topics this client has already subscribed to
+		// or unsubscrribed from
+		topics := make(map[string]bool)
+
+		// Communication with client handling logic
+		for {
+			var req d.SubscriptionRequest
+
+			if err := conn.ReadJSON(&req); err != nil {
+				log.Printf("[!] Failed to read message : %s\n", err.Error())
+				break
 			}
 
-			// Registering websocket connection closing, to be executed when leaving
-			// this function block
-			defer conn.Close()
-
-			// keeping track of which topics this client has already subscribed to
-			// or unsubscrribed from
-			topics := make(map[string]bool)
-
-			var blockConsumer d.BlockConsumer
-
-			// Communication with client handling logic
-			for {
-				var req d.SubscriptionRequest
-
-				if err := conn.ReadJSON(&req); err != nil {
-					log.Printf("[!] Failed to read message : %s\n", err.Error())
-					break
+			// Validating incoming request on websocket subscription channel
+			if !validateMessage(&req) {
+				if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
+					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
+				break
+			}
 
-				// Validating incoming request on websocket subscription channel
-				if !validateMessage(&req) {
-					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
-						log.Printf("[!] Failed to write message : %s\n", err.Error())
-					}
-					break
-				}
-
-				switch req.Type {
-				case "subscribe":
-					v, ok := topics[req.Name]
-					if !ok {
-						if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 1, Message: fmt.Sprintf("Subscribed to `%s`", req.Name)}); err != nil {
-							log.Printf("[!] Failed to write message : %s\n", err.Error())
-							break
-						}
-
-						log.Printf("[+] Subscribed to %v : [ %s ]\n", req, conn.RemoteAddr().String())
-
-						topics[req.Name] = true
-						blockConsumer = d.BlockConsumer{Connection: conn, Enabled: true}
-						_blockQueue.AddConsumer("block-consumer", &blockConsumer)
-
-						continue
-					}
-
-					if v {
-						if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: fmt.Sprintf("Already subscribed to `%s`", req.Name)}); err != nil {
-							log.Printf("[!] Failed to write message : %s\n", err.Error())
-							break
-						}
-						continue
-					}
-
+			switch req.Type {
+			case "subscribe":
+				v, ok := topics[req.Name]
+				if !ok {
 					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 1, Message: fmt.Sprintf("Subscribed to `%s`", req.Name)}); err != nil {
 						log.Printf("[!] Failed to write message : %s\n", err.Error())
 						break
@@ -772,72 +744,59 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 					log.Printf("[+] Subscribed to %v : [ %s ]\n", req, conn.RemoteAddr().String())
 
 					topics[req.Name] = true
-					blockConsumer.Enabled = true
+					blockConsumer.Connections[conn] = true
 
-				case "unsubscribe":
-					v, ok := topics[req.Name]
-					if !ok {
-						if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: fmt.Sprintf("Never subscribed to `%s`", req.Name)}); err != nil {
-							log.Printf("[!] Failed to write message : %s\n", err.Error())
-							break
-						}
-						continue
-					}
+					continue
+				}
 
-					if !v {
-						if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: fmt.Sprintf("Already unsubscribed from `%s`", req.Name)}); err != nil {
-							log.Printf("[!] Failed to write message : %s\n", err.Error())
-							break
-						}
-						continue
-					}
-
-					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 1, Message: fmt.Sprintf("Unsubscribed from `%s`", req.Name)}); err != nil {
+				if v {
+					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: fmt.Sprintf("Already subscribed to `%s`", req.Name)}); err != nil {
 						log.Printf("[!] Failed to write message : %s\n", err.Error())
 						break
 					}
-
-					log.Printf("[+] Unsubscribed from %v [ %s ]\n", req, conn.RemoteAddr().String())
-
-					topics[req.Name] = false
-					blockConsumer.Enabled = false
-				}
-			}
-		})
-
-		wsGrp.GET("/echo", func(c *gin.Context) {
-			conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-			if err != nil {
-				log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
-				return
-			}
-
-			// Registering websocket connection closing, to be executed when leaving
-			// this function block
-			defer conn.Close()
-
-			// Handling communication with client
-			for {
-				var req d.SubscriptionRequest
-
-				if err := conn.ReadJSON(&req); err != nil {
-					log.Printf("[!] Failed to read message : %s\n", err.Error())
-					break
+					continue
 				}
 
-				log.Printf("[+] Received %v\n", req)
-
-				if err = conn.WriteJSON(&d.SubscriptionResponse{
-					Code:    1,
-					Message: "Success",
-				}); err != nil {
+				if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 1, Message: fmt.Sprintf("Subscribed to `%s`", req.Name)}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 					break
 				}
-			}
-		})
 
-	}
+				log.Printf("[+] Subscribed to %v : [ %s ]\n", req, conn.RemoteAddr().String())
+
+				topics[req.Name] = true
+				blockConsumer.Connections[conn] = true
+
+			case "unsubscribe":
+				v, ok := topics[req.Name]
+				if !ok {
+					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: fmt.Sprintf("Never subscribed to `%s`", req.Name)}); err != nil {
+						log.Printf("[!] Failed to write message : %s\n", err.Error())
+						break
+					}
+					continue
+				}
+
+				if !v {
+					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: fmt.Sprintf("Already unsubscribed from `%s`", req.Name)}); err != nil {
+						log.Printf("[!] Failed to write message : %s\n", err.Error())
+						break
+					}
+					continue
+				}
+
+				if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 1, Message: fmt.Sprintf("Unsubscribed from `%s`", req.Name)}); err != nil {
+					log.Printf("[!] Failed to write message : %s\n", err.Error())
+					break
+				}
+
+				log.Printf("[+] Unsubscribed from %v [ %s ]\n", req, conn.RemoteAddr().String())
+
+				topics[req.Name] = false
+				blockConsumer.Connections[conn] = false
+			}
+		}
+	})
 
 	router.Run(fmt.Sprintf(":%s", cfg.Get("PORT")))
 }

@@ -201,8 +201,7 @@ type SubscriptionResponse struct {
 // BlockConsumer - Block data consumer to keep websocket connection handle
 // so when data is delivered, it can let client application know about it
 type BlockConsumer struct {
-	Enabled    bool
-	Connection *websocket.Conn
+	Connections map[*websocket.Conn]bool
 }
 
 // Consume - When data is available on subscribed channel, consumer
@@ -222,8 +221,28 @@ func (b *BlockConsumer) Consume(delivery rmq.Delivery) {
 		return
 	}
 
-	if b.Enabled {
-		b.Connection.WriteJSON(&block)
+	// bufferring connections to be removed, which are either unreachable
+	// or unsubscribe from blocks topic
+	//
+	// removed connections to be considered as they've unsubscribed from
+	// topic, so we won't attempt sending them block mining notification
+	closedConnections := make([]*websocket.Conn, 0)
+
+	for k, v := range b.Connections {
+		if v {
+			if err := k.WriteJSON(&block); err != nil {
+				closedConnections = append(closedConnections, k)
+			}
+			continue
+		}
+
+		closedConnections = append(closedConnections, k)
+	}
+
+	// iterating over all those connections to be removed
+	// and deleting them from map
+	for _, v := range closedConnections {
+		delete(b.Connections, v)
 	}
 
 	if err := delivery.Ack(); err != nil {
