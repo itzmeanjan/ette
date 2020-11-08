@@ -696,6 +696,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 	}
 
 	upgrader := websocket.Upgrader{}
+	var blockConsumer d.BlockConsumer
 
 	router.GET("/v1/ws", func(c *gin.Context) {
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -711,8 +712,6 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 		// keeping track of which topics this client has already subscribed to
 		// or unsubscrribed from
 		topics := make(map[string]bool)
-
-		var blockConsumer d.BlockConsumer
 
 		// Communication with client handling logic
 		for {
@@ -743,7 +742,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 					log.Printf("[+] Subscribed to %v : [ %s ]\n", req, conn.RemoteAddr().String())
 
 					topics[req.Name] = true
-					blockConsumer = d.BlockConsumer{Connection: conn, Enabled: true}
+					blockConsumer.Connections[conn] = true
 					_blockQueue.AddConsumer("block-consumer", &blockConsumer)
 
 					continue
@@ -765,7 +764,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 				log.Printf("[+] Subscribed to %v : [ %s ]\n", req, conn.RemoteAddr().String())
 
 				topics[req.Name] = true
-				blockConsumer.Enabled = true
+				blockConsumer.Connections[conn] = true
 
 			case "unsubscribe":
 				v, ok := topics[req.Name]
@@ -793,7 +792,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 				log.Printf("[+] Unsubscribed from %v [ %s ]\n", req, conn.RemoteAddr().String())
 
 				topics[req.Name] = false
-				blockConsumer.Enabled = false
+				blockConsumer.Connections[conn] = false
 			}
 		}
 	})

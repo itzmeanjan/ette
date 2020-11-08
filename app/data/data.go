@@ -201,8 +201,7 @@ type SubscriptionResponse struct {
 // BlockConsumer - Block data consumer to keep websocket connection handle
 // so when data is delivered, it can let client application know about it
 type BlockConsumer struct {
-	Enabled    bool
-	Connection *websocket.Conn
+	Connections map[*websocket.Conn]bool
 }
 
 // Consume - When data is available on subscribed channel, consumer
@@ -222,8 +221,10 @@ func (b *BlockConsumer) Consume(delivery rmq.Delivery) {
 		return
 	}
 
-	if b.Enabled {
-		b.Connection.WriteJSON(&block)
+	for k, v := range b.Connections {
+		if v {
+			k.WriteJSON(&block)
+		}
 	}
 
 	if err := delivery.Ack(); err != nil {
