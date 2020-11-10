@@ -9,7 +9,7 @@ Ethereum Blockchain Analyser 😎
 - [How to install it ?](#installation)
 - [How to use it ?](#usage)
 
-## Inspiration
+## Inspiration 🤔
 
 I was looking for one tool which will be able to keep itself in sync with latest happenings on EVM based blockchain, while exposing REST API for querying blockchain data with various filters. That tool will also expose real time notification functionalities over websocket, when subscribed to topics.
 
@@ -30,14 +30,14 @@ It's not that I was unable find any solution, but wasn't fully satisfied with th
 
 And here's `ette`
 
-## Prerequisite
+## Prerequisite 👍
 
 - Make sure you've Go _( >= 1.15 )_ installed
 - You need to also install & set up PostgreSQL. I found [this](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-20-04) guide helpful.
 - Redis needs to be installed too. Consider following [this](https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-redis-on-ubuntu-20-04) guide.
 - Blockchain Node's websocket connection URL, required because we'll be listening for events in real time.
 
-## Installation
+## Installation 🛠
 
 - First fork this repository & clone it, some where out side of **GOPATH**.
 
@@ -45,7 +45,7 @@ And here's `ette`
 git clone git@github.com:username/ette.git
 ```
 
-- Now get insider `ette`
+- Now get inside `ette`
 
 ```bash
 cd ette
@@ -71,7 +71,7 @@ RedisAddress=x.x.x.x:6379
 go build
 ```
 
-If everything goes as expected, you'll find one binary named, **ette** in this directory. Run it. 
+- If everything goes as expected, you'll find one binary named, **ette** in this directory. Run it. 
 
 ```bash
 ./ette
@@ -79,7 +79,7 @@ If everything goes as expected, you'll find one binary named, **ette** in this d
 
 > Note: For production, you'll most probably run it using `systemd`
 
-## Usage
+## Usage 🦾
 
 `ette` exposes REST API for querying historical block, transaction & event related data. It can also play role of real time notification engine, when subscribed to supported topics.
 
@@ -87,42 +87,88 @@ If everything goes as expected, you'll find one binary named, **ette** in this d
 
 You can query historical block data with various combination of query string params. 👇 is a comprehensive guide for consuming block data.
 
-1) For fetching all transactions present in a block, when block hash is known
+#### Transactions in block by block hash
+
+For fetching all transactions present in a block, when block hash is known
 
 ```bash
 curl http://localhost:7000/v1/block?hash=0x...&tx=yes
 ```
 
-2) For fetching all transactions present in a block, when block number is known
+#### Transactions in block by block number
+
+For fetching all transactions present in a block, when block number is known
 
 ```bash
 curl http://localhost:7000/v1/block?number=1&tx=yes
 ```
 
-3) Fetching block by hash
+#### Block by hash
+
+Fetching block by hash
 
 ```bash
 curl http://localhost:7000/v1/block?hash=0x...
 ```
 
-4) Fetching block by number
+#### Block by number
+
+Fetching block by number
 
 ```bash
 curl http://localhost:7000/v1/block?number=1
 ```
 
-5) For fetching blocks by block number range _( max 10 at a time )_
+#### Blocks by block number range
+
+For fetching blocks by block number range _( max 10 at a time )_
 
 ```bash
 curl http://localhost:7000/v1/block?fromBlock=1&toBlock=10
 ```
 
-6) For fetching blocks by unix timestamp range _( max 60 seconds timespan )_
+#### Blocks by time stamp range
+
+For fetching blocks by unix timestamp range _( max 60 seconds timespan )_
 
 > Note: Timestamp matched with block mining timestamp
 
 ```bash
 curl http://localhost:7000/v1/block?fromTime=1604975929&toTime=1604975988
+```
+
+### Historical Transactions Data 😎
+
+It's possible to query historical transactions data with various combination of query string params.
+
+#### Transaction by txHash
+
+Fetching transaction by txHash
+
+```bash
+curl http://localhost:7000/v1/transaction?hash=0x...
+```
+
+#### Transaction by account address & nonce
+
+For fetching transaction, when tx sender's address & account nonce are known
+
+```bash
+curl http://localhost:7000/v1/transaction?nonce=1&fromAccount=0x...
+```
+
+#### Contract creation transactions
+
+- If you're interested in finding out what contracts are created by certain account within given block number range _( max 100 blocks )_
+
+```bash
+curl http://localhost:7000/v1/transaction?fromBlock=1&toBlock=10&deployer=0x...
+```
+
+- If you're interested in finding out what contracts are created by certain account within given timestamp range _( max 600 seconds of timespan )_
+
+```bash
+curl http://localhost:7000/v1/transaction?fromTime=1604975929&toTime=1604975988&deployer=0x...
 ```
 
 **More coming soon**
