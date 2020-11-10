@@ -2,6 +2,8 @@
 
 Ethereum Blockchain Analyser 😎
 
+![banner](sc/banner.gif)
+
 ## Table of Contents
 
 - [Why did you build `ette` ?](#inspiration-)
