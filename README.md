@@ -87,88 +87,24 @@ go build
 
 You can query historical block data with various combination of query string params. 👇 is a comprehensive guide for consuming block data.
 
-#### Transactions in block by block hash
+URL | Method | Description
+--- | --- | ---
+`/v1/block?hash=0x...&tx=yes` | GET | Fetch all transactions present in a block, when block hash is known
+`/v1/block?number=1&tx=yes` | GET | Fetch all transactions present in a block, when block number is known
+`/v1/block?hash=0x...` | GET | Fetch block by hash
+`/v1/block?number=1` | GET | Fetch block by number
+`/v1/block?fromBlock=1&toBlock=10` | GET | Fetch blocks by block number range _( max 10 at a time )_
+`/v1/block?fromTime=1604975929&toTime=1604975988` | GET | Fetch blocks by unix timestamp range _( max 60 seconds timespan )_
 
-For fetching all transactions present in a block, when block hash is known
-
-```bash
-curl http://localhost:7000/v1/block?hash=0x...&tx=yes
-```
-
-#### Transactions in block by block number
-
-For fetching all transactions present in a block, when block number is known
-
-```bash
-curl http://localhost:7000/v1/block?number=1&tx=yes
-```
-
-#### Block by hash
-
-Fetching block by hash
-
-```bash
-curl http://localhost:7000/v1/block?hash=0x...
-```
-
-#### Block by number
-
-Fetching block by number
-
-```bash
-curl http://localhost:7000/v1/block?number=1
-```
-
-#### Blocks by block number range
-
-For fetching blocks by block number range _( max 10 at a time )_
-
-```bash
-curl http://localhost:7000/v1/block?fromBlock=1&toBlock=10
-```
-
-#### Blocks by time stamp range
-
-For fetching blocks by unix timestamp range _( max 60 seconds timespan )_
-
-> Note: Timestamp matched with block mining timestamp
-
-```bash
-curl http://localhost:7000/v1/block?fromTime=1604975929&toTime=1604975988
-```
-
-### Historical Transactions Data 😎
+### Historical Transaction Data 😎
 
 It's possible to query historical transactions data with various combination of query string params.
 
-#### Transaction by txHash
-
-Fetching transaction by txHash
-
-```bash
-curl http://localhost:7000/v1/transaction?hash=0x...
-```
-
-#### Transaction by account address & nonce
-
-For fetching transaction, when tx sender's address & account nonce are known
-
-```bash
-curl http://localhost:7000/v1/transaction?nonce=1&fromAccount=0x...
-```
-
-#### Contract creation transactions
-
-- If you're interested in finding out what contracts are created by certain account within given block number range _( max 100 blocks )_
-
-```bash
-curl http://localhost:7000/v1/transaction?fromBlock=1&toBlock=10&deployer=0x...
-```
-
-- If you're interested in finding out what contracts are created by certain account within given timestamp range _( max 600 seconds of timespan )_
-
-```bash
-curl http://localhost:7000/v1/transaction?fromTime=1604975929&toTime=1604975988&deployer=0x...
-```
+URL | Method | Description
+--- | --- | ---
+`/v1/transaction?hash=0x...` | GET | Fetch transaction by txHash
+`/v1/transaction?nonce=1&fromAccount=0x...` | GET | Fetch transaction, when tx sender's address & account nonce are known
+`/v1/transaction?fromBlock=1&toBlock=10&deployer=0x...` | GET | Find out what contracts are created by certain account within given block number range _( max 100 blocks )_
+`/v1/transaction?fromTime=1604975929&toTime=1604975988&deployer=0x...` | GET | Find out what contracts are created by certain account within given timestamp range _( max 600 seconds of timespan )_
 
 **More coming soon**
