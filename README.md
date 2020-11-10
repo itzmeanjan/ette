@@ -140,4 +140,38 @@ URL | Method | Description
 `/v1/event?fromTime=1604975929&toTime=1604975988&contract=0x...&topic0=0x...` | GET | Finding event(s) emitted from contract within given time stamp range & also matching topic signatures _{0}_
 `/v1/event?fromTime=1604975929&toTime=1604975988&contract=0x...` | GET | Finding event(s) emitted from contract within given time stamp range
 
+### Real time notification for mined blocks
+
+For listening to blocks getting mined, connect to `/v1/ws` endpoint using websocket client library & once connected, you need to send **subscription** request with 👇 payload _( JSON encoded )_
+
+```json
+{
+    "name": "block",
+    "type": "subscribe"
+}
+```
+
+If everything goes fine, your subscription will be confirmed with 👇 response _( JSON encoded )_
+
+```json
+{
+    "code": 1,
+    "message": "Subscribed to `block`"
+}
+```
+
+After that as long as your machine is reachable, `ette` will keep notifying you about new blocks getting mined.
+
+
+If you want to cancel subscription, consider sending 👇 & close connection
+
+```json
+{
+    "name": "block",
+    "type": "unsubscribe"
+}
+```
+
+> Note: If graceful unsubscription not done, when `ette` finds client unreachable, it'll remove client subscription
+
 **More coming soon**
