@@ -1,11 +1,13 @@
 # ette
+
 Ethereum Blockchain Analyser 😎
 
 ## Table of Contents
 
 - [Why did you build `ette` ?](#inspiration)
-- [What do I need to use it ?](#prerequisite)
+- [What do I need to have to use it ?](#prerequisite)
 - [How to install it ?](#installation)
+- [How to use it ?](#usage)
 
 ## Inspiration
 
@@ -76,5 +78,51 @@ If everything goes as expected, you'll find one binary named, **ette** in this d
 ```
 
 > Note: For production, you'll most probably run it using `systemd`
+
+## Usage
+
+`ette` exposes REST API for querying historical block, transaction & event related data. It can also play role of real time notification engine, when subscribed to supported topics.
+
+### Historical Block Data 🤩
+
+You can query historical block data with various combination of query string params. 👇 is a comprehensive guide for consuming block data.
+
+1) For fetching all transactions present in a block, when block hash is known
+
+```bash
+curl http://localhost:7000/v1/block?hash=0x...&tx=yes
+```
+
+2) For fetching all transactions present in a block, when block number is known
+
+```bash
+curl http://localhost:7000/v1/block?number=1&tx=yes
+```
+
+3) Fetching block by hash
+
+```bash
+curl http://localhost:7000/v1/block?hash=0x...
+```
+
+4) Fetching block by number
+
+```bash
+curl http://localhost:7000/v1/block?number=1
+```
+
+5) For fetching blocks by block number range _( max 10 at a time )_
+
+```bash
+curl http://localhost:7000/v1/block?fromBlock=1&toBlock=10
+```
+
+6) For fetching blocks by unix timestamp range _( max 60 seconds timespan )_
+
+> Note: Timestamp matched with block mining timestamp
+
+```bash
+curl http://localhost:7000/v1/block?fromTime=1604975929&toTime=1604975988
+```
 
 **More coming soon**
