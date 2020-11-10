@@ -77,6 +77,13 @@ go build
 ./ette
 ```
 
+- Database migration to be taken care of during application start up.
+- Syncing `ette` with latest state of blockchain takes time. Whether syncing is done or not, can be checked by querying
+
+```bash
+curl http://localhost:7000/v1/synced
+```
+
 > Note: For production, you'll most probably run it using `systemd`
 
 ## Usage 🦾
