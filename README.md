@@ -8,6 +8,12 @@ Ethereum Blockchain Analyser 😎
 - [What do I need to have to use it ?](#prerequisite-)
 - [How to install it ?](#installation-)
 - [How to use it ?](#usage-)
+    - Historical Data 
+        - [Query historical block data](#historical-block-data-)
+        - [Query historical transaction data](#historical-transaction-data-)
+        - [Query historical event data](#historical-event-data-)
+    - Real-time Data
+        - [Real-time block mining notification](#real-time-notification-for-mined-blocks)
 
 ## Inspiration 🤔
 
