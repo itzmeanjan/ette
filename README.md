@@ -4,10 +4,10 @@ Ethereum Blockchain Analyser 😎
 
 ## Table of Contents
 
-- [Why did you build `ette` ?](#inspiration)
-- [What do I need to have to use it ?](#prerequisite)
-- [How to install it ?](#installation)
-- [How to use it ?](#usage)
+- [Why did you build `ette` ?](#inspiration-)
+- [What do I need to have to use it ?](#prerequisite-)
+- [How to install it ?](#installation-)
+- [How to use it ?](#usage-)
 
 ## Inspiration 🤔
 
