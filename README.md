@@ -77,6 +77,13 @@ go build
 ./ette
 ```
 
+- Database migration to be taken care of during application start up.
+- Syncing `ette` with latest state of blockchain takes time. Whether syncing is done or not, can be checked by querying
+
+```bash
+curl http://localhost:7000/v1/synced
+```
+
 > Note: For production, you'll most probably run it using `systemd`
 
 ## Usage 🦾
@@ -112,5 +119,59 @@ URL | Method | Description
 `/v1/transaction?fromTime=1604975929&toTime=1604975988&fromAccount=0x...` | GET | Given time stamp range _( max 600 seconds of span )_ & an account, can find out all tx performed from that account
 `/v1/transaction?fromBlock=1&toBlock=100&toAccount=0x...` | GET | Given block number range _( max 100 at a time )_ & an account, can find out all tx where target was this address
 `/v1/transaction?fromTime=1604975929&toTime=1604975988&toAccount=0x...` | GET | Given time stamp range _( max 600 seconds of span )_ & an account, can find out all tx where target was this address
+
+### Historical Event Data 🧐
+
+`ette` lets you query historical event data, emitted by smart contracts, by combination of query string params.
+
+URL | Method | Description
+--- | --- | ---
+`/v1/event?blockHash=0x...` | GET | Given blockhash, retrieves all events emitted by tx(s) present in block
+`/v1/event?txHash=0x...` | GET | Given txhash, retrieves all events emitted during execution of this transaction
+`/v1/event?count=50&contract=0x...` | GET | Returns last **x** _( <=50 )_ events emitted by this contract
+`/v1/event?fromBlock=1&toBlock=10&contract=0x...&topic0=0x...&topic1=0x...&topic2=0x...&topic3=0x...` | GET | Finding event(s) emitted from contract within given block range & also matching topic signatures _{0, 1, 2, 3}_
+`/v1/event?fromBlock=1&toBlock=10&contract=0x...&topic0=0x...&topic1=0x...&topic2=0x...` | GET | Finding event(s) emitted from contract within given block range & also matching topic signatures _{0, 1, 2}_
+`/v1/event?fromBlock=1&toBlock=10&contract=0x...&topic0=0x...&topic1=0x...` | GET | Finding event(s) emitted from contract within given block range & also matching topic signatures _{0, 1}_
+`/v1/event?fromBlock=1&toBlock=10&contract=0x...&topic0=0x...` | GET | Finding event(s) emitted from contract within given block range & also matching topic signatures _{0}_
+`/v1/event?fromBlock=1&toBlock=10&contract=0x...` | GET | Finding event(s) emitted from contract within given block range
+`/v1/event?fromTime=1604975929&toTime=1604975988&contract=0x...&topic0=0x...&topic1=0x...&topic2=0x...&topic3=0x...` | GET | Finding event(s) emitted from contract within given time stamp range & also matching topic signatures _{0, 1, 2, 3}_
+`/v1/event?fromTime=1604975929&toTime=1604975988&contract=0x...&topic0=0x...&topic1=0x...&topic2=0x...` | GET | Finding event(s) emitted from contract within given time stamp range & also matching topic signatures _{0, 1, 2}_
+`/v1/event?fromTime=1604975929&toTime=1604975988&contract=0x...&topic0=0x...&topic1=0x...` | GET | Finding event(s) emitted from contract within given time stamp range & also matching topic signatures _{0, 1}_
+`/v1/event?fromTime=1604975929&toTime=1604975988&contract=0x...&topic0=0x...` | GET | Finding event(s) emitted from contract within given time stamp range & also matching topic signatures _{0}_
+`/v1/event?fromTime=1604975929&toTime=1604975988&contract=0x...` | GET | Finding event(s) emitted from contract within given time stamp range
+
+### Real time notification for mined blocks
+
+For listening to blocks getting mined, connect to `/v1/ws` endpoint using websocket client library & once connected, you need to send **subscription** request with 👇 payload _( JSON encoded )_
+
+```json
+{
+    "name": "block",
+    "type": "subscribe"
+}
+```
+
+If everything goes fine, your subscription will be confirmed with 👇 response _( JSON encoded )_
+
+```json
+{
+    "code": 1,
+    "message": "Subscribed to `block`"
+}
+```
+
+After that as long as your machine is reachable, `ette` will keep notifying you about new blocks getting mined.
+
+
+If you want to cancel subscription, consider sending 👇 & close connection
+
+```json
+{
+    "name": "block",
+    "type": "unsubscribe"
+}
+```
+
+> Note: If graceful unsubscription not done, when `ette` finds client unreachable, it'll remove client subscription
 
 **More coming soon**
