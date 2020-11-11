@@ -694,7 +694,18 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 				return false
 			}
 
-			return pattern.MatchString(name)
+			if pattern.MatchString(name) {
+
+				matches := pattern.FindStringSubmatch(name)
+				if strings.HasPrefix(matches[0], "block") {
+					return true
+				} else if strings.HasPrefix(matches[0], "transaction") {
+					return true
+				}
+
+			}
+
+			return false
 		}
 
 		// --- Closure definition
