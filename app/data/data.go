@@ -249,3 +249,35 @@ func (b *BlockConsumer) Consume(delivery rmq.Delivery) {
 		log.Printf("[!] Failed to acknowledge delivery for block : %s\n", err.Error())
 	}
 }
+
+// TransactionConsumer - Transaction topic subscribers websocket handles, to be
+// used when letting them know about occurrence of their topic of interest
+type TransactionConsumer struct {
+	Connections map[*websocket.Conn]*SubscriptionRequest
+}
+
+// Consume - Whenever new transaction is found, this call back to be invoked by redis
+// and deliver data, which can be used for finally letting client application
+// connected via websocket inform regarding occurrence of their topic of interest
+func (t *TransactionConsumer) Consume(delivery rmq.Delivery) {
+
+	var transaction Transaction
+
+	if err := json.Unmarshal([]byte(delivery.Payload()), &transaction); err != nil {
+
+		log.Printf("[!] Bad delivery in transaction consumer : %s\n", err.Error())
+		if err := delivery.Reject(); err != nil {
+			log.Printf("[!] Failed to reject delivery from transaction consumer : %s\n", err.Error())
+		}
+
+		return
+
+	}
+
+	log.Printf("[+] %v\n", transaction)
+
+	if err := delivery.Ack(); err != nil {
+		log.Printf("[!] Failed to acknowledge delivery from transaction consumer : %s\n", err.Error())
+	}
+
+}
