@@ -686,6 +686,14 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 	// --- Subscription request validator closure
 	validateMessage := func(req *d.SubscriptionRequest, topics map[string]bool) bool {
 
+		isValidTopic := func(name string) bool {
+			if name == "block" {
+				return true
+			}
+
+			return false
+		}
+
 		// --- Closure definition
 		// Given associative array & key in array, checks whether entry exists or not
 		// If yes, also return entry's boolean value
@@ -703,13 +711,9 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 
 		switch req.Type {
 		case "subscribe":
-			if !checkEntryInAssociativeArray(req.Name) {
-				validated = true
-			}
+			validated = isValidTopic(req.Name) && !checkEntryInAssociativeArray(req.Name)
 		case "unsubscribe":
-			if checkEntryInAssociativeArray(req.Name) {
-				validated = true
-			}
+			validated = isValidTopic(req.Name) && checkEntryInAssociativeArray(req.Name)
 		default:
 			validated = false
 		}
