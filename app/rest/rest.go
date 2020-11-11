@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -687,11 +688,13 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 	validateMessage := func(req *d.SubscriptionRequest, topics map[string]bool) bool {
 
 		isValidTopic := func(name string) bool {
-			if name == "block" {
-				return true
+			pattern, err := regexp.Compile("^(block|(transaction(/(0x[a-zA-Z0-9]{40}|\\*)(/(0x[a-zA-Z0-9]{40}|\\*))?)?))$")
+			if err != nil {
+				log.Printf("[!] Failed to parse regex pattern : %s\n", err.Error())
+				return false
 			}
 
-			return false
+			return pattern.MatchString(name)
 		}
 
 		// --- Closure definition
