@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -684,58 +683,6 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 		})
 	}
 
-	// --- Subscription request validator closure
-	validateMessage := func(req *d.SubscriptionRequest, topics map[string]bool) bool {
-
-		isValidTopic := func(name string) bool {
-			pattern, err := regexp.Compile("^(block|(transaction(/(0x[a-zA-Z0-9]{40}|\\*)(/(0x[a-zA-Z0-9]{40}|\\*))?)?))$")
-			if err != nil {
-				log.Printf("[!] Failed to parse regex pattern : %s\n", err.Error())
-				return false
-			}
-
-			if pattern.MatchString(name) {
-
-				matches := pattern.FindStringSubmatch(name)
-				if strings.HasPrefix(matches[0], "block") {
-					return true
-				} else if strings.HasPrefix(matches[0], "transaction") {
-					return true
-				}
-
-			}
-
-			return false
-		}
-
-		// --- Closure definition
-		// Given associative array & key in array, checks whether entry exists or not
-		// If yes, also return entry's boolean value
-		checkEntryInAssociativeArray := func(name string) bool {
-			v, ok := topics[name]
-			if !ok {
-				return false
-			}
-
-			return v
-		}
-		// ---
-
-		var validated bool
-
-		switch req.Type {
-		case "subscribe":
-			validated = isValidTopic(req.Name) && !checkEntryInAssociativeArray(req.Name)
-		case "unsubscribe":
-			validated = isValidTopic(req.Name) && checkEntryInAssociativeArray(req.Name)
-		default:
-			validated = false
-		}
-
-		return validated
-	}
-	// ---
-
 	upgrader := websocket.Upgrader{}
 	blockConsumer := d.BlockConsumer{Connections: make(map[*websocket.Conn]bool)}
 
@@ -766,7 +713,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 			}
 
 			// Validating incoming request on websocket subscription channel
-			if !validateMessage(&req, topics) {
+			if !req.Validate(topics) {
 				if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
