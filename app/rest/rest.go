@@ -683,17 +683,40 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 		})
 	}
 
-	validateMessage := func(req *d.SubscriptionRequest) bool {
-		if !(req.Type == "subscribe" || req.Type == "unsubscribe") {
-			return false
+	// --- Subscription request validator closure
+	validateMessage := func(req *d.SubscriptionRequest, topics map[string]bool) bool {
+
+		// --- Closure definition
+		// Given associative array & key in array, checks whether entry exists or not
+		// If yes, also return entry's boolean value
+		checkEntryInAssociativeArray := func(name string) bool {
+			v, ok := topics[name]
+			if !ok {
+				return false
+			}
+
+			return v
+		}
+		// ---
+
+		var validated bool
+
+		switch req.Type {
+		case "subscribe":
+			if !checkEntryInAssociativeArray(req.Name) {
+				validated = true
+			}
+		case "unsubscribe":
+			if checkEntryInAssociativeArray(req.Name) {
+				validated = true
+			}
+		default:
+			validated = false
 		}
 
-		if !(req.Name == "block") {
-			return false
-		}
-
-		return true
+		return validated
 	}
+	// ---
 
 	upgrader := websocket.Upgrader{}
 	blockConsumer := d.BlockConsumer{Connections: make(map[*websocket.Conn]bool)}
@@ -725,7 +748,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 			}
 
 			// Validating incoming request on websocket subscription channel
-			if !validateMessage(&req) {
+			if !validateMessage(&req, topics) {
 				if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
