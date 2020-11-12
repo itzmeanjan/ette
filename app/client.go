@@ -3,6 +3,9 @@ package app
 import (
 	"log"
 
+	"github.com/go-redis/redis/v8"
+	d "github.com/itzmeanjan/ette/app/data"
+
 	rmq "github.com/adjust/rmq/v3"
 	"github.com/ethereum/go-ethereum/ethclient"
 	cfg "github.com/itzmeanjan/ette/app/config"
@@ -16,6 +19,19 @@ func getClient() *ethclient.Client {
 	}
 
 	return client
+}
+
+// Creates connection to redis server & returns that handle to be used for further communication
+func getPubSubClient() *d.PubSubClient {
+
+	return &d.PubSubClient{
+		Client: redis.NewClient(&redis.Options{
+			Network: cfg.Get("RedisConnection"),
+			Addr:    cfg.Get("RedisAddress"),
+			DB:      0,
+		}),
+	}
+
 }
 
 // Connect to redis & use connection for creating queues

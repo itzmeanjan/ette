@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/adjust/rmq/v3"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/lib/pq"
 )
@@ -335,4 +336,9 @@ func (t *TransactionConsumer) Consume(delivery rmq.Delivery) {
 		log.Printf("[!] Failed to acknowledge delivery from transaction consumer : %s\n", err.Error())
 	}
 
+}
+
+// PubSubClient - Handle for talking to redis for managing pub-sub
+type PubSubClient struct {
+	Client *redis.Client
 }
