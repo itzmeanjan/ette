@@ -27,6 +27,12 @@ type Block struct {
 	Nonce      uint64 `json:"nonce" gorm:"column:nonce"`
 }
 
+// MarshalBinary - Implementing binary marshalling function, to be invoked
+// by redis before publishing data on channel
+func (b *Block) MarshalBinary() ([]byte, error) {
+	return json.Marshal(b)
+}
+
 // ToJSON - Encodes into JSON, to be supplied when queried for block data
 func (b *Block) ToJSON() []byte {
 	data, err := json.Marshal(b)
