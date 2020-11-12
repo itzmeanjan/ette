@@ -321,3 +321,30 @@ func (b *BlockConsumer) Send(msg string) bool {
 	log.Printf("[!] Delivered block data to client\n")
 	return true
 }
+
+// SendConfirmation - Sending confirmation message i.e. block subscription has been confirmed
+// for client. If unable to send it, cancels subscription & closes underlying websocket connection
+//
+// Websocket connection may already be closed, in that case it'll simply return
+func (b *BlockConsumer) SendConfirmation() bool {
+
+	if err := b.Connection.WriteJSON(&SubscriptionResponse{
+		Code:    1,
+		Message: "Subscribed to `block`",
+	}); err != nil {
+		log.Printf("[!] Failed to deliver block subscription confirmation to client : %s\n", err.Error())
+
+		if err = b.PubSub.Unsubscribe(context.Background(), b.Channel); err != nil {
+			log.Printf("[!] Failed to unsubscribe from block event : %s\n", err.Error())
+		}
+
+		if err = b.Connection.Close(); err != nil {
+			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
+		}
+
+		return false
+	}
+
+	log.Printf("[!] Delivered block subscription confirmation to client\n")
+	return true
+}
