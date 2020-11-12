@@ -8,6 +8,7 @@ import (
 	"log"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
@@ -263,7 +264,59 @@ type BlockConsumer struct {
 	PubSub     *redis.PubSub
 }
 
-// Subscribe - ...
+// Subscribe - Subscribe to `block` channel
 func (b *BlockConsumer) Subscribe() {
 	b.PubSub = b.Client.Subscribe(context.Background(), b.Channel)
+}
+
+// Listen - ...
+func (b *BlockConsumer) Listen() {
+
+	for {
+		msg, err := b.PubSub.ReceiveTimeout(context.Background(), time.Second)
+		if err != nil {
+			continue
+		}
+
+		switch m := msg.(type) {
+		case *redis.Subscription:
+
+		case *redis.Message:
+
+		}
+	}
+
+}
+
+// Send - Tries to deliver subscribed block data to client application
+// connected over websocket
+func (b *BlockConsumer) Send(msg string) {
+	var block Block
+
+	_msg := []byte(msg)
+
+	err := json.Unmarshal(_msg, &block)
+	if err != nil {
+		log.Printf("[!] Failed to decode published block data to JSON : %s\n", err.Error())
+		return
+	}
+
+	err = b.Connection.WriteJSON(&block)
+	if err != nil {
+		log.Printf("[!] Failed to deliver block data to client : %s\n", err.Error())
+
+		err = b.PubSub.Unsubscribe(context.Background(), b.Channel)
+		if err != nil {
+			log.Printf("[!] Failed to unsubscribe from block event : %s\n", err.Error())
+		}
+
+		err = b.Connection.Close()
+		if err != nil {
+			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
+		}
+
+		return
+	}
+
+	log.Printf("[!] Delivered block data to client\n")
 }
