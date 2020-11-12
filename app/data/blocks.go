@@ -43,6 +43,20 @@ func (b *BlockConsumer) Subscribe() {
 func (b *BlockConsumer) Listen() {
 
 	for {
+
+		// Checking if client is still subscribed to this topic
+		// or not
+		//
+		// If not, we're cancelling this subscription
+		if b.Request.Type == "unsubscribe" {
+
+			if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Name); err != nil {
+				log.Printf("[!] Failed to unsubscribe from block event : %s\n", err.Error())
+			}
+			break
+
+		}
+
 		msg, err := b.PubSub.ReceiveTimeout(context.Background(), time.Second)
 		if err != nil {
 			continue
