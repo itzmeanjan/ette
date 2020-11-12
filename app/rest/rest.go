@@ -9,9 +9,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/adjust/rmq/v3"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
@@ -20,7 +20,7 @@ import (
 )
 
 // RunHTTPServer - Holds definition for all REST API(s) to be exposed
-func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _blockQueue rmq.Queue) {
+func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redisClient *redis.Client) {
 
 	// Extracted from, to field of range based block query ( using block numbers/ time stamps )
 	// gets parsed into unsigned integers
@@ -683,22 +683,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 		})
 	}
 
-	validateMessage := func(req *d.SubscriptionRequest) bool {
-		if !(req.Type == "subscribe" || req.Type == "unsubscribe") {
-			return false
-		}
-
-		if !(req.Name == "block") {
-			return false
-		}
-
-		return true
-	}
-
 	upgrader := websocket.Upgrader{}
-	blockConsumer := d.BlockConsumer{Connections: make(map[*websocket.Conn]bool)}
-
-	_blockQueue.AddConsumer("block-consumer", &blockConsumer)
 
 	router.GET("/v1/ws", func(c *gin.Context) {
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -715,6 +700,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 		// or unsubscrribed from
 		topics := make(map[string]bool)
 
+		var blockConsumer *d.BlockConsumer
+
 		// Communication with client handling logic
 		for {
 			var req d.SubscriptionRequest
@@ -725,7 +712,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 			}
 
 			// Validating incoming request on websocket subscription channel
-			if !validateMessage(&req) {
+			if !req.Validate(topics) {
 				if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
@@ -734,66 +721,13 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _block
 
 			switch req.Type {
 			case "subscribe":
-				v, ok := topics[req.Name]
-				if !ok {
-					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 1, Message: fmt.Sprintf("Subscribed to `%s`", req.Name)}); err != nil {
-						log.Printf("[!] Failed to write message : %s\n", err.Error())
-						break
-					}
-
-					log.Printf("[+] Subscribed to %v : [ %s ]\n", req, conn.RemoteAddr().String())
-
-					topics[req.Name] = true
-					blockConsumer.Connections[conn] = true
-
-					continue
-				}
-
-				if v {
-					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: fmt.Sprintf("Already subscribed to `%s`", req.Name)}); err != nil {
-						log.Printf("[!] Failed to write message : %s\n", err.Error())
-						break
-					}
-					continue
-				}
-
-				if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 1, Message: fmt.Sprintf("Subscribed to `%s`", req.Name)}); err != nil {
-					log.Printf("[!] Failed to write message : %s\n", err.Error())
-					break
-				}
-
-				log.Printf("[+] Subscribed to %v : [ %s ]\n", req, conn.RemoteAddr().String())
-
 				topics[req.Name] = true
-				blockConsumer.Connections[conn] = true
 
+				blockConsumer = d.NewBlockConsumer(_redisClient, conn, &req)
 			case "unsubscribe":
-				v, ok := topics[req.Name]
-				if !ok {
-					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: fmt.Sprintf("Never subscribed to `%s`", req.Name)}); err != nil {
-						log.Printf("[!] Failed to write message : %s\n", err.Error())
-						break
-					}
-					continue
-				}
-
-				if !v {
-					if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: fmt.Sprintf("Already unsubscribed from `%s`", req.Name)}); err != nil {
-						log.Printf("[!] Failed to write message : %s\n", err.Error())
-						break
-					}
-					continue
-				}
-
-				if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 1, Message: fmt.Sprintf("Unsubscribed from `%s`", req.Name)}); err != nil {
-					log.Printf("[!] Failed to write message : %s\n", err.Error())
-					break
-				}
-
-				log.Printf("[+] Unsubscribed from %v [ %s ]\n", req, conn.RemoteAddr().String())
-
 				topics[req.Name] = false
-				blockConsumer.Connections[conn] = false
+
+				blockConsumer.Request.Type = req.Type
 			}
 		}
 	})

@@ -7,8 +7,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/adjust/rmq/v3"
-	"github.com/gorilla/websocket"
 	"github.com/lib/pq"
 )
 
@@ -27,6 +25,12 @@ type Block struct {
 	GasUsed    uint64 `json:"gasUsed" gorm:"column:gasused"`
 	GasLimit   uint64 `json:"gasLimit" gorm:"column:gaslimit"`
 	Nonce      uint64 `json:"nonce" gorm:"column:nonce"`
+}
+
+// MarshalBinary - Implementing binary marshalling function, to be invoked
+// by redis before publishing data on channel
+func (b *Block) MarshalBinary() ([]byte, error) {
+	return json.Marshal(b)
 }
 
 // ToJSON - Encodes into JSON, to be supplied when queried for block data
@@ -182,70 +186,4 @@ func (e *Events) ToJSON() []byte {
 
 	return data
 
-}
-
-// SubscriptionRequest - Real time data subscription/ unsubscription request
-// needs to be sent in this form, from client application
-type SubscriptionRequest struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
-
-// SubscriptionResponse - Real time data subscription/ unsubscription request to be responded with
-// in this form
-type SubscriptionResponse struct {
-	Code    uint   `json:"code"`
-	Message string `json:"msg"`
-}
-
-// BlockConsumer - Block data consumer to keep websocket connection handle
-// so when data is delivered, it can let client application know about it
-type BlockConsumer struct {
-	Connections map[*websocket.Conn]bool
-}
-
-// Consume - When data is available on subscribed channel, consumer
-// to be notified by invoking this method, where we send block data to client
-// application ( which actually subscribed to  this channel )
-// over websocket connection
-func (b *BlockConsumer) Consume(delivery rmq.Delivery) {
-	var block Block
-
-	if err := json.Unmarshal([]byte(delivery.Payload()), &block); err != nil {
-
-		log.Printf("[!] Bad delivery in block consumer : %s\n", err.Error())
-		if err := delivery.Reject(); err != nil {
-			log.Printf("[!] Failed to reject delivery from block consumer : %s\n", err.Error())
-		}
-
-		return
-	}
-
-	// bufferring connections to be removed, which are either unreachable
-	// or unsubscribe from blocks topic
-	//
-	// removed connections to be considered as they've unsubscribed from
-	// topic, so we won't attempt sending them block mining notification
-	closedConnections := make([]*websocket.Conn, 0)
-
-	for k, v := range b.Connections {
-		if v {
-			if err := k.WriteJSON(&block); err != nil {
-				closedConnections = append(closedConnections, k)
-			}
-			continue
-		}
-
-		closedConnections = append(closedConnections, k)
-	}
-
-	// iterating over all those connections to be removed
-	// and deleting them from map
-	for _, v := range closedConnections {
-		delete(b.Connections, v)
-	}
-
-	if err := delivery.Ack(); err != nil {
-		log.Printf("[!] Failed to acknowledge delivery for block : %s\n", err.Error())
-	}
 }

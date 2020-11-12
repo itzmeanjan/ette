@@ -3,7 +3,8 @@ package app
 import (
 	"log"
 
-	rmq "github.com/adjust/rmq/v3"
+	"github.com/go-redis/redis/v8"
+
 	"github.com/ethereum/go-ethereum/ethclient"
 	cfg "github.com/itzmeanjan/ette/app/config"
 )
@@ -18,25 +19,13 @@ func getClient() *ethclient.Client {
 	return client
 }
 
-// Connect to redis & use connection for creating queues
-func getRedisConnection() rmq.Connection {
-	errChan := make(chan error)
+// Creates connection to redis server & returns that handle to be used for further communication
+func getPubSubClient() *redis.Client {
 
-	conn, err := rmq.OpenConnection("ette", cfg.Get("RedisConnectionType"), cfg.Get("RedisAddress"), 1, errChan)
+	return redis.NewClient(&redis.Options{
+		Network: cfg.Get("RedisConnection"),
+		Addr:    cfg.Get("RedisAddress"),
+		DB:      0,
+	})
 
-	if err != nil {
-		log.Fatalf("[!] Failed to connect to redis : %s\n", err.Error())
-	}
-
-	return conn
-}
-
-// Create a redis message queue, using given db connection
-func getRedisMessageQueue(connection rmq.Connection, queue string) rmq.Queue {
-	_queue, err := connection.OpenQueue(queue)
-	if err != nil {
-		log.Fatalf("[!] Failed to create queue : `%s`\n", queue)
-	}
-
-	return _queue
 }
