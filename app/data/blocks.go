@@ -13,10 +13,10 @@ import (
 // NewBlockConsumer - Creating one new block data consumer, which will subscribe to block
 // topic & listen for data being published on this channel, which will eventually be
 // delivered to client application over websocket connection
-func NewBlockConsumer(client *redis.Client, conn *websocket.Conn) {
+func NewBlockConsumer(client *redis.Client, conn *websocket.Conn, req *SubscriptionRequest) {
 	consumer := BlockConsumer{
 		Client:     client,
-		Channel:    "block",
+		Request:    req,
 		Connection: conn,
 	}
 
@@ -28,14 +28,14 @@ func NewBlockConsumer(client *redis.Client, conn *websocket.Conn) {
 // and client connected using websocket needs to be delivered this piece of data
 type BlockConsumer struct {
 	Client     *redis.Client
-	Channel    string
+	Request    *SubscriptionRequest
 	Connection *websocket.Conn
 	PubSub     *redis.PubSub
 }
 
 // Subscribe - Subscribe to `block` channel
 func (b *BlockConsumer) Subscribe() {
-	b.PubSub = b.Client.Subscribe(context.Background(), b.Channel)
+	b.PubSub = b.Client.Subscribe(context.Background(), b.Request.Name)
 }
 
 // Listen - Listener function, which keeps looping in infinite loop
@@ -78,7 +78,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 	if err = b.Connection.WriteJSON(&block); err != nil {
 		log.Printf("[!] Failed to deliver block data to client : %s\n", err.Error())
 
-		if err = b.PubSub.Unsubscribe(context.Background(), b.Channel); err != nil {
+		if err = b.PubSub.Unsubscribe(context.Background(), b.Request.Name); err != nil {
 			log.Printf("[!] Failed to unsubscribe from block event : %s\n", err.Error())
 		}
 
@@ -105,7 +105,7 @@ func (b *BlockConsumer) SendConfirmation() bool {
 	}); err != nil {
 		log.Printf("[!] Failed to deliver block subscription confirmation to client : %s\n", err.Error())
 
-		if err = b.PubSub.Unsubscribe(context.Background(), b.Channel); err != nil {
+		if err = b.PubSub.Unsubscribe(context.Background(), b.Request.Name); err != nil {
 			log.Printf("[!] Failed to unsubscribe from block event : %s\n", err.Error())
 		}
 
