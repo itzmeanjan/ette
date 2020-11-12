@@ -52,6 +52,13 @@ func (b *BlockConsumer) Listen() {
 		// If not, we're cancelling this subscription
 		if b.Request.Type == "unsubscribe" {
 
+			if err := b.Connection.WriteJSON(&SubscriptionResponse{
+				Code:    1,
+				Message: "Unsubscribed from `block`",
+			}); err != nil {
+				log.Printf("[!] Failed to deliver block unsubscription confirmation to client : %s\n", err.Error())
+			}
+
 			if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Name); err != nil {
 				log.Printf("[!] Failed to unsubscribe from block event : %s\n", err.Error())
 			}
