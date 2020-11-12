@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/go-redis/redis/v8"
-	d "github.com/itzmeanjan/ette/app/data"
 
 	rmq "github.com/adjust/rmq/v3"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -22,15 +21,13 @@ func getClient() *ethclient.Client {
 }
 
 // Creates connection to redis server & returns that handle to be used for further communication
-func getPubSubClient() *d.PubSubClient {
+func getPubSubClient() *redis.Client {
 
-	return &d.PubSubClient{
-		Client: redis.NewClient(&redis.Options{
-			Network: cfg.Get("RedisConnection"),
-			Addr:    cfg.Get("RedisAddress"),
-			DB:      0,
-		}),
-	}
+	return redis.NewClient(&redis.Options{
+		Network: cfg.Get("RedisConnection"),
+		Addr:    cfg.Get("RedisAddress"),
+		DB:      0,
+	})
 
 }
 

@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -8,7 +9,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/adjust/rmq/v3"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/lib/pq"
@@ -254,91 +254,16 @@ type SubscriptionResponse struct {
 	Message string `json:"msg"`
 }
 
-// BlockConsumer - Block data consumer to keep websocket connection handle
-// so when data is delivered, it can let client application know about it
+// BlockConsumer - To be subscribed to `block` topic using this consumer handle
+// and client connected using websocket needs to be delivered this piece of data
 type BlockConsumer struct {
-	Connections map[*websocket.Conn]bool
+	Client     *redis.Client
+	Channel    string
+	Connection *websocket.Conn
+	PubSub     *redis.PubSub
 }
 
-// Consume - When data is available on subscribed channel, consumer
-// to be notified by invoking this method, where we send block data to client
-// application ( which actually subscribed to  this channel )
-// over websocket connection
-func (b *BlockConsumer) Consume(delivery rmq.Delivery) {
-	var block Block
-
-	if err := json.Unmarshal([]byte(delivery.Payload()), &block); err != nil {
-
-		log.Printf("[!] Bad delivery in block consumer : %s\n", err.Error())
-		if err := delivery.Reject(); err != nil {
-			log.Printf("[!] Failed to reject delivery from block consumer : %s\n", err.Error())
-		}
-
-		return
-	}
-
-	// bufferring connections to be removed, which are either unreachable
-	// or unsubscribe from blocks topic
-	//
-	// removed connections to be considered as they've unsubscribed from
-	// topic, so we won't attempt sending them block mining notification
-	closedConnections := make([]*websocket.Conn, 0)
-
-	for k, v := range b.Connections {
-		if v {
-			if err := k.WriteJSON(&block); err != nil {
-				closedConnections = append(closedConnections, k)
-			}
-			continue
-		}
-
-		closedConnections = append(closedConnections, k)
-	}
-
-	// iterating over all those connections to be removed
-	// and deleting them from map
-	for _, v := range closedConnections {
-		delete(b.Connections, v)
-	}
-
-	if err := delivery.Ack(); err != nil {
-		log.Printf("[!] Failed to acknowledge delivery for block : %s\n", err.Error())
-	}
-}
-
-// TransactionConsumer - Transaction topic subscribers websocket handles, to be
-// used when letting them know about occurrence of their topic of interest
-type TransactionConsumer struct {
-	Connections map[*websocket.Conn]*SubscriptionRequest
-}
-
-// Consume - Whenever new transaction is found, this call back to be invoked by redis
-// and deliver data, which can be used for finally letting client application
-// connected via websocket inform regarding occurrence of their topic of interest
-func (t *TransactionConsumer) Consume(delivery rmq.Delivery) {
-
-	var transaction Transaction
-
-	if err := json.Unmarshal([]byte(delivery.Payload()), &transaction); err != nil {
-
-		log.Printf("[!] Bad delivery in transaction consumer : %s\n", err.Error())
-		if err := delivery.Reject(); err != nil {
-			log.Printf("[!] Failed to reject delivery from transaction consumer : %s\n", err.Error())
-		}
-
-		return
-
-	}
-
-	log.Printf("[+] %v\n", transaction)
-
-	if err := delivery.Ack(); err != nil {
-		log.Printf("[!] Failed to acknowledge delivery from transaction consumer : %s\n", err.Error())
-	}
-
-}
-
-// PubSubClient - Handle for talking to redis for managing pub-sub
-type PubSubClient struct {
-	Client *redis.Client
+// Subscribe - ...
+func (b *BlockConsumer) Subscribe() {
+	b.PubSub = b.Client.Subscribe(context.Background(), b.Channel)
 }
