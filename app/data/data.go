@@ -269,7 +269,8 @@ func (b *BlockConsumer) Subscribe() {
 	b.PubSub = b.Client.Subscribe(context.Background(), b.Channel)
 }
 
-// Listen - ...
+// Listen - Listener function, which keeps looping in infinite loop
+// and reads data from subcribed channel, which also gets delivered to client application
 func (b *BlockConsumer) Listen() {
 
 	for {
@@ -282,7 +283,9 @@ func (b *BlockConsumer) Listen() {
 		case *redis.Subscription:
 
 		case *redis.Message:
-
+			if !b.Send(m.Payload) {
+				break
+			}
 		}
 	}
 
@@ -290,7 +293,7 @@ func (b *BlockConsumer) Listen() {
 
 // Send - Tries to deliver subscribed block data to client application
 // connected over websocket
-func (b *BlockConsumer) Send(msg string) {
+func (b *BlockConsumer) Send(msg string) bool {
 	var block Block
 
 	_msg := []byte(msg)
@@ -298,25 +301,23 @@ func (b *BlockConsumer) Send(msg string) {
 	err := json.Unmarshal(_msg, &block)
 	if err != nil {
 		log.Printf("[!] Failed to decode published block data to JSON : %s\n", err.Error())
-		return
+		return true
 	}
 
-	err = b.Connection.WriteJSON(&block)
-	if err != nil {
+	if err = b.Connection.WriteJSON(&block); err != nil {
 		log.Printf("[!] Failed to deliver block data to client : %s\n", err.Error())
 
-		err = b.PubSub.Unsubscribe(context.Background(), b.Channel)
-		if err != nil {
+		if err = b.PubSub.Unsubscribe(context.Background(), b.Channel); err != nil {
 			log.Printf("[!] Failed to unsubscribe from block event : %s\n", err.Error())
 		}
 
-		err = b.Connection.Close()
-		if err != nil {
+		if err = b.Connection.Close(); err != nil {
 			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
 		}
 
-		return
+		return false
 	}
 
 	log.Printf("[!] Delivered block data to client\n")
+	return true
 }
