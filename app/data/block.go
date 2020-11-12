@@ -62,15 +62,22 @@ func (b *BlockConsumer) Listen() {
 			continue
 		}
 
+		// To be used for checking whether delivering data to client went successful or not
+		status := true
+
 		switch m := msg.(type) {
 		case *redis.Subscription:
 			if !b.SendConfirmation() {
-				break
+				status = false
 			}
 		case *redis.Message:
 			if !b.Send(m.Payload) {
-				break
+				status = false
 			}
+		}
+
+		if !status {
+			break
 		}
 	}
 
