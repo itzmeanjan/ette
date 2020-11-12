@@ -700,6 +700,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		// or unsubscrribed from
 		topics := make(map[string]bool)
 
+		var blockConsumer *d.BlockConsumer
+
 		// Communication with client handling logic
 		for {
 			var req d.SubscriptionRequest
@@ -721,10 +723,11 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			case "subscribe":
 				topics[req.Name] = true
 
-				d.NewBlockConsumer(_redisClient, conn, &req)
+				blockConsumer = d.NewBlockConsumer(_redisClient, conn, &req)
 			case "unsubscribe":
 				topics[req.Name] = false
 
+				blockConsumer.Request.Type = req.Type
 			}
 		}
 	})
