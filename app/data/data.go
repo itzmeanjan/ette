@@ -5,11 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"regexp"
 	"strings"
 
-	"github.com/adjust/rmq/v3"
-	"github.com/gorilla/websocket"
 	"github.com/lib/pq"
 )
 
@@ -28,6 +25,12 @@ type Block struct {
 	GasUsed    uint64 `json:"gasUsed" gorm:"column:gasused"`
 	GasLimit   uint64 `json:"gasLimit" gorm:"column:gaslimit"`
 	Nonce      uint64 `json:"nonce" gorm:"column:nonce"`
+}
+
+// MarshalBinary - Implementing binary marshalling function, to be invoked
+// by redis before publishing data on channel
+func (b *Block) MarshalBinary() ([]byte, error) {
+	return json.Marshal(b)
 }
 
 // ToJSON - Encodes into JSON, to be supplied when queried for block data
@@ -182,157 +185,5 @@ func (e *Events) ToJSON() []byte {
 	}
 
 	return data
-
-}
-
-// SubscriptionRequest - Real time data subscription/ unsubscription request
-// needs to be sent in this form, from client application
-type SubscriptionRequest struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
-
-// IsValidTopic - Checks whether topic to which client application is trying to
-// subscribe to is valid one or not
-func (s *SubscriptionRequest) IsValidTopic() bool {
-	pattern, err := regexp.Compile("^(block|(transaction(/(0x[a-zA-Z0-9]{40}|\\*)(/(0x[a-zA-Z0-9]{40}|\\*))?)?))$")
-	if err != nil {
-		log.Printf("[!] Failed to parse regex pattern : %s\n", err.Error())
-		return false
-	}
-
-	if pattern.MatchString(s.Name) {
-
-		matches := pattern.FindStringSubmatch(s.Name)
-		if strings.HasPrefix(matches[0], "block") {
-			return true
-		} else if strings.HasPrefix(matches[0], "transaction") {
-			return true
-		}
-
-	}
-
-	return false
-}
-
-// Validate - Validates request from client for subscription/ unsubscription
-func (s *SubscriptionRequest) Validate(topics map[string]bool) bool {
-
-	// --- Closure definition
-	// Given associative array & key in array, checks whether entry exists or not
-	// If yes, also return entry's boolean value
-	checkEntryInAssociativeArray := func(name string) bool {
-		v, ok := topics[name]
-		if !ok {
-			return false
-		}
-
-		return v
-	}
-	// ---
-
-	var validated bool
-
-	switch s.Type {
-	case "subscribe":
-		validated = s.IsValidTopic() && !checkEntryInAssociativeArray(s.Name)
-	case "unsubscribe":
-		validated = s.IsValidTopic() && checkEntryInAssociativeArray(s.Name)
-	default:
-		validated = false
-	}
-
-	return validated
-
-}
-
-// SubscriptionResponse - Real time data subscription/ unsubscription request to be responded with
-// in this form
-type SubscriptionResponse struct {
-	Code    uint   `json:"code"`
-	Message string `json:"msg"`
-}
-
-// BlockConsumer - Block data consumer to keep websocket connection handle
-// so when data is delivered, it can let client application know about it
-type BlockConsumer struct {
-	Connections map[*websocket.Conn]bool
-}
-
-// Consume - When data is available on subscribed channel, consumer
-// to be notified by invoking this method, where we send block data to client
-// application ( which actually subscribed to  this channel )
-// over websocket connection
-func (b *BlockConsumer) Consume(delivery rmq.Delivery) {
-	var block Block
-
-	if err := json.Unmarshal([]byte(delivery.Payload()), &block); err != nil {
-
-		log.Printf("[!] Bad delivery in block consumer : %s\n", err.Error())
-		if err := delivery.Reject(); err != nil {
-			log.Printf("[!] Failed to reject delivery from block consumer : %s\n", err.Error())
-		}
-
-		return
-	}
-
-	// bufferring connections to be removed, which are either unreachable
-	// or unsubscribe from blocks topic
-	//
-	// removed connections to be considered as they've unsubscribed from
-	// topic, so we won't attempt sending them block mining notification
-	closedConnections := make([]*websocket.Conn, 0)
-
-	for k, v := range b.Connections {
-		if v {
-			if err := k.WriteJSON(&block); err != nil {
-				closedConnections = append(closedConnections, k)
-			}
-			continue
-		}
-
-		closedConnections = append(closedConnections, k)
-	}
-
-	// iterating over all those connections to be removed
-	// and deleting them from map
-	for _, v := range closedConnections {
-		delete(b.Connections, v)
-	}
-
-	if err := delivery.Ack(); err != nil {
-		log.Printf("[!] Failed to acknowledge delivery for block : %s\n", err.Error())
-	}
-}
-
-// TransactionConsumer - Transaction topic subscribers websocket handles, to be
-// used when letting them know about occurrence of their topic of interest
-type TransactionConsumer struct {
-	Connections map[*websocket.Conn]*SubscriptionRequest
-}
-
-// Consume - Whenever new transaction is found, this call back to be invoked by redis
-// and deliver data, which can be used for finally letting client application
-// connected via websocket inform regarding occurrence of their topic of interest
-func (t *TransactionConsumer) Consume(delivery rmq.Delivery) {
-
-	var transaction Transaction
-
-	if err := json.Unmarshal([]byte(delivery.Payload()), &transaction); err != nil {
-
-		log.Printf("[!] Bad delivery in transaction consumer : %s\n", err.Error())
-		if err := delivery.Reject(); err != nil {
-			log.Printf("[!] Failed to reject delivery from transaction consumer : %s\n", err.Error())
-		}
-
-		return
-
-	}
-
-	log.Printf("[+] %v\n", transaction)
-
-	if err := delivery.Ack(); err != nil {
-		log.Printf("[!] Failed to acknowledge delivery from transaction consumer : %s\n", err.Error())
-	}
 
 }

@@ -7,11 +7,11 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/adjust/rmq/v3"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gammazero/workerpool"
+	"github.com/go-redis/redis/v8"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
@@ -49,7 +49,7 @@ func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB, fromBlock uint64,
 // SubscribeToNewBlocks - Listen for event when new block header is
 // available, then fetch block content ( including all transactions )
 // in different worker
-func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, queue rmq.Queue) {
+func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, redisClient *redis.Client) {
 	headerChan := make(chan *types.Header)
 
 	subs, err := client.SubscribeNewHead(context.Background(), headerChan)
@@ -81,7 +81,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 				first = false
 			}
 
-			if err := queue.PublishBytes((&d.Block{
+			if err := redisClient.Publish(context.Background(), "block", &d.Block{
 				Hash:       header.Hash().Hex(),
 				Number:     header.Number.Uint64(),
 				Time:       header.Time,
@@ -90,8 +90,10 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 				GasUsed:    header.GasUsed,
 				GasLimit:   header.GasLimit,
 				Nonce:      header.Nonce.Uint64(),
-			}).ToJSON()); err != nil {
-				log.Printf("[!] Failed to publish block %d in channel\n", header.Number.Uint64())
+			}).Err(); err != nil {
+
+				log.Printf("[!] Failed to publish block %d in channel : %s\n", header.Number.Uint64(), err.Error())
+
 			}
 
 			go fetchBlockByHash(client, header.Hash(), _db)
