@@ -38,17 +38,24 @@ func (s *SubscriptionRequest) Topic() string {
 	return ""
 }
 
-// GetTransactionFilters - ...
+// GetTransactionFilters - Extracts from & to account present in transaction subscription request
+//
+// these could possibly be empty/ * / 0x...
 func (s *SubscriptionRequest) GetTransactionFilters() []string {
-	return nil
+	pattern := s.GetRegex()
+	if pattern == nil {
+		return nil
+	}
+
+	matches := pattern.FindStringSubmatch(s.Name)
+	return []string{matches[4], matches[6]}
 }
 
 // IsValidTopic - Checks whether topic to which client application is trying to
 // subscribe to is valid one or not
 func (s *SubscriptionRequest) IsValidTopic() bool {
-	pattern, err := regexp.Compile("^(block|(transaction(/(0x[a-zA-Z0-9]{40}|\\*)(/(0x[a-zA-Z0-9]{40}|\\*))?)?))$")
-	if err != nil {
-		log.Printf("[!] Failed to parse regex pattern : %s\n", err.Error())
+	pattern := s.GetRegex()
+	if pattern == nil {
 		return false
 	}
 
