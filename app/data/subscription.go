@@ -13,6 +13,20 @@ type SubscriptionRequest struct {
 	Type string `json:"type"`
 }
 
+// Topic - Get main topic name to which this client is subscribing to
+// i.e. {block, transaction}
+func (s *SubscriptionRequest) Topic() string {
+	if strings.HasPrefix(s.Name, "block") {
+		return "block"
+	}
+
+	if strings.HasPrefix(s.Name, "transaction") {
+		return "transaction"
+	}
+
+	return ""
+}
+
 // IsValidTopic - Checks whether topic to which client application is trying to
 // subscribe to is valid one or not
 func (s *SubscriptionRequest) IsValidTopic() bool {
