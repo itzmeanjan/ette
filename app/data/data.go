@@ -75,6 +75,12 @@ type Transaction struct {
 	BlockHash string `json:"blockHash" gorm:"column:blockhash"`
 }
 
+// MarshalBinary - Implementing binary marshalling function, to be invoked
+// by redis before publishing data on channel
+func (t *Transaction) MarshalBinary() ([]byte, error) {
+	return json.Marshal(t)
+}
+
 // ToJSON - JSON encoder, to be invoked before delivering tx query data to client
 func (t *Transaction) ToJSON() []byte {
 	// When tx doesn't create contract i.e. normal tx

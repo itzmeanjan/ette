@@ -96,13 +96,13 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 
 			}
 
-			go fetchBlockByHash(client, header.Hash(), _db)
+			go fetchBlockByHash(client, header.Hash(), _db, redisClient)
 		}
 	}
 }
 
 // Fetching block content using blockHash
-func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB) {
+func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, redisClient *redis.Client) {
 	block, err := client.BlockByHash(context.Background(), hash)
 	if err != nil {
 		log.Printf("[!] Failed to fetch block by hash : %s\n", err.Error())
@@ -110,7 +110,7 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB) 
 	}
 
 	db.PutBlock(_db, block)
-	fetchBlockContent(client, block, _db)
+	fetchBlockContent(client, block, _db, redisClient)
 }
 
 // Fetching block content using block number
@@ -128,23 +128,23 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB) {
 		db.PutBlock(_db, block)
 	}
 
-	fetchBlockContent(client, block, _db)
+	fetchBlockContent(client, block, _db, nil)
 }
 
 // Fetching all transactions in this block, along with their receipt
-func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB) {
+func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redisClient *redis.Client) {
 	if block.Transactions().Len() == 0 {
 		log.Printf("[!] Empty Block : %d\n", block.NumberU64())
 		return
 	}
 
 	for _, v := range block.Transactions() {
-		fetchTransactionByHash(client, block, v, _db)
+		fetchTransactionByHash(client, block, v, _db, redisClient)
 	}
 }
 
 // Fetching specific transaction related data & persisting in database
-func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB) {
+func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client) {
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		log.Printf("[!] Failed to fetch tx receipt : %s\n", err.Error())
@@ -165,4 +165,47 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 	db.PutTransaction(_db, tx, receipt, sender)
 	db.PutEvent(_db, receipt)
 	log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
+
+	// This is not a case when real time data is received, rather this is probably
+	// a sync attempt to latest state of blockchain
+	// So, in this case, we don't need to publish any data on channel
+	if redisClient == nil {
+		return
+	}
+
+	var _publishTx *d.Transaction
+
+	if tx.To() == nil {
+		// This is a contract creation tx
+		_publishTx = &d.Transaction{
+			Hash:      tx.Hash().Hex(),
+			From:      sender.Hex(),
+			Contract:  receipt.ContractAddress.Hex(),
+			Gas:       tx.Gas(),
+			GasPrice:  tx.GasPrice().String(),
+			Cost:      tx.Cost().String(),
+			Nonce:     tx.Nonce(),
+			State:     receipt.Status,
+			BlockHash: receipt.BlockHash.Hex(),
+		}
+	} else {
+		// This is a normal tx, so we keep contract field empty
+		_publishTx = &d.Transaction{
+			Hash:      tx.Hash().Hex(),
+			From:      sender.Hex(),
+			To:        tx.To().Hex(),
+			Gas:       tx.Gas(),
+			GasPrice:  tx.GasPrice().String(),
+			Cost:      tx.Cost().String(),
+			Nonce:     tx.Nonce(),
+			State:     receipt.Status,
+			BlockHash: receipt.BlockHash.Hex(),
+		}
+	}
+
+	if err := redisClient.Publish(context.Background(), "transaction", _publishTx).Err(); err != nil {
+
+		log.Printf("[!] Failed to publish transaction from block %d : %s\n", block.NumberU64(), err.Error())
+
+	}
 }

@@ -37,7 +37,7 @@ type BlockConsumer struct {
 
 // Subscribe - Subscribe to `block` channel
 func (b *BlockConsumer) Subscribe() {
-	b.PubSub = b.Client.Subscribe(context.Background(), b.Request.Name)
+	b.PubSub = b.Client.Subscribe(context.Background(), b.Request.Topic())
 }
 
 // Listen - Listener function, which keeps looping in infinite loop
