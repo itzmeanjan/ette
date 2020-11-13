@@ -13,6 +13,17 @@ type SubscriptionRequest struct {
 	Type string `json:"type"`
 }
 
+// GetRegex - Returns regex to be used for validating subscription request
+func (s *SubscriptionRequest) GetRegex() *regexp.Regexp {
+	pattern, err := regexp.Compile("^(block|(transaction(/(0x[a-zA-Z0-9]{40}|\\*)(/(0x[a-zA-Z0-9]{40}|\\*))?)?))$")
+	if err != nil {
+		log.Printf("[!] Failed to parse regex pattern : %s\n", err.Error())
+		return nil
+	}
+
+	return pattern
+}
+
 // Topic - Get main topic name to which this client is subscribing to
 // i.e. {block, transaction}
 func (s *SubscriptionRequest) Topic() string {
@@ -25,6 +36,11 @@ func (s *SubscriptionRequest) Topic() string {
 	}
 
 	return ""
+}
+
+// GetTransactionFilters - ...
+func (s *SubscriptionRequest) GetTransactionFilters() []string {
+	return nil
 }
 
 // IsValidTopic - Checks whether topic to which client application is trying to
