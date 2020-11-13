@@ -721,13 +721,23 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 			switch req.Type {
 			case "subscribe":
-				topics[req.Name] = true
+				switch req.Topic() {
+				case "block":
+					topics[req.Name] = true
 
-				blockConsumer = d.NewBlockConsumer(_redisClient, conn, &req)
+					blockConsumer = d.NewBlockConsumer(_redisClient, conn, &req)
+				case "transaction":
+					log.Printf("[!] No handlers yet \n")
+				}
 			case "unsubscribe":
-				topics[req.Name] = false
+				switch req.Topic() {
+				case "block":
+					topics[req.Name] = false
 
-				blockConsumer.Request.Type = req.Type
+					blockConsumer.Request.Type = req.Type
+				case "transaction":
+					log.Printf("[!] No handlers yet \n")
+				}
 			}
 		}
 	})

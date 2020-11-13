@@ -51,13 +51,13 @@ func (s *SubscriptionRequest) GetTransactionFilters() []string {
 	return []string{matches[4], matches[6]}
 }
 
-// DoesMatchWithPubslishedTransactionData - All `transaction` topic listeners i.e. subscribers are
+// DoesMatchWithPublishedTransactionData - All `transaction` topic listeners i.e. subscribers are
 // going to get notified when new transaction detected, but they will only send those data to client application
 // ( connected over websocket ), to which client has subscribed to
 //
 // Whether client has really shown interest in receiving notification for this transaction or not
 // can be checked using this function
-func (s *SubscriptionRequest) DoesMatchWithPubslishedTransactionData(tx *Transaction) bool {
+func (s *SubscriptionRequest) DoesMatchWithPublishedTransactionData(tx *Transaction) bool {
 
 	// --- This closure function tries to match with to field of published tx data
 	//
