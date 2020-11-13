@@ -723,7 +723,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			case "subscribe":
 				switch req.Topic() {
 				case "block":
-					topics[req.Name] = true
+					topics[req.Topic()] = true
 
 					blockConsumer = d.NewBlockConsumer(_redisClient, conn, &req)
 				case "transaction":
@@ -732,7 +732,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			case "unsubscribe":
 				switch req.Topic() {
 				case "block":
-					topics[req.Name] = false
+					topics[req.Topic()] = false
 
 					blockConsumer.Request.Type = req.Type
 				case "transaction":

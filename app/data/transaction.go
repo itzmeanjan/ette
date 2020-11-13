@@ -87,6 +87,10 @@ func (t *TransactionConsumer) Send(msg string) bool {
 		return true
 	}
 
+	if !t.Request.DoesMatchWithPublishedTransactionData(&transaction) {
+		return true
+	}
+
 	if err := t.Connection.WriteJSON(&transaction); err != nil {
 		log.Printf("[!] Failed to deliver transaction data to client : %s\n", err.Error())
 

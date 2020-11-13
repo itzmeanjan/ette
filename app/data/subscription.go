@@ -85,6 +85,9 @@ func (s *SubscriptionRequest) DoesMatchWithPublishedTransactionData(tx *Transact
 
 	// Fetches desired to & from fields, against which matching to be performed
 	filters := s.GetTransactionFilters()
+	if filters == nil {
+		return false
+	}
 	status := false
 
 	switch filters[0] {
