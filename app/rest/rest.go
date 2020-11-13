@@ -701,6 +701,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		topics := make(map[string]bool)
 
 		var blockConsumer *d.BlockConsumer
+		var transactionConsumer *d.TransactionConsumer
 
 		// Communication with client handling logic
 		for {
@@ -721,22 +722,22 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 			switch req.Type {
 			case "subscribe":
+				topics[req.Topic()] = true
+
 				switch req.Topic() {
 				case "block":
-					topics[req.Topic()] = true
-
 					blockConsumer = d.NewBlockConsumer(_redisClient, conn, &req)
 				case "transaction":
-					log.Printf("[!] No handlers yet \n")
+					transactionConsumer = d.NewTransactionConsumer(_redisClient, conn, &req)
 				}
 			case "unsubscribe":
+				topics[req.Topic()] = false
+
 				switch req.Topic() {
 				case "block":
-					topics[req.Topic()] = false
-
 					blockConsumer.Request.Type = req.Type
 				case "transaction":
-					log.Printf("[!] No handlers yet \n")
+					transactionConsumer.Request.Type = req.Type
 				}
 			}
 		}

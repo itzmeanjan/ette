@@ -149,9 +149,9 @@ func (s *SubscriptionRequest) Validate(topics map[string]bool) bool {
 
 	switch s.Type {
 	case "subscribe":
-		validated = s.IsValidTopic() && !checkEntryInAssociativeArray(s.Name)
+		validated = s.IsValidTopic() && !checkEntryInAssociativeArray(s.Topic())
 	case "unsubscribe":
-		validated = s.IsValidTopic() && checkEntryInAssociativeArray(s.Name)
+		validated = s.IsValidTopic() && checkEntryInAssociativeArray(s.Topic())
 	default:
 		validated = false
 	}
