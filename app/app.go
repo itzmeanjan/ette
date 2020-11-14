@@ -39,6 +39,5 @@ func Run(file string) {
 	go blk.SubscribeToNewBlocks(_client, _db, _lock, _synced, _redisClient)
 
 	// Starting http server on main thread
-
 	rest.RunHTTPServer(_db, _lock, _synced, _redisClient)
 }

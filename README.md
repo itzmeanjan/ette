@@ -174,7 +174,20 @@ If everything goes fine, your subscription will be confirmed with 👇 response 
 }
 ```
 
-After that as long as your machine is reachable, `ette` will keep notifying you about new blocks getting mined.
+After that as long as your machine is reachable, `ette` will keep notifying you about new blocks getting mined in 👇 form
+
+```json
+{
+  "hash": "0x08f50b4795667528f6c0fdda31a0d270aae60dbe7bc4ea950ae1f71aaa01eabc",
+  "number": 7015086,
+  "time": 1605328635,
+  "parentHash": "0x5ec0faff8b48e201e366a3f6c505eb274904e034c1565da2241f1327e9bad459",
+  "difficulty": "6",
+  "gasUsed": 78746,
+  "gasLimit": 20000000,
+  "nonce": 0
+}
+```
 
 
 If you want to cancel subscription, consider sending 👇 & close connection
@@ -183,6 +196,15 @@ If you want to cancel subscription, consider sending 👇 & close connection
 {
     "name": "block",
     "type": "unsubscribe"
+}
+```
+
+You'll receive 👇 response, confirming unsubscription
+
+```json
+{
+    "code": 1,
+    "message": "Unsubscribed from `block`"
 }
 ```
 
