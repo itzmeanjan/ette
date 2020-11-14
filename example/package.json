@@ -1,0 +1,14 @@
+{
+  "name": "example-ette",
+  "version": "1.0.0",
+  "description": "Consuming `ette` data in real-time",
+  "main": "block.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Anjan Roy <anjanroy@yandex.com>",
+  "license": "CC0-1.0",
+  "dependencies": {
+    "websocket": "^1.0.32"
+  }
+}
