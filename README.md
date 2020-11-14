@@ -16,7 +16,7 @@ Ethereum Blockchain Analyser 😎
         - [Query historical event data](#historical-event-data-)
     - Real-time Data
         - [Real-time block mining notification](#real-time-notification-for-mined-blocks-)
-        - [Real-time transaction notification ( 🤩 Filters Added ) ](#real-time-notification-for-transactions-)
+        - [Real-time transaction notification ( 🤩 Filters Added ) ](#real-time-notification-for-transactions-%EF%B8%8F)
 
 ## Inspiration 🤔
 
