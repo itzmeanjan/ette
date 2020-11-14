@@ -15,7 +15,8 @@ Ethereum Blockchain Analyser 😎
         - [Query historical transaction data](#historical-transaction-data-)
         - [Query historical event data](#historical-event-data-)
     - Real-time Data
-        - [Real-time block mining notification](#real-time-notification-for-mined-blocks)
+        - [Real-time block mining notification](#real-time-notification-for-mined-blocks-)
+        - [Real-time transaction notification ( 🤩 Filters Added ) ](#real-time-notification-for-transactions-)
 
 ## Inspiration 🤔
 
@@ -174,7 +175,20 @@ If everything goes fine, your subscription will be confirmed with 👇 response 
 }
 ```
 
-After that as long as your machine is reachable, `ette` will keep notifying you about new blocks getting mined.
+After that as long as your machine is reachable, `ette` will keep notifying you about new blocks getting mined in 👇 form
+
+```json
+{
+  "hash": "0x08f50b4795667528f6c0fdda31a0d270aae60dbe7bc4ea950ae1f71aaa01eabc",
+  "number": 7015086,
+  "time": 1605328635,
+  "parentHash": "0x5ec0faff8b48e201e366a3f6c505eb274904e034c1565da2241f1327e9bad459",
+  "difficulty": "6",
+  "gasUsed": 78746,
+  "gasLimit": 20000000,
+  "nonce": 0
+}
+```
 
 
 If you want to cancel subscription, consider sending 👇 & close connection
@@ -183,6 +197,100 @@ If you want to cancel subscription, consider sending 👇 & close connection
 {
     "name": "block",
     "type": "unsubscribe"
+}
+```
+
+You'll receive 👇 response, confirming unsubscription
+
+```json
+{
+    "code": 1,
+    "message": "Unsubscribed from `block`"
+}
+```
+
+### Real time notification for transactions ͍
+
+For listening to any transaction happening in network in real-time, where `from` and/ or `to` field of tx is fixed
+
+- Any transaction
+
+```json
+{
+    "name": "transaction/*/*",
+    "type": "subscribe"
+}
+```
+
+- Fixed `from` field **[ tx originated `from` account ]**
+
+```json
+{
+    "name": "transaction/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c/*",
+    "type": "subscribe"
+}
+```
+
+- Fixed `to` field **[ tx targeted `to` account ]**
+
+```json
+{
+    "name": "transaction/*/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c",
+    "type": "subscribe"
+}
+```
+
+- Fixed `from` & `to` field **[ tx `from` -> `to` account ]**
+
+```json
+{
+    "name": "transaction/0xc9D50e0a571aDd06C7D5f1452DcE2F523FB711a1/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c",
+    "type": "subscribe"
+}
+```
+
+If everything goes fine, your subscription will be confirmed with 👇 response _( JSON encoded )_
+
+```json
+{
+    "code": 1,
+    "message": "Subscribed to `transaction`"
+}
+```
+
+After that as long as your machine is reachable, `ette` will keep notifying you about every transaction happening in 👇 form, where `to` field is matching
+
+```json
+{
+  "hash": "0x08cfda79bd68ad280c7786e5dd349ab81981c52ea5cdd8e31be0a4b54b976555",
+  "from": "0xc9D50e0a571aDd06C7D5f1452DcE2F523FB711a1",
+  "to": "0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c",
+  "contract": "",
+  "gas": 200000,
+  "gasPrice": "1000000000",
+  "cost": "200000000000000",
+  "nonce": 19899,
+  "state": 1,
+  "blockHash": "0xc29170d33141602a95b915c954c1068a380ef5169178eef2538beb6edb005810"
+}
+```
+
+
+If you want to cancel subscription, consider sending 👇 & close connection
+
+```json
+{
+    "name": "transaction/*/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c",
+    "type": "unsubscribe"
+}
+```
+
+You'll receive 👇 response, confirming unsubscription
+
+```json
+{
+    "code": 1,
+    "message": "Unsubscribed from `transaction`"
 }
 ```
 
