@@ -210,69 +210,40 @@ You'll receive 👇 response, confirming unsubscription
 
 ### Real time notification for transactions ͍
 
-### For all tx
+For listening to any transaction happening in network in real-time, where `from` and/ or `to` field of tx is fixed
 
-For listening to any transaction happening in network in real-time
+- Any transaction
 
 ```json
 {
-    "name": "transaction",
+    "name": "transaction/*/*",
     "type": "subscribe"
 }
 ```
 
-If everything goes fine, your subscription will be confirmed with 👇 response _( JSON encoded )_
+- Fixed `from` field **[ tx originated `from` account ]**
 
 ```json
 {
-    "code": 1,
-    "message": "Subscribed to `transaction`"
+    "name": "transaction/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c/*",
+    "type": "subscribe"
 }
 ```
 
-After that as long as your machine is reachable, `ette` will keep notifying you about every transaction happening in 👇 form
-
-```json
-{
-  "hash": "0x08cfda79bd68ad280c7786e5dd349ab81981c52ea5cdd8e31be0a4b54b976555",
-  "from": "0xc9D50e0a571aDd06C7D5f1452DcE2F523FB711a1",
-  "to": "0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c",
-  "contract": "",
-  "gas": 200000,
-  "gasPrice": "1000000000",
-  "cost": "200000000000000",
-  "nonce": 19899,
-  "state": 1,
-  "blockHash": "0xc29170d33141602a95b915c954c1068a380ef5169178eef2538beb6edb005810"
-}
-```
-
-
-If you want to cancel subscription, consider sending 👇 & close connection
-
-```json
-{
-    "name": "transaction",
-    "type": "unsubscribe"
-}
-```
-
-You'll receive 👇 response, confirming unsubscription
-
-```json
-{
-    "code": 1,
-    "message": "Unsubscribed from `transaction`"
-}
-```
-
-### For tx `to` address
-
-For listening to any transaction happening in network in real-time, where `to` field of tx is fixed
+- Fixed `to` field **[ tx targeted `to` account ]**
 
 ```json
 {
     "name": "transaction/*/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c",
+    "type": "subscribe"
+}
+```
+
+- Fixed `from` & `to` field **[ tx `from` -> `to` account ]**
+
+```json
+{
+    "name": "transaction/0xc9D50e0a571aDd06C7D5f1452DcE2F523FB711a1/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c",
     "type": "subscribe"
 }
 ```
