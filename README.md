@@ -209,7 +209,7 @@ You'll receive 👇 response, confirming unsubscription
 }
 ```
 
-### Real time notification for transactions ͍
+### Real time notification for transactions ⚡️
 
 For listening to any transaction happening in network in real-time, where `from` and/ or `to` field of tx is fixed
 
@@ -258,7 +258,7 @@ If everything goes fine, your subscription will be confirmed with 👇 response 
 }
 ```
 
-After that as long as your machine is reachable, `ette` will keep notifying you about every transaction happening in 👇 form, where `to` field is matching
+After that as long as your machine is reachable, `ette` will keep notifying you about every transaction happening in 👇 form, where criterias matching
 
 ```json
 {
