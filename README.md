@@ -177,9 +177,6 @@ If everything goes fine, your subscription will be confirmed with 👇 response 
 
 After that as long as your machine is reachable, `ette` will keep notifying you about new blocks getting mined in 👇 form
 
-<details>
-<summary>Block Data</summary>
-
 ```json
 {
   "hash": "0x08f50b4795667528f6c0fdda31a0d270aae60dbe7bc4ea950ae1f71aaa01eabc",
@@ -192,8 +189,6 @@ After that as long as your machine is reachable, `ette` will keep notifying you 
   "nonce": 0
 }
 ```
-
-</details>
 
 If you want to cancel subscription, consider sending 👇 & close connection
 
@@ -274,9 +269,6 @@ If everything goes fine, your subscription will be confirmed with 👇 response 
 
 After that as long as your machine is reachable, `ette` will keep notifying you about every transaction happening in 👇 form, where criterias matching
 
-<details>
-<summary>Transaction Data</summary>
-
 ```json
 {
   "hash": "0x08cfda79bd68ad280c7786e5dd349ab81981c52ea5cdd8e31be0a4b54b976555",
@@ -291,8 +283,6 @@ After that as long as your machine is reachable, `ette` will keep notifying you 
   "blockHash": "0xc29170d33141602a95b915c954c1068a380ef5169178eef2538beb6edb005810"
 }
 ```
-
-</details>
 
 If you want to cancel subscription, consider sending 👇 & close connection
 
