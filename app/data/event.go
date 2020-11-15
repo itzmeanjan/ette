@@ -82,17 +82,17 @@ func (e *EventConsumer) Listen() {
 // Send - Sending event occurrence data to client application, which has subscribed to this event
 // & connected over websocket
 func (e *EventConsumer) Send(msg string) bool {
-	var block Block
+	var event Event
 
 	_msg := []byte(msg)
 
-	err := json.Unmarshal(_msg, &block)
+	err := json.Unmarshal(_msg, &event)
 	if err != nil {
 		log.Printf("[!] Failed to decode published event data to JSON : %s\n", err.Error())
 		return true
 	}
 
-	return e.SendData(&block)
+	return e.SendData(&event)
 }
 
 // SendData - Sending message to client application, connected over websocket

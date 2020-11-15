@@ -60,7 +60,10 @@ func (b *BlockConsumer) Listen() {
 
 		switch m := msg.(type) {
 		case *redis.Subscription:
-			status = b.SendConfirmation()
+			status = b.SendData(&SubscriptionResponse{
+				Code:    1,
+				Message: "Subscribed to `block`",
+			})
 		case *redis.Message:
 			status = b.Send(m.Payload)
 		}
@@ -85,35 +88,16 @@ func (b *BlockConsumer) Send(msg string) bool {
 		return true
 	}
 
-	if err = b.Connection.WriteJSON(&block); err != nil {
-		log.Printf("[!] Failed to deliver block data to client : %s\n", err.Error())
-
-		if err = b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
-		}
-
-		if err = b.Connection.Close(); err != nil {
-			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
-		}
-
-		return false
-	}
-
-	log.Printf("[!] Delivered block data to client\n")
-	return true
+	return b.SendData(&block)
 }
 
-// SendConfirmation - Sending confirmation message i.e. block subscription has been confirmed
-// for client. If unable to send it, cancels subscription & closes underlying websocket connection
+// SendData - Sending message to client application, connected over websocket
 //
-// Websocket connection may already be closed, in that case it'll simply return
-func (b *BlockConsumer) SendConfirmation() bool {
-
-	if err := b.Connection.WriteJSON(&SubscriptionResponse{
-		Code:    1,
-		Message: "Subscribed to `block`",
-	}); err != nil {
-		log.Printf("[!] Failed to deliver block subscription confirmation to client : %s\n", err.Error())
+// If failed, we're going to remove subscription & close websocket
+// connection ( connection might be already closed though )
+func (b *BlockConsumer) SendData(data interface{}) bool {
+	if err := b.Connection.WriteJSON(data); err != nil {
+		log.Printf("[!] Failed to deliver `block` data to client : %s\n", err.Error())
 
 		if err = b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
 			log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
@@ -126,6 +110,6 @@ func (b *BlockConsumer) SendConfirmation() bool {
 		return false
 	}
 
-	log.Printf("[!] Delivered block subscription confirmation to client\n")
+	log.Printf("[!] Delivered `block` data to client\n")
 	return true
 }
