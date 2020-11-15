@@ -38,8 +38,10 @@ func NewTransactionConsumer(client *redis.Client, conn *websocket.Conn, req *Sub
 	return &consumer
 }
 
-// NewEventConsumer - Event data consumer, manages everything, starting from subscription to data reception
-// delivery, also cleans up resources if connection gets closed
+// NewEventConsumer - Creating one new event data consumer, which will subscribe to event
+// topic & listen for data being published on this channel & check whether received data
+// is what, client is interested in or not, which will eventually be
+// delivered to client application over websocket connection
 func NewEventConsumer(client *redis.Client, conn *websocket.Conn, req *SubscriptionRequest) *EventConsumer {
 	consumer := EventConsumer{
 		Client:     client,
