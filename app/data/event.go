@@ -112,3 +112,30 @@ func (e *EventConsumer) Send(msg string) bool {
 	log.Printf("[!] Delivered event data to client\n")
 	return true
 }
+
+// SendConfirmation - Sending confirmation message to client application,
+// to denote subscription to `event` topic, has been done successfully & whenever
+// new data gets published in this channel & client is accessible, it'll be
+// delivered to client
+func (e *EventConsumer) SendConfirmation() bool {
+
+	if err := e.Connection.WriteJSON(&SubscriptionResponse{
+		Code:    1,
+		Message: "Subscribed to `event`",
+	}); err != nil {
+		log.Printf("[!] Failed to deliver event subscription confirmation to client : %s\n", err.Error())
+
+		if err = e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
+			log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
+		}
+
+		if err = e.Connection.Close(); err != nil {
+			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
+		}
+
+		return false
+	}
+
+	log.Printf("[!] Delivered event subscription confirmation to client\n")
+	return true
+}
