@@ -90,6 +90,7 @@ func (t *TransactionConsumer) Send(msg string) bool {
 		return true
 	}
 
+	// If doesn't match, simply ignoring received data
 	if !t.Request.DoesMatchWithPublishedTransactionData(&transaction) {
 		return true
 	}

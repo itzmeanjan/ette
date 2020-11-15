@@ -91,6 +91,10 @@ func (e *EventConsumer) Send(msg string) bool {
 		log.Printf("[!] Failed to decode published event data to JSON : %s\n", err.Error())
 		return true
 	}
+	// If doesn't match with specified criteria, simply ignoring received data
+	if !e.Request.DoesMatchWithPublishedEventData(&event) {
+		return true
+	}
 
 	return e.SendData(&event)
 }
