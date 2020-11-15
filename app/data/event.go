@@ -64,7 +64,10 @@ func (e *EventConsumer) Listen() {
 
 		switch m := msg.(type) {
 		case *redis.Subscription:
-			status = e.SendConfirmation()
+			status = e.SendData(&SubscriptionResponse{
+				Code:    1,
+				Message: "Subscribed to `event`",
+			})
 		case *redis.Message:
 			status = e.Send(m.Payload)
 		}
@@ -76,7 +79,26 @@ func (e *EventConsumer) Listen() {
 
 }
 
+// Send - Sending event occurrence data to client application, which has subscribed to this event
+// & connected over websocket
+func (e *EventConsumer) Send(msg string) bool {
+	var block Block
+
+	_msg := []byte(msg)
+
+	err := json.Unmarshal(_msg, &block)
+	if err != nil {
+		log.Printf("[!] Failed to decode published event data to JSON : %s\n", err.Error())
+		return true
+	}
+
+	return e.SendData(&block)
+}
+
 // SendData - Sending message to client application, connected over websocket
+//
+// If failed, we're going to remove subscription & close websocket
+// connection ( connection might be already closed though )
 func (e *EventConsumer) SendData(data interface{}) bool {
 	if err := e.Connection.WriteJSON(data); err != nil {
 		log.Printf("[!] Failed to deliver `event` data to client : %s\n", err.Error())
@@ -93,65 +115,5 @@ func (e *EventConsumer) SendData(data interface{}) bool {
 	}
 
 	log.Printf("[!] Delivered `event` data to client\n")
-	return true
-}
-
-// Send - Sending event occurrence data to client application, which has subscribed to event
-// & connected over websocket
-//
-// If failed, we're going to safely assume connection is closed, so subscription is also removed
-func (e *EventConsumer) Send(msg string) bool {
-	var block Block
-
-	_msg := []byte(msg)
-
-	err := json.Unmarshal(_msg, &block)
-	if err != nil {
-		log.Printf("[!] Failed to decode published event data to JSON : %s\n", err.Error())
-		return true
-	}
-
-	if err = e.Connection.WriteJSON(&block); err != nil {
-		log.Printf("[!] Failed to deliver event data to client : %s\n", err.Error())
-
-		if err = e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
-		}
-
-		if err = e.Connection.Close(); err != nil {
-			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
-		}
-
-		return false
-	}
-
-	log.Printf("[!] Delivered event data to client\n")
-	return true
-}
-
-// SendConfirmation - Sending confirmation message to client application,
-// to denote subscription to `event` topic, has been done successfully & whenever
-// new data gets published in this channel & client is accessible, it'll be
-// delivered to client
-func (e *EventConsumer) SendConfirmation() bool {
-
-	if err := e.Connection.WriteJSON(&SubscriptionResponse{
-		Code:    1,
-		Message: "Subscribed to `event`",
-	}); err != nil {
-		log.Printf("[!] Failed to deliver event subscription confirmation to client : %s\n", err.Error())
-
-		if err = e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
-		}
-
-		if err = e.Connection.Close(); err != nil {
-			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
-		}
-
-		return false
-	}
-
-	log.Printf("[!] Delivered event subscription confirmation to client\n")
 	return true
 }
