@@ -10,23 +10,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// NewTransactionConsumer - Creating one new transaction data consumer, which will subscribe to transaction
-// topic & listen for data being published on this channel & check whether received data
-// is what, client is interested in or not, which will eventually be
-// delivered to client application over websocket connection
-func NewTransactionConsumer(client *redis.Client, conn *websocket.Conn, req *SubscriptionRequest) *TransactionConsumer {
-	consumer := TransactionConsumer{
-		Client:     client,
-		Request:    req,
-		Connection: conn,
-	}
-
-	consumer.Subscribe()
-	go consumer.Listen()
-
-	return &consumer
-}
-
 // TransactionConsumer - Transaction consumer info holder struct, to be used
 // for handling reception of published data & checking whether this client has really
 // subscribed for this data or not

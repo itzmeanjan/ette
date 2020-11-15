@@ -10,22 +10,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// NewBlockConsumer - Creating one new block data consumer, which will subscribe to block
-// topic & listen for data being published on this channel, which will eventually be
-// delivered to client application over websocket connection
-func NewBlockConsumer(client *redis.Client, conn *websocket.Conn, req *SubscriptionRequest) *BlockConsumer {
-	consumer := BlockConsumer{
-		Client:     client,
-		Request:    req,
-		Connection: conn,
-	}
-
-	consumer.Subscribe()
-	go consumer.Listen()
-
-	return &consumer
-}
-
 // BlockConsumer - To be subscribed to `block` topic using this consumer handle
 // and client connected using websocket needs to be delivered this piece of data
 type BlockConsumer struct {
