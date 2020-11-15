@@ -70,6 +70,9 @@ func (s *SubscriptionRequest) GetLogEventFilters() []string {
 // All this function does, is checking whether it satisfies those criterias or not
 func (s *SubscriptionRequest) DoesMatchWithPublishedEventData(event *Event) bool {
 
+	// --- Matching specific topic signature provided by client
+	// application with received event data, published by
+	// redis pub-sub
 	matchTopicXInEvent := func(topic string, x int) bool {
 		// Not all topics will have 4 elements in topics array
 		//
@@ -83,10 +86,7 @@ func (s *SubscriptionRequest) DoesMatchWithPublishedEventData(event *Event) bool
 
 		switch topic {
 		// match with any `topic` signature
-		case "":
-			status = true
-		// match with any `topic` signature
-		case "*":
+		case "", "*":
 			status = true
 		// match with specific `topic` signature
 		default:
@@ -95,6 +95,7 @@ func (s *SubscriptionRequest) DoesMatchWithPublishedEventData(event *Event) bool
 
 		return status
 	}
+	// ---
 
 	// Fetches desired filter values, against which matching to be performed
 	// for published log event data
@@ -106,10 +107,7 @@ func (s *SubscriptionRequest) DoesMatchWithPublishedEventData(event *Event) bool
 
 	switch filters[0] {
 	// match with any `contract` address
-	case "":
-		status = matchTopicXInEvent(filters[1], 0) && matchTopicXInEvent(filters[2], 1) && matchTopicXInEvent(filters[3], 2) && matchTopicXInEvent(filters[4], 3)
-	// match with any `contract` address
-	case "*":
+	case "", "*":
 		status = matchTopicXInEvent(filters[1], 0) && matchTopicXInEvent(filters[2], 1) && matchTopicXInEvent(filters[3], 2) && matchTopicXInEvent(filters[4], 3)
 	// match with provided `contract` address
 	default:
@@ -151,16 +149,11 @@ func (s *SubscriptionRequest) DoesMatchWithPublishedTransactionData(tx *Transact
 
 		switch to {
 		// match with any `to` address
-		case "":
-			status = true
-		// match with any `to` address
-		case "*":
+		case "", "*":
 			status = true
 		// match with specific `to` address
 		default:
-			if to == tx.To {
-				status = true
-			}
+			status = to == tx.To
 		}
 
 		return status
@@ -176,10 +169,7 @@ func (s *SubscriptionRequest) DoesMatchWithPublishedTransactionData(tx *Transact
 
 	switch filters[0] {
 	// match with any `from` address
-	case "":
-		status = matchToFieldInTx(filters[1])
-	// match with any `from` address
-	case "*":
+	case "", "*":
 		status = matchToFieldInTx(filters[1])
 	// match with provided `from` address
 	default:
