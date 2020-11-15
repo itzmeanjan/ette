@@ -112,7 +112,7 @@ func (t *TransactionConsumer) Send(msg string) bool {
 		log.Printf("[!] Failed to deliver transaction data to client : %s\n", err.Error())
 
 		if err := t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from transaction topic : %s\n", err.Error())
+			log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
 		}
 
 		if err := t.Connection.Close(); err != nil {
@@ -139,7 +139,7 @@ func (t *TransactionConsumer) SendConfirmation() bool {
 		log.Printf("[!] Failed to deliver transaction subscription confirmation to client : %s\n", err.Error())
 
 		if err = t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from transaction topic : %s\n", err.Error())
+			log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
 		}
 
 		if err = t.Connection.Close(); err != nil {

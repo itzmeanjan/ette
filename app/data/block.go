@@ -104,8 +104,8 @@ func (b *BlockConsumer) Send(msg string) bool {
 	if err = b.Connection.WriteJSON(&block); err != nil {
 		log.Printf("[!] Failed to deliver block data to client : %s\n", err.Error())
 
-		if err = b.PubSub.Unsubscribe(context.Background(), b.Request.Name); err != nil {
-			log.Printf("[!] Failed to unsubscribe from block event : %s\n", err.Error())
+		if err = b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
+			log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
 		}
 
 		if err = b.Connection.Close(); err != nil {
@@ -131,8 +131,8 @@ func (b *BlockConsumer) SendConfirmation() bool {
 	}); err != nil {
 		log.Printf("[!] Failed to deliver block subscription confirmation to client : %s\n", err.Error())
 
-		if err = b.PubSub.Unsubscribe(context.Background(), b.Request.Name); err != nil {
-			log.Printf("[!] Failed to unsubscribe from block event : %s\n", err.Error())
+		if err = b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
+			log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
 		}
 
 		if err = b.Connection.Close(); err != nil {
