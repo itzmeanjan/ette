@@ -1,6 +1,8 @@
 package data
 
 import (
+	"context"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 )
@@ -14,4 +16,10 @@ type EventConsumer struct {
 	Request    *SubscriptionRequest
 	Connection *websocket.Conn
 	PubSub     *redis.PubSub
+}
+
+// Subscribe - Event consumer is subscribing to `event` topic,
+// where all event related data to be published
+func (e *EventConsumer) Subscribe() {
+	e.PubSub = e.Client.Subscribe(context.Background(), e.Request.Topic())
 }
