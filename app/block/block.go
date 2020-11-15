@@ -4,71 +4,14 @@ import (
 	"context"
 	"log"
 	"math/big"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
-	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
-
-// SubscribeToNewBlocks - Listen for event when new block header is
-// available, then fetch block content ( including all transactions )
-// in different worker
-func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, redisClient *redis.Client) {
-	headerChan := make(chan *types.Header)
-
-	subs, err := client.SubscribeNewHead(context.Background(), headerChan)
-	if err != nil {
-		log.Fatalf("[!] Failed to subscribe to block headers : %s\n", err.Error())
-	}
-
-	// Scheduling unsubscribe, to be executed when end of this block is reached
-	defer subs.Unsubscribe()
-
-	// Flag to check for whether this is first time block header being received
-	// or not
-	//
-	// If yes, we'll start syncer to fetch all block starting from 0 to this block
-	first := true
-
-	for {
-		select {
-		case err := <-subs.Err():
-			log.Printf("[!] Block header subscription failed in mid : %s\n", err.Error())
-			break
-		case header := <-headerChan:
-			if first {
-				// Starting syncer in another thread, where it'll keep fetching
-				// blocks starting from genesis to this block
-				go SyncToLatestBlock(client, _db, 0, header.Number.Uint64(), _lock, _synced)
-				// Making sure on when next latest block header is received, it'll not
-				// start another syncer
-				first = false
-			}
-
-			if err := redisClient.Publish(context.Background(), "block", &d.Block{
-				Hash:       header.Hash().Hex(),
-				Number:     header.Number.Uint64(),
-				Time:       header.Time,
-				ParentHash: header.ParentHash.Hex(),
-				Difficulty: header.Difficulty.String(),
-				GasUsed:    header.GasUsed,
-				GasLimit:   header.GasLimit,
-				Nonce:      header.Nonce.Uint64(),
-			}).Err(); err != nil {
-
-				log.Printf("[!] Failed to publish block %d in channel : %s\n", header.Number.Uint64(), err.Error())
-
-			}
-
-			go fetchBlockByHash(client, header.Hash(), _db, redisClient)
-		}
-	}
-}
 
 // Fetching block content using blockHash
 func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, redisClient *redis.Client) {
@@ -109,72 +52,5 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 
 	for _, v := range block.Transactions() {
 		fetchTransactionByHash(client, block, v, _db, redisClient)
-	}
-}
-
-// Fetching specific transaction related data & persisting in database
-func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client) {
-	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
-	if err != nil {
-		log.Printf("[!] Failed to fetch tx receipt : %s\n", err.Error())
-		return
-	}
-
-	// If DB entry already exists for this tx & all events from tx receipt also present
-	if res := db.GetTransaction(_db, block.Hash(), tx.Hash()); res != nil && db.CheckPersistanceStatusOfEvents(_db, receipt) {
-		return
-	}
-
-	sender, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
-	if err != nil {
-		log.Printf("[!] Failed to fetch tx sender : %s\n", err.Error())
-		return
-	}
-
-	db.PutTransaction(_db, tx, receipt, sender)
-	db.PutEvent(_db, receipt)
-	log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
-
-	// This is not a case when real time data is received, rather this is probably
-	// a sync attempt to latest state of blockchain
-	// So, in this case, we don't need to publish any data on channel
-	if redisClient == nil {
-		return
-	}
-
-	var _publishTx *d.Transaction
-
-	if tx.To() == nil {
-		// This is a contract creation tx
-		_publishTx = &d.Transaction{
-			Hash:      tx.Hash().Hex(),
-			From:      sender.Hex(),
-			Contract:  receipt.ContractAddress.Hex(),
-			Gas:       tx.Gas(),
-			GasPrice:  tx.GasPrice().String(),
-			Cost:      tx.Cost().String(),
-			Nonce:     tx.Nonce(),
-			State:     receipt.Status,
-			BlockHash: receipt.BlockHash.Hex(),
-		}
-	} else {
-		// This is a normal tx, so we keep contract field empty
-		_publishTx = &d.Transaction{
-			Hash:      tx.Hash().Hex(),
-			From:      sender.Hex(),
-			To:        tx.To().Hex(),
-			Gas:       tx.Gas(),
-			GasPrice:  tx.GasPrice().String(),
-			Cost:      tx.Cost().String(),
-			Nonce:     tx.Nonce(),
-			State:     receipt.Status,
-			BlockHash: receipt.BlockHash.Hex(),
-		}
-	}
-
-	if err := redisClient.Publish(context.Background(), "transaction", _publishTx).Err(); err != nil {
-
-		log.Printf("[!] Failed to publish transaction from block %d : %s\n", block.NumberU64(), err.Error())
-
 	}
 }

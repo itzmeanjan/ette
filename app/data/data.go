@@ -145,6 +145,12 @@ type Event struct {
 	BlockHash       string         `gorm:"column:blockhash"`
 }
 
+// MarshalBinary - Implementing binary marshalling function, to be invoked
+// by redis before publishing data on channel
+func (e *Event) MarshalBinary() ([]byte, error) {
+	return json.Marshal(e)
+}
+
 // MarshalJSON - Custom JSON encoder
 func (e *Event) MarshalJSON() ([]byte, error) {
 
