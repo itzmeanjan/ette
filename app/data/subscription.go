@@ -60,6 +60,68 @@ func (s *SubscriptionRequest) GetLogEventFilters() []string {
 	return []string{matches[9], matches[11], matches[13], matches[15], matches[17]}
 }
 
+// DoesMatchWithPublishedEventData  - All event channel listeners are going to get
+// notified for any event emitted from smart contract interaction tx(s), but not all
+// of clients are probably interested in those flood of data.
+//
+// Rather they've mentioned some filtering criterias, to be used for checking
+// whether really this piece of data is requested by client or not
+//
+// All this function does, is checking whether it satisfies those criterias or not
+func (s *SubscriptionRequest) DoesMatchWithPublishedEventData(event *Event) bool {
+
+	matchTopicXInEvent := func(topic string, x int) bool {
+		// Not all topics will have 4 elements in topics array
+		//
+		// For those cases, if topic signature for that index is {"", "*"}
+		// provided by consumer, then we're safely going to say it's a match
+		if !(x < len(event.Topics)) {
+			return topic == "" || topic == "*"
+		}
+
+		status := false
+
+		switch topic {
+		// match with any `topic` signature
+		case "":
+			status = true
+		// match with any `topic` signature
+		case "*":
+			status = true
+		// match with specific `topic` signature
+		default:
+			status = topic == event.Topics[x]
+		}
+
+		return status
+	}
+
+	// Fetches desired filter values, against which matching to be performed
+	// for published log event data
+	filters := s.GetLogEventFilters()
+	if filters == nil {
+		return false
+	}
+	status := false
+
+	switch filters[0] {
+	// match with any `contract` address
+	case "":
+		status = matchTopicXInEvent(filters[1], 0) && matchTopicXInEvent(filters[2], 1) && matchTopicXInEvent(filters[3], 2) && matchTopicXInEvent(filters[4], 3)
+	// match with any `contract` address
+	case "*":
+		status = matchTopicXInEvent(filters[1], 0) && matchTopicXInEvent(filters[2], 1) && matchTopicXInEvent(filters[3], 2) && matchTopicXInEvent(filters[4], 3)
+	// match with provided `contract` address
+	default:
+		if filters[0] == event.Origin {
+			status = matchTopicXInEvent(filters[1], 0) && matchTopicXInEvent(filters[2], 1) && matchTopicXInEvent(filters[3], 2) && matchTopicXInEvent(filters[4], 3)
+		}
+	}
+
+	return status
+
+}
+
 // GetTransactionFilters - Extracts from & to account present in transaction subscription request
 //
 // these could possibly be empty/ * / 0x...
