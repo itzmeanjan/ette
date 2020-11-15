@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
+	c "github.com/itzmeanjan/ette/app/common"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
@@ -75,6 +76,24 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 	if err := redisClient.Publish(context.Background(), "transaction", _publishTx).Err(); err != nil {
 
 		log.Printf("[!] Failed to publish transaction from block %d : %s\n", block.NumberU64(), err.Error())
+
+	}
+
+	// Publishing event/ log entries to redis pub-sub topic, to be captured by subscribers
+	// and sent to client application, who are interested in this piece of data
+	// after applying filter
+	for _, v := range receipt.Logs {
+
+		if err := redisClient.Publish(context.Background(), "event", &d.Event{
+			Origin:          v.Address.Hex(),
+			Index:           v.Index,
+			Topics:          c.StringifyEventTopics(v.Topics),
+			Data:            v.Data,
+			TransactionHash: v.TxHash.Hex(),
+			BlockHash:       v.BlockHash.Hex(),
+		}).Err(); err != nil {
+			log.Printf("[!] Failed to publish event from block %d : %s\n", block.NumberU64(), err.Error())
+		}
 
 	}
 }

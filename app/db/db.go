@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	com "github.com/itzmeanjan/ette/app/common"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -117,21 +118,11 @@ func CheckPersistanceStatusOfEvents(_db *gorm.DB, _txReceipt *types.Receipt) boo
 // PutEvent - Entering new log events emitted as result of execution of EVM transaction
 // into persistable storage
 func PutEvent(_db *gorm.DB, _txReceipt *types.Receipt) {
-	stringify := func(data []common.Hash) []string {
-		buffer := make([]string, len(data))
-
-		for i := 0; i < len(data); i++ {
-			buffer[i] = data[i].Hex()
-		}
-
-		return buffer
-	}
-
 	for _, v := range _txReceipt.Logs {
 		if err := _db.Create(&Events{
 			Origin:          v.Address.Hex(),
 			Index:           v.Index,
-			Topics:          stringify(v.Topics),
+			Topics:          com.StringifyEventTopics(v.Topics),
 			Data:            v.Data,
 			TransactionHash: v.TxHash.Hex(),
 			BlockHash:       v.BlockHash.Hex(),
