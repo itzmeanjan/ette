@@ -64,13 +64,9 @@ func (e *EventConsumer) Listen() {
 
 		switch m := msg.(type) {
 		case *redis.Subscription:
-			if !e.SendConfirmation() {
-				status = false
-			}
+			status = e.SendConfirmation()
 		case *redis.Message:
-			if !e.Send(m.Payload) {
-				status = false
-			}
+			status = e.Send(m.Payload)
 		}
 
 		if !status {
