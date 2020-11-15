@@ -155,7 +155,7 @@ func (e *Event) MarshalBinary() ([]byte, error) {
 func (e *Event) MarshalJSON() ([]byte, error) {
 
 	data := ""
-	if hex.EncodeToString(e.Data) != "" {
+	if _h := hex.EncodeToString(e.Data); _h != "" && _h != fmt.Sprintf("0x%s", strings.Repeat("0", 64)) {
 		data = fmt.Sprintf("0x%s", hex.EncodeToString(e.Data))
 	}
 
