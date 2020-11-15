@@ -148,7 +148,7 @@ type Event struct {
 // MarshalBinary - Implementing binary marshalling function, to be invoked
 // by redis before publishing data on channel
 func (e *Event) MarshalBinary() ([]byte, error) {
-	return json.Marshal(e)
+	return e.MarshalJSON()
 }
 
 // MarshalJSON - Custom JSON encoder

@@ -742,6 +742,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 						v.Request.Type = req.Type
 					}
 				}
+
+				topics[req.Name] = nil
 			}
 		}
 	})
