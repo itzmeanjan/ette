@@ -702,6 +702,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		var blockConsumer *d.BlockConsumer
 		var transactionConsumer *d.TransactionConsumer
+		var eventConsumer *d.EventConsumer
 
 		// Communication with client handling logic
 		for {
@@ -729,6 +730,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 					blockConsumer = d.NewBlockConsumer(_redisClient, conn, &req)
 				case "transaction":
 					transactionConsumer = d.NewTransactionConsumer(_redisClient, conn, &req)
+				case "event":
+					eventConsumer = d.NewEventConsumer(_redisClient, conn, &req)
 				}
 			case "unsubscribe":
 				topics[req.Topic()] = false
@@ -738,6 +741,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 					blockConsumer.Request.Type = req.Type
 				case "transaction":
 					transactionConsumer.Request.Type = req.Type
+				case "event":
+					eventConsumer.Request.Type = req.Type
 				}
 			}
 		}

@@ -10,23 +10,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// NewTransactionConsumer - Creating one new transaction data consumer, which will subscribe to transaction
-// topic & listen for data being published on this channel & check whether received data
-// is what, client is interested in or not, which will eventually be
-// delivered to client application over websocket connection
-func NewTransactionConsumer(client *redis.Client, conn *websocket.Conn, req *SubscriptionRequest) *TransactionConsumer {
-	consumer := TransactionConsumer{
-		Client:     client,
-		Request:    req,
-		Connection: conn,
-	}
-
-	consumer.Subscribe()
-	go consumer.Listen()
-
-	return &consumer
-}
-
 // TransactionConsumer - Transaction consumer info holder struct, to be used
 // for handling reception of published data & checking whether this client has really
 // subscribed for this data or not
@@ -64,7 +47,7 @@ func (t *TransactionConsumer) Listen() {
 			}
 
 			if err := t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-				log.Printf("[!] Failed to unsubscribe from transaction topic : %s\n", err.Error())
+				log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
 			}
 			break
 
@@ -80,7 +63,10 @@ func (t *TransactionConsumer) Listen() {
 
 		switch m := msg.(type) {
 		case *redis.Subscription:
-			status = t.SendConfirmation()
+			status = t.SendData(&SubscriptionResponse{
+				Code:    1,
+				Message: "Subscribed to `transaction`",
+			})
 		case *redis.Message:
 			status = t.Send(m.Payload)
 		}
@@ -104,42 +90,24 @@ func (t *TransactionConsumer) Send(msg string) bool {
 		return true
 	}
 
+	// If doesn't match, simply ignoring received data
 	if !t.Request.DoesMatchWithPublishedTransactionData(&transaction) {
 		return true
 	}
 
-	if err := t.Connection.WriteJSON(&transaction); err != nil {
-		log.Printf("[!] Failed to deliver transaction data to client : %s\n", err.Error())
-
-		if err := t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from transaction topic : %s\n", err.Error())
-		}
-
-		if err := t.Connection.Close(); err != nil {
-			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
-		}
-
-		return false
-	}
-
-	log.Printf("[!] Delivered transaction data to client\n")
-	return true
+	return t.SendData(&transaction)
 }
 
-// SendConfirmation - Sending confirmation message i.e. transaction subscription has been confirmed
-// for client. If unable to send it, cancels subscription & closes underlying websocket connection
+// SendData - Sending message to client application, connected over websocket
 //
-// Websocket connection may already be closed, in that case it'll simply return
-func (t *TransactionConsumer) SendConfirmation() bool {
-
-	if err := t.Connection.WriteJSON(&SubscriptionResponse{
-		Code:    1,
-		Message: "Subscribed to `transaction`",
-	}); err != nil {
-		log.Printf("[!] Failed to deliver transaction subscription confirmation to client : %s\n", err.Error())
+// If failed, we're going to remove subscription & close websocket
+// connection ( connection might be already closed though )
+func (t *TransactionConsumer) SendData(data interface{}) bool {
+	if err := t.Connection.WriteJSON(data); err != nil {
+		log.Printf("[!] Failed to deliver `transaction` data to client : %s\n", err.Error())
 
 		if err = t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from transaction topic : %s\n", err.Error())
+			log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
 		}
 
 		if err = t.Connection.Close(); err != nil {
@@ -149,6 +117,6 @@ func (t *TransactionConsumer) SendConfirmation() bool {
 		return false
 	}
 
-	log.Printf("[!] Delivered transaction subscription confirmation to client\n")
+	log.Printf("[!] Delivered `transaction` data to client\n")
 	return true
 }
