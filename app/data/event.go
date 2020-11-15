@@ -76,6 +76,26 @@ func (e *EventConsumer) Listen() {
 
 }
 
+// SendData - Sending message to client application, connected over websocket
+func (e *EventConsumer) SendData(data interface{}) bool {
+	if err := e.Connection.WriteJSON(data); err != nil {
+		log.Printf("[!] Failed to deliver `event` data to client : %s\n", err.Error())
+
+		if err = e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
+			log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
+		}
+
+		if err = e.Connection.Close(); err != nil {
+			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
+		}
+
+		return false
+	}
+
+	log.Printf("[!] Delivered `event` data to client\n")
+	return true
+}
+
 // Send - Sending event occurrence data to client application, which has subscribed to event
 // & connected over websocket
 //
