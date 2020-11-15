@@ -101,7 +101,13 @@ func (e *EventConsumer) Send(msg string) bool {
 		return true
 	}
 
-	data, err := hex.DecodeString(event.Data[2:])
+	data := make([]byte, 0)
+	err = nil
+
+	if len(event.Data) != 0 {
+		data, err = hex.DecodeString(event.Data[2:])
+	}
+
 	if err != nil {
 		log.Printf("[!] Failed to decode data field of event : %s\n", err.Error())
 		return true
