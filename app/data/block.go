@@ -59,8 +59,8 @@ func (b *BlockConsumer) Listen() {
 				log.Printf("[!] Failed to deliver block unsubscription confirmation to client : %s\n", err.Error())
 			}
 
-			if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Name); err != nil {
-				log.Printf("[!] Failed to unsubscribe from block event : %s\n", err.Error())
+			if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
+				log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
 			}
 			break
 
@@ -76,13 +76,9 @@ func (b *BlockConsumer) Listen() {
 
 		switch m := msg.(type) {
 		case *redis.Subscription:
-			if !b.SendConfirmation() {
-				status = false
-			}
+			status = b.SendConfirmation()
 		case *redis.Message:
-			if !b.Send(m.Payload) {
-				status = false
-			}
+			status = b.Send(m.Payload)
 		}
 
 		if !status {

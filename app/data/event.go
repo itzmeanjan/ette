@@ -2,6 +2,8 @@ package data
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
@@ -22,4 +24,57 @@ type EventConsumer struct {
 // where all event related data to be published
 func (e *EventConsumer) Subscribe() {
 	e.PubSub = e.Client.Subscribe(context.Background(), e.Request.Topic())
+}
+
+// Listen - Polling for new data published in `event` topic periodically
+// and sending data to subscribed to client ( connected over websocket )
+// if client has subscribed to get notified on occurrence of this event
+func (e *EventConsumer) Listen() {
+
+	for {
+
+		// Checking if client is still subscribed to this topic
+		// or not
+		//
+		// If not, we're cancelling this subscription
+		if e.Request.Type == "unsubscribe" {
+
+			if err := e.Connection.WriteJSON(&SubscriptionResponse{
+				Code:    1,
+				Message: "Unsubscribed from `event`",
+			}); err != nil {
+				log.Printf("[!] Failed to deliver event unsubscription confirmation to client : %s\n", err.Error())
+			}
+
+			if err := e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
+				log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
+			}
+			break
+
+		}
+
+		msg, err := e.PubSub.ReceiveTimeout(context.Background(), time.Second)
+		if err != nil {
+			continue
+		}
+
+		// To be used for checking whether delivering data to client went successful or not
+		status := true
+
+		switch m := msg.(type) {
+		case *redis.Subscription:
+			if !e.SendConfirmation() {
+				status = false
+			}
+		case *redis.Message:
+			if !e.Send(m.Payload) {
+				status = false
+			}
+		}
+
+		if !status {
+			break
+		}
+	}
+
 }

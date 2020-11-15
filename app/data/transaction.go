@@ -64,7 +64,7 @@ func (t *TransactionConsumer) Listen() {
 			}
 
 			if err := t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-				log.Printf("[!] Failed to unsubscribe from transaction topic : %s\n", err.Error())
+				log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
 			}
 			break
 
