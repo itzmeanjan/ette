@@ -15,7 +15,7 @@ type SubscriptionRequest struct {
 
 // GetRegex - Returns regex to be used for validating subscription request
 func (s *SubscriptionRequest) GetRegex() *regexp.Regexp {
-	pattern, err := regexp.Compile("^(block|(transaction(/(0x[a-zA-Z0-9]{40}|\\*)(/(0x[a-zA-Z0-9]{40}|\\*))?)?))$")
+	pattern, err := regexp.Compile("^(block|(transaction(/(0x[a-zA-Z0-9]{40}|\\*)(/(0x[a-zA-Z0-9]{40}|\\*))?)?)|(event(/(0x[a-zA-Z0-9]{40}|\\*)(/(0x[a-zA-Z0-9]{64}|\\*)(/(0x[a-zA-Z0-9]{64}|\\*)(/(0x[a-zA-Z0-9]{64}|\\*)(/(0x[a-zA-Z0-9]{64}|\\*))?)?)?)?)?))$")
 	if err != nil {
 		log.Printf("[!] Failed to parse regex pattern : %s\n", err.Error())
 		return nil
@@ -35,7 +35,29 @@ func (s *SubscriptionRequest) Topic() string {
 		return "transaction"
 	}
 
+	if strings.HasPrefix(s.Name, "event") {
+		return "event"
+	}
+
 	return ""
+}
+
+// GetLogEventFilters - Extracts contract address & topic signatures
+// from subscription request, which are to be used
+// for matching against published log event data
+//
+// Pattern looks like : `event/<address>/<topic0>/<topic1>/<topic2>/<topic3>`
+//
+// address : Contract address
+// topic{0,1,2,3} : topic signature
+func (s *SubscriptionRequest) GetLogEventFilters() []string {
+	pattern := s.GetRegex()
+	if pattern == nil {
+		return nil
+	}
+
+	matches := pattern.FindStringSubmatch(s.Name)
+	return []string{matches[9], matches[11], matches[13], matches[15], matches[17]}
 }
 
 // GetTransactionFilters - Extracts from & to account present in transaction subscription request
@@ -121,6 +143,8 @@ func (s *SubscriptionRequest) IsValidTopic() bool {
 		if strings.HasPrefix(matches[0], "block") {
 			return true
 		} else if strings.HasPrefix(matches[0], "transaction") {
+			return true
+		} else if strings.HasPrefix(matches[0], "event") {
 			return true
 		}
 
