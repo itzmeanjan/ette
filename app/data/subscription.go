@@ -193,7 +193,7 @@ func (s *SubscriptionRequest) IsValidTopic() bool {
 }
 
 // Validate - Validates request from client for subscription/ unsubscription
-func (s *SubscriptionRequest) Validate(topics map[string]bool) bool {
+func (s *SubscriptionRequest) Validate(topics map[string]Consumer) bool {
 
 	// --- Closure definition
 	// Given associative array & key in array, checks whether entry exists or not
@@ -204,7 +204,7 @@ func (s *SubscriptionRequest) Validate(topics map[string]bool) bool {
 			return false
 		}
 
-		return v
+		return v != nil
 	}
 	// ---
 
@@ -212,9 +212,9 @@ func (s *SubscriptionRequest) Validate(topics map[string]bool) bool {
 
 	switch s.Type {
 	case "subscribe":
-		validated = s.IsValidTopic() && !checkEntryInAssociativeArray(s.Topic())
+		validated = s.IsValidTopic() && !checkEntryInAssociativeArray(s.Name)
 	case "unsubscribe":
-		validated = s.IsValidTopic() && checkEntryInAssociativeArray(s.Topic())
+		validated = s.IsValidTopic() && checkEntryInAssociativeArray(s.Name)
 	default:
 		validated = false
 	}

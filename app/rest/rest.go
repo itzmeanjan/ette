@@ -698,11 +698,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		// keeping track of which topics this client has already subscribed to
 		// or unsubscrribed from
-		topics := make(map[string]bool)
-
-		var blockConsumer *d.BlockConsumer
-		var transactionConsumer *d.TransactionConsumer
-		var eventConsumer *d.EventConsumer
+		topics := make(map[string]d.Consumer)
 
 		// Communication with client handling logic
 		for {
@@ -723,26 +719,28 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 			switch req.Type {
 			case "subscribe":
-				topics[req.Topic()] = true
-
 				switch req.Topic() {
 				case "block":
-					blockConsumer = d.NewBlockConsumer(_redisClient, conn, &req)
+					topics[req.Name] = d.NewBlockConsumer(_redisClient, conn, &req)
 				case "transaction":
-					transactionConsumer = d.NewTransactionConsumer(_redisClient, conn, &req)
+					topics[req.Name] = d.NewTransactionConsumer(_redisClient, conn, &req)
 				case "event":
-					eventConsumer = d.NewEventConsumer(_redisClient, conn, &req)
+					topics[req.Name] = d.NewEventConsumer(_redisClient, conn, &req)
 				}
 			case "unsubscribe":
-				topics[req.Topic()] = false
-
 				switch req.Topic() {
 				case "block":
-					blockConsumer.Request.Type = req.Type
+					if v, ok := topics[req.Name].(*d.BlockConsumer); ok {
+						v.Request.Type = req.Type
+					}
 				case "transaction":
-					transactionConsumer.Request.Type = req.Type
+					if v, ok := topics[req.Name].(*d.TransactionConsumer); ok {
+						v.Request.Type = req.Type
+					}
 				case "event":
-					eventConsumer.Request.Type = req.Type
+					if v, ok := topics[req.Name].(*d.EventConsumer); ok {
+						v.Request.Type = req.Type
+					}
 				}
 			}
 		}
