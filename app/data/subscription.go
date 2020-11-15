@@ -189,20 +189,7 @@ func (s *SubscriptionRequest) IsValidTopic() bool {
 		return false
 	}
 
-	if pattern.MatchString(s.Name) {
-
-		matches := pattern.FindStringSubmatch(s.Name)
-		if strings.HasPrefix(matches[0], "block") {
-			return true
-		} else if strings.HasPrefix(matches[0], "transaction") {
-			return true
-		} else if strings.HasPrefix(matches[0], "event") {
-			return true
-		}
-
-	}
-
-	return false
+	return pattern.MatchString(s.Name)
 }
 
 // Validate - Validates request from client for subscription/ unsubscription
@@ -211,8 +198,8 @@ func (s *SubscriptionRequest) Validate(topics map[string]bool) bool {
 	// --- Closure definition
 	// Given associative array & key in array, checks whether entry exists or not
 	// If yes, also return entry's boolean value
-	checkEntryInAssociativeArray := func(name string) bool {
-		v, ok := topics[name]
+	checkEntryInAssociativeArray := func(topic string) bool {
+		v, ok := topics[topic]
 		if !ok {
 			return false
 		}
