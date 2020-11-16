@@ -17,6 +17,7 @@ Ethereum Blockchain Analyser 😎
     - Real-time Data
         - [Real-time block mining notification](#real-time-notification-for-mined-blocks-)
         - [Real-time transaction notification ( 🤩 Filters Added ) ](#real-time-notification-for-transactions-%EF%B8%8F)
+        - [Real-time log event notification ( 🤩 Filters Added ) ](#real-time-notification-for-events-)
 
 ## Inspiration 🤔
 
