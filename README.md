@@ -1,6 +1,6 @@
 # ette
 
-Ethereum Blockchain Analyser 😎
+Ethereum Blockchain Data Indexing Engine 😎
 
 ![banner](sc/banner.gif)
 
