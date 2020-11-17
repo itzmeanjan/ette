@@ -722,11 +722,11 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			case "subscribe":
 				switch req.Topic() {
 				case "block":
-					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req)
+					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req, _db)
 				case "transaction":
-					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req)
+					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req, _db)
 				case "event":
-					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req)
+					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req, _db)
 				}
 			case "unsubscribe":
 				switch req.Topic() {

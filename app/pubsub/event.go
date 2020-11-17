@@ -8,6 +8,7 @@ import (
 	"time"
 
 	d "github.com/itzmeanjan/ette/app/data"
+	"gorm.io/gorm"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
@@ -23,6 +24,7 @@ type EventConsumer struct {
 	Request    *SubscriptionRequest
 	Connection *websocket.Conn
 	PubSub     *redis.PubSub
+	DB         *gorm.DB
 }
 
 // Subscribe - Event consumer is subscribing to `event` topic,

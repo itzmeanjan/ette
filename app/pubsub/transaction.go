@@ -9,6 +9,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/itzmeanjan/ette/app/data"
+	"gorm.io/gorm"
 )
 
 // TransactionConsumer - Transaction consumer info holder struct, to be used
@@ -21,6 +22,7 @@ type TransactionConsumer struct {
 	Request    *SubscriptionRequest
 	Connection *websocket.Conn
 	PubSub     *redis.PubSub
+	DB         *gorm.DB
 }
 
 // Subscribe - Subscribe to `transaction` topic, under which all transaction related data to be published
