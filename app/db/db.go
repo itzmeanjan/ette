@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -20,7 +21,7 @@ func Connect() *gorm.DB {
 		log.Fatalf("[!] Failed to connect to db : %s\n", err.Error())
 	}
 
-	_db.AutoMigrate(&Blocks{}, &Transactions{}, &Events{})
+	_db.AutoMigrate(&Blocks{}, &Transactions{}, &Events{}, &DeliveryHistory{})
 	return _db
 }
 
@@ -129,5 +130,19 @@ func PutEvent(_db *gorm.DB, _txReceipt *types.Receipt) {
 		}).Error; err != nil {
 			log.Printf("[!] Failed to persist tx log [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error())
 		}
+	}
+}
+
+// PutDataDeliveryInfo - Persisting data delivery info, before it's sent to client application
+//
+// dataLength is length of data in bytes, sent to client application
+func PutDataDeliveryInfo(_db *gorm.DB, client string, endPoint string, dataLength uint64) {
+	if err := _db.Create(&DeliveryHistory{
+		Client:     client,
+		TimeStamp:  time.Now(),
+		EndPoint:   endPoint,
+		DataLength: dataLength,
+	}).Error; err != nil {
+		log.Printf("[!] Failed to persist data delivery info : %s\n", err.Error())
 	}
 }
