@@ -16,3 +16,34 @@ curl http://localhost:3000/v1/transaction?fromBlock=1&toBlock=100&deployer=0x193
 #
 # it can take 600 seconds of timespan at max, at a given time
 curl http://localhost:3000/v1/transaction?fromTime=1604975929&toTime=1604975988&deployer=0x193919f422a262b1edfd8ca2776b8cfb000bdd3d
+
+# find out all tx in block number range, where `from` & `to` fields of tx
+# are fixed
+#
+# at max 100 blocks can be queried at a time
+curl http://localhost:3000/v1/transaction?fromBlock=1&toBlock=100&fromAccount=0x0214c5C41F5249166AAb9a12213Ac0E2119D2cc8&toAccount=0x193919f422a262b1edfd8ca2776b8cfb000bdd3d
+
+# find out all tx in block number range, where `from` field of tx is fixed
+#
+# at max 100 blocks can be queried at a time
+curl http://localhost:3000/v1/transaction?fromBlock=1&toBlock=100&fromAccount=0x0214c5C41F5249166AAb9a12213Ac0E2119D2cc8
+
+# find out all tx in block number range, where to` fields of tx is fixed
+#
+# at max 100 blocks can be queried at a time
+curl http://localhost:3000/v1/transaction?fromBlock=1&toBlock=100&toAccount=0x193919f422a262b1edfd8ca2776b8cfb000bdd3d
+
+# find out all tx in happened time span, where `from` & `to` field of tx are fixed
+#
+# at max 100 blocks can be queried at a time
+curl http://localhost:3000/v1/transaction?fromTime=1604975929&toTime=1604975988&fromAccount=0x0214c5C41F5249166AAb9a12213Ac0E2119D2cc8&toAccount=0x193919f422a262b1edfd8ca2776b8cfb000bdd3d
+
+# find out all tx in happened time span, where `from` field of tx is fixed
+#
+# at max 100 blocks can be queried at a time
+curl http://localhost:3000/v1/transaction?fromTime=1604975929&toTime=1604975988&fromAccount=0x0214c5C41F5249166AAb9a12213Ac0E2119D2cc8
+
+# find out all tx in happened time span, where to` field of tx is fixed
+#
+# at max 100 blocks can be queried at a time
+curl http://localhost:3000/v1/transaction?fromTime=1604975929&toTime=1604975988&toAccount=0x193919f422a262b1edfd8ca2776b8cfb000bdd3d
