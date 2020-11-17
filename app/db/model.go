@@ -1,6 +1,10 @@
 package db
 
-import "github.com/lib/pq"
+import (
+	"time"
+
+	"github.com/lib/pq"
+)
 
 // Tabler - ...
 type Tabler interface {
@@ -59,4 +63,22 @@ type Events struct {
 // TableName - Overriding default table name
 func (Events) TableName() string {
 	return "events"
+}
+
+// DeliveryHistory - For each request coming from client application
+// we're keeping track of how much data gets sent back in response of their query
+//
+// This is to be used for controlling client application's access
+// to resources they're requesting
+type DeliveryHistory struct {
+	ID         uint64    `gorm:"column:id;type:bigserial;primaryKey"`
+	Client     string    `gorm:"column:client;type:varchar(20);not null"`
+	TimeStamp  time.Time `gorm:"column:ts;type:timestamp;not null"`
+	EndPoint   string    `gorm:"column:endpoint;type:varchar(100);not null"`
+	DataLength uint64    `gorm:"column:datalength;type:bigint;not null"`
+}
+
+// TableName - Overriding default table name
+func (DeliveryHistory) TableName() string {
+	return "delivery_history"
 }
