@@ -8,6 +8,7 @@ import (
 	"time"
 
 	d "github.com/itzmeanjan/ette/app/data"
+	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 
 	"github.com/go-redis/redis/v8"
@@ -129,7 +130,12 @@ func (e *EventConsumer) Send(msg string) bool {
 		return true
 	}
 
-	return e.SendData(&event)
+	if e.SendData(&event) {
+		db.PutDataDeliveryInfo(e.DB, e.Connection.RemoteAddr().String(), "/v1/ws/event", uint64(len(msg)))
+		return true
+	}
+
+	return false
 }
 
 // SendData - Sending message to client application, connected over websocket

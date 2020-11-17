@@ -9,6 +9,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/itzmeanjan/ette/app/data"
+	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
 
@@ -98,7 +99,12 @@ func (t *TransactionConsumer) Send(msg string) bool {
 		return true
 	}
 
-	return t.SendData(&transaction)
+	if t.SendData(&transaction) {
+		db.PutDataDeliveryInfo(t.DB, t.Connection.RemoteAddr().String(), "/v1/ws/transaction", uint64(len(msg)))
+		return true
+	}
+
+	return false
 }
 
 // SendData - Sending message to client application, connected over websocket
