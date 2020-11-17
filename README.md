@@ -106,6 +106,8 @@ You can query historical block data with various combination of query string par
 
 **Path : `/v1/block`**
 
+**Example code snippet can be found [here](example/block.sh)**
+
 Query Params | Method | Description
 --- | --- | ---
 `hash=0x...&tx=yes` | GET | Fetch all transactions present in a block, when block hash is known
@@ -120,6 +122,8 @@ Query Params | Method | Description
 It's possible to query historical transactions data with various combination of query string params, where URL path is 👇
 
 **Path : `/v1/transaction`**
+
+**Example code snippet can be found [here](example/transaction.sh)**
 
 Query Params | Method | Description
 --- | --- | ---
