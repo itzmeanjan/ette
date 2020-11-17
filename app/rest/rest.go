@@ -16,6 +16,7 @@ import (
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
+	ps "github.com/itzmeanjan/ette/app/pubsub"
 	"gorm.io/gorm"
 )
 
@@ -698,11 +699,11 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		// keeping track of which topics this client has already subscribed to
 		// or unsubscrribed from
-		topics := make(map[string]d.Consumer)
+		topics := make(map[string]ps.Consumer)
 
 		// Communication with client handling logic
 		for {
-			var req d.SubscriptionRequest
+			var req ps.SubscriptionRequest
 
 			if err := conn.ReadJSON(&req); err != nil {
 				log.Printf("[!] Failed to read message : %s\n", err.Error())
@@ -711,7 +712,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 			// Validating incoming request on websocket subscription channel
 			if !req.Validate(topics) {
-				if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
+				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
 				break
@@ -721,24 +722,24 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			case "subscribe":
 				switch req.Topic() {
 				case "block":
-					topics[req.Name] = d.NewBlockConsumer(_redisClient, conn, &req)
+					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req)
 				case "transaction":
-					topics[req.Name] = d.NewTransactionConsumer(_redisClient, conn, &req)
+					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req)
 				case "event":
-					topics[req.Name] = d.NewEventConsumer(_redisClient, conn, &req)
+					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req)
 				}
 			case "unsubscribe":
 				switch req.Topic() {
 				case "block":
-					if v, ok := topics[req.Name].(*d.BlockConsumer); ok {
+					if v, ok := topics[req.Name].(*ps.BlockConsumer); ok {
 						v.Request.Type = req.Type
 					}
 				case "transaction":
-					if v, ok := topics[req.Name].(*d.TransactionConsumer); ok {
+					if v, ok := topics[req.Name].(*ps.TransactionConsumer); ok {
 						v.Request.Type = req.Type
 					}
 				case "event":
-					if v, ok := topics[req.Name].(*d.EventConsumer); ok {
+					if v, ok := topics[req.Name].(*ps.EventConsumer); ok {
 						v.Request.Type = req.Type
 					}
 				}

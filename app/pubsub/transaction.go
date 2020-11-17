@@ -1,4 +1,4 @@
-package data
+package pubsub
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
+	"github.com/itzmeanjan/ette/app/data"
 )
 
 // TransactionConsumer - Transaction consumer info holder struct, to be used
@@ -81,7 +82,7 @@ func (t *TransactionConsumer) Listen() {
 // Send - Tries to deliver subscribed transaction data to client application
 // connected over websocket
 func (t *TransactionConsumer) Send(msg string) bool {
-	var transaction Transaction
+	var transaction data.Transaction
 
 	_msg := []byte(msg)
 

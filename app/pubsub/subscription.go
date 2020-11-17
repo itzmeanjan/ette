@@ -1,9 +1,11 @@
-package data
+package pubsub
 
 import (
 	"log"
 	"regexp"
 	"strings"
+
+	"github.com/itzmeanjan/ette/app/data"
 )
 
 // SubscriptionRequest - Real time data subscription/ unsubscription request
@@ -68,7 +70,7 @@ func (s *SubscriptionRequest) GetLogEventFilters() []string {
 // whether really this piece of data is requested by client or not
 //
 // All this function does, is checking whether it satisfies those criterias or not
-func (s *SubscriptionRequest) DoesMatchWithPublishedEventData(event *Event) bool {
+func (s *SubscriptionRequest) DoesMatchWithPublishedEventData(event *data.Event) bool {
 
 	// --- Matching specific topic signature provided by client
 	// application with received event data, published by
@@ -139,7 +141,7 @@ func (s *SubscriptionRequest) GetTransactionFilters() []string {
 //
 // Whether client has really shown interest in receiving notification for this transaction or not
 // can be checked using this function
-func (s *SubscriptionRequest) DoesMatchWithPublishedTransactionData(tx *Transaction) bool {
+func (s *SubscriptionRequest) DoesMatchWithPublishedTransactionData(tx *data.Transaction) bool {
 
 	// --- This closure function tries to match with to field of published tx data
 	//

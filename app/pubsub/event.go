@@ -1,4 +1,4 @@
-package data
+package pubsub
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"log"
 	"time"
+
+	d "github.com/itzmeanjan/ette/app/data"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
@@ -114,7 +116,7 @@ func (e *EventConsumer) Send(msg string) bool {
 	}
 
 	// If doesn't match with specified criteria, simply ignoring received data
-	if !e.Request.DoesMatchWithPublishedEventData(&Event{
+	if !e.Request.DoesMatchWithPublishedEventData(&d.Event{
 		Origin:          event.Origin,
 		Index:           event.Index,
 		Topics:          event.Topics,

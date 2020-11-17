@@ -1,4 +1,4 @@
-package data
+package pubsub
 
 import (
 	"github.com/go-redis/redis/v8"
