@@ -33,5 +33,10 @@
 
 
 {{define "content"}}
-    <div class="centered" onclick="{ console.log('clicked') }" >Login</div>
+    <div class="centered" onclick="{ 
+        if (typeof ethereum !== 'undefined') {
+            ethereum.enable().catch(_ => alert('Metamask access required !'))
+        } else {
+            alert('Metamask needs to be installed !')
+        } }" >Login</div>
 {{end}}
