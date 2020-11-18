@@ -29,26 +29,37 @@
         }
 
     </style>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.0.umd.min.js" type="application/javascript">
+    </script>
 {{end}}
 
 
 {{define "content"}}
     <div class="centered" onclick="{ 
         if (typeof ethereum !== 'undefined') {
-            ethereum.enable().then(accounts => {
-                
+            ethereum.request({method: 'eth_requestAccounts'}).then(accounts => {
+
                 if(accounts.length !== 0) {
+
+                    console.log(accounts)
+
                     const from = accounts[0]
 
-                    const msg = `address: ${from}\ntimestamp: ${Math.round(Date.now() / 1000)}`
-                    const params = [msg, from]
+                    const msg = {
+                        address: from,
+                        timestamp: Math.round(Date.now() / 1000)
+                    }
+
+                    console.log(JSON.stringify(msg), ethers.utils.keccak256(JSON.stringify(msg)))
+
+                    const params = [ethers.utils.keccak256(JSON.stringify(msg)), from]
                     const method = 'personal_sign'
 
-                    web3.currentProvider.sendAsync({
+                    ethereum.request({
                         method,
-                        params,
-                        from,
-                    }, function (err, result) {
+                        params
+                    }, (err, result) => {
                         if (err) {
                             return console.error(err)
                         }
