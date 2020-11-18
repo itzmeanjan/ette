@@ -77,8 +77,22 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 	}
 
 	respondWithJSON := func(data []byte, c *gin.Context) {
+
+		uri := c.Request.RequestURI
+		remote := c.Request.RemoteAddr
+
 		if data != nil {
 			c.Data(http.StatusOK, "application/json", data)
+
+			switch {
+			case strings.HasPrefix(uri, "/v1/block"):
+				db.PutDataDeliveryInfo(_db, remote, "/v1/block", uint64(len(data)))
+			case strings.HasPrefix(uri, "/v1/transaction"):
+				db.PutDataDeliveryInfo(_db, remote, "/v1/transaction", uint64(len(data)))
+			case strings.HasPrefix(uri, "/v1/event"):
+				db.PutDataDeliveryInfo(_db, remote, "/v1/event", uint64(len(data)))
+			}
+
 			return
 		}
 
