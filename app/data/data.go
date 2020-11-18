@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/lib/pq"
 )
 
@@ -199,3 +200,19 @@ func (e *Events) ToJSON() []byte {
 	return data
 
 }
+
+// LoginPayload - Payload to be sent in post request body, when performing
+// login
+type LoginPayload struct {
+	Message   LoginPayloadMessage
+	Signature LoginPayloadSignature
+}
+
+// LoginPayloadMessage - Message to be signed by user
+type LoginPayloadMessage struct {
+	Address   common.Address
+	TimeStamp uint64
+}
+
+// LoginPayloadSignature - Signed message
+type LoginPayloadSignature string
