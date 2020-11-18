@@ -118,6 +118,25 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 	{
 
+		grp.POST("/login", func(c *gin.Context) {
+
+			var payload *d.LoginPayload
+
+			if err := c.ShouldBindJSON(payload); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"msg": "Bad Login Payload",
+				})
+				return
+			}
+
+			log.Printf("%v\n", *payload)
+
+			c.JSON(http.StatusOK, gin.H{
+				"msg": "Success",
+			})
+
+		})
+
 		grp.GET("/dashboard", func(c *gin.Context) {
 
 			c.HTML(http.StatusOK, "index", gin.H{
