@@ -146,7 +146,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		})
 
-		grp.GET("/dashboard", func(c *gin.Context) {
+		grp.GET("/login", func(c *gin.Context) {
 
 			c.HTML(http.StatusOK, "index", gin.H{
 				"title": "ette",
