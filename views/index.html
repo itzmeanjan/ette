@@ -50,7 +50,7 @@
 
                     ethereum.request({
                         method: 'personal_sign',
-                        params: [ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(msg))), from]
+                        params: [JSON.stringify(msg), from]
                     }).then(signature => {
 
                         fetch('/v1/login', {

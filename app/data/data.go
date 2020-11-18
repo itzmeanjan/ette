@@ -220,7 +220,6 @@ func (l *LoginPayload) VerifySignature() bool {
 		return false
 	}
 
-	message := crypto.Keccak256Hash(data)
 	signature, err := hexutil.Decode(l.Signature)
 	if err != nil {
 		return false
@@ -232,10 +231,13 @@ func (l *LoginPayload) VerifySignature() bool {
 
 	signature[64] -= 27
 
-	pubKey, err := crypto.SigToPub(crypto.Keccak256(
-		// this is required, because for web3.personal.sign, it'll prepend this part
-		// so we're also prepending it before recovering signature
-		[]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message))),
+	pubKey, err := crypto.SigToPub(
+		// After `Ethereum Signed Message` is prepended
+		// we're performing keccak256 hash, which is actual message, signed in metamask
+		crypto.Keccak256(
+			// this is required, because for web3.personal.sign, it'll prepend this part
+			// so we're also prepending it before recovering signature
+			[]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))),
 		signature)
 	if err != nil {
 		return false
