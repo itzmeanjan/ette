@@ -9,6 +9,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/foolin/goview"
+	"github.com/foolin/goview/supports/ginview"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -104,9 +107,27 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 	router := gin.Default()
 
+	router.HTMLRender = ginview.New(goview.Config{
+		Root:         "../../views",
+		Extension:    ".html",
+		DisableCache: true,
+	})
+
 	grp := router.Group("/v1")
 
 	{
+
+		grp.GET("/dashboard", func(c *gin.Context) {
+
+			c.HTML(http.StatusOK, "index", gin.H{
+				"title": "Index title!",
+				"add": func(a int, b int) int {
+					return a + b
+				},
+			})
+
+		})
+
 		// For checking whether `ette` has synced upto blockchain latest state or not
 		grp.GET("/synced", func(c *gin.Context) {
 
