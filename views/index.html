@@ -52,7 +52,18 @@
                         method: 'personal_sign',
                         params: [ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(msg))), from]
                     }).then(signature => {
-                        console.log(signature)
+
+                        fetch('/v1/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({message: msg, signature})
+                        })
+                        .then(resp => resp.json())
+                        .then(v => {console.log(v)})
+                        .catch(e => {console.error(e)})
+
                     }).catch(_ => alert('Metamask failed to sign message !'))
                 } else {
                     alert('Metamask access required !')
