@@ -226,7 +226,17 @@ func (l *LoginPayload) VerifySignature() bool {
 		return false
 	}
 
-	pubKey, err := crypto.SigToPub(message.Bytes(), signature)
+	if !(signature[64] == 27 || signature[64] == 28) {
+		return false
+	}
+
+	signature[64] -= 27
+
+	pubKey, err := crypto.SigToPub(crypto.Keccak256(
+		// this is required, because for web3.personal.sign, it'll prepend this part
+		// so we're also prepending it before recovering signature
+		[]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(message), message))),
+		signature)
 	if err != nil {
 		return false
 	}
