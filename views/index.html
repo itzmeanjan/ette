@@ -35,7 +35,34 @@
 {{define "content"}}
     <div class="centered" onclick="{ 
         if (typeof ethereum !== 'undefined') {
-            ethereum.enable().catch(_ => alert('Metamask access required !'))
+            ethereum.enable().then(accounts => {
+                
+                if(accounts.length !== 0) {
+                    const from = accounts[0]
+
+                    const msg = `address: ${from}\ntimestamp: ${Math.round(Date.now() / 1000)}`
+                    const params = [msg, from]
+                    const method = 'personal_sign'
+
+                    web3.currentProvider.sendAsync({
+                        method,
+                        params,
+                        from,
+                    }, function (err, result) {
+                        if (err) {
+                            return console.error(err)
+                        }
+                        if (result.error) {
+                            return console.error(result.error)
+                        }
+
+                        console.log('Signature : ' + result.result)
+                    })
+                } else {
+                    alert('Metamask access required !')
+                }
+
+            }).catch(_ => { alert('Metamask access required !') })
         } else {
             alert('Metamask needs to be installed !')
         } }" >Login</div>
