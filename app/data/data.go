@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -210,6 +211,12 @@ type LoginPayload struct {
 	Signature string              `json:"signature" binding:"required"`
 }
 
+// HasExpired - Checking if message was signed with in
+// 30 seconds time span from current server time or not
+func (l *LoginPayload) HasExpired() bool {
+	return !(int64(l.Message.TimeStamp)+30 >= time.Now().Unix())
+}
+
 // VerifySignature - Given original & signed message, we're verifying it here
 //
 // If returns true, login attempt will be successful, otherwise it'll lead to failure
@@ -243,7 +250,7 @@ func (l *LoginPayload) VerifySignature() bool {
 		return false
 	}
 
-	return l.Message.Address == crypto.PubkeyToAddress(*pubKey)
+	return l.Message.Address == crypto.PubkeyToAddress(*pubKey) && !l.HasExpired()
 
 }
 
