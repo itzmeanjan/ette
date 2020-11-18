@@ -41,9 +41,6 @@
             ethereum.request({method: 'eth_requestAccounts'}).then(accounts => {
 
                 if(accounts.length !== 0) {
-
-                    console.log(accounts)
-
                     const from = accounts[0]
 
                     const msg = {
@@ -51,29 +48,17 @@
                         timestamp: Math.round(Date.now() / 1000)
                     }
 
-                    console.log(JSON.stringify(msg), ethers.utils.keccak256(JSON.stringify(msg)))
-
-                    const params = [ethers.utils.keccak256(JSON.stringify(msg)), from]
-                    const method = 'personal_sign'
-
                     ethereum.request({
-                        method,
-                        params
-                    }, (err, result) => {
-                        if (err) {
-                            return console.error(err)
-                        }
-                        if (result.error) {
-                            return console.error(result.error)
-                        }
-
-                        console.log('Signature : ' + result.result)
-                    })
+                        method: 'personal_sign',
+                        params: [ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(msg))), from]
+                    }).then(signature => {
+                        console.log(signature)
+                    }).catch(_ => alert('Metamask failed to sign message !'))
                 } else {
                     alert('Metamask access required !')
                 }
 
-            }).catch(_ => { alert('Metamask access required !') })
+            }).catch(_ => alert('Metamask access required !'))
         } else {
             alert('Metamask needs to be installed !')
         } }" >Login</div>
