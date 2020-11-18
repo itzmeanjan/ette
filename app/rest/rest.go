@@ -108,7 +108,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 	router := gin.Default()
 
 	router.HTMLRender = ginview.New(goview.Config{
-		Root:         "../../views",
+		Root:         "./views",
+		Master:       "layouts/master",
 		Extension:    ".html",
 		DisableCache: true,
 	})
