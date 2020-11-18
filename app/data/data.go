@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/lib/pq"
 )
 
@@ -206,6 +207,32 @@ func (e *Events) ToJSON() []byte {
 type LoginPayload struct {
 	Message   LoginPayloadMessage   `json:"message" binding:"required"`
 	Signature LoginPayloadSignature `json:"signature" binding:"required"`
+}
+
+// VerifySignature - Given original & signed message, we're verifying it here
+//
+// If returns true, login attempt will be successful, otherwise it'll lead to failure
+func (l *LoginPayload) VerifySignature() bool {
+
+	message := l.Message.ToJSON()
+	if message == nil {
+		return false
+	}
+
+	signature := []byte(l.Signature)
+
+	pubKey, err := crypto.Ecrecover(message, signature)
+	if err != nil {
+		return false
+	}
+
+	_key, err := crypto.DecompressPubkey(pubKey)
+	if err != nil {
+		return false
+	}
+
+	return l.Message.Address == crypto.PubkeyToAddress(*_key)
+
 }
 
 // LoginPayloadMessage - Message to be signed by user
