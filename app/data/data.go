@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/lib/pq"
 )
@@ -205,8 +206,8 @@ func (e *Events) ToJSON() []byte {
 // LoginPayload - Payload to be sent in post request body, when performing
 // login
 type LoginPayload struct {
-	Message   LoginPayloadMessage   `json:"message" binding:"required"`
-	Signature LoginPayloadSignature `json:"signature" binding:"required"`
+	Message   LoginPayloadMessage `json:"message" binding:"required"`
+	Signature string              `json:"signature" binding:"required"`
 }
 
 // VerifySignature - Given original & signed message, we're verifying it here
@@ -220,19 +221,17 @@ func (l *LoginPayload) VerifySignature() bool {
 	}
 
 	message := crypto.Keccak256Hash(data)
-	signature := []byte(l.Signature)
-
-	pubKey, err := crypto.Ecrecover(message.Bytes(), signature)
+	signature, err := hexutil.Decode(l.Signature)
 	if err != nil {
 		return false
 	}
 
-	_key, err := crypto.DecompressPubkey(pubKey)
+	pubKey, err := crypto.SigToPub(message.Bytes(), signature)
 	if err != nil {
 		return false
 	}
 
-	return l.Message.Address == crypto.PubkeyToAddress(*_key)
+	return l.Message.Address == crypto.PubkeyToAddress(*pubKey)
 
 }
 
@@ -251,6 +250,3 @@ func (l *LoginPayloadMessage) ToJSON() []byte {
 
 	return nil
 }
-
-// LoginPayloadSignature - Signed message
-type LoginPayloadSignature string
