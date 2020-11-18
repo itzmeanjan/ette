@@ -214,14 +214,15 @@ type LoginPayload struct {
 // If returns true, login attempt will be successful, otherwise it'll lead to failure
 func (l *LoginPayload) VerifySignature() bool {
 
-	message := l.Message.ToJSON()
-	if message == nil {
+	data := l.Message.ToJSON()
+	if data == nil {
 		return false
 	}
 
+	message := crypto.Keccak256Hash(data)
 	signature := []byte(l.Signature)
 
-	pubKey, err := crypto.Ecrecover(message, signature)
+	pubKey, err := crypto.Ecrecover(message.Bytes(), signature)
 	if err != nil {
 		return false
 	}
