@@ -204,14 +204,24 @@ func (e *Events) ToJSON() []byte {
 // LoginPayload - Payload to be sent in post request body, when performing
 // login
 type LoginPayload struct {
-	Message   LoginPayloadMessage
-	Signature LoginPayloadSignature
+	Message   LoginPayloadMessage   `json:"message"`
+	Signature LoginPayloadSignature `json:"signature"`
 }
 
 // LoginPayloadMessage - Message to be signed by user
 type LoginPayloadMessage struct {
-	Address   common.Address
-	TimeStamp uint64
+	Address   common.Address `json:"address"`
+	TimeStamp uint64         `json:"timestamp"`
+}
+
+// ToJSON - Encoding message to JSON, this is what was signed by user
+func (l *LoginPayloadMessage) ToJSON() []byte {
+
+	if data, err := json.Marshal(l); err == nil {
+		return data
+	}
+
+	return nil
 }
 
 // LoginPayloadSignature - Signed message
