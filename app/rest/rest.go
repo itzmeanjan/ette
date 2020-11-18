@@ -9,6 +9,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/foolin/goview"
+	"github.com/foolin/goview/supports/ginview"
+	"github.com/gin-contrib/cors"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -104,9 +108,52 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 	router := gin.Default()
 
+	// enabled cors
+	router.Use(cors.Default())
+
+	router.HTMLRender = ginview.New(goview.Config{
+		Root:         "./views",
+		Master:       "layouts/master",
+		Extension:    ".html",
+		DisableCache: true,
+	})
+
 	grp := router.Group("/v1")
 
 	{
+
+		grp.POST("/login", func(c *gin.Context) {
+
+			var payload d.LoginPayload
+
+			if err := c.ShouldBindJSON(&payload); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"msg": "Bad Login Payload",
+				})
+				return
+			}
+
+			if payload.VerifySignature() {
+				c.JSON(http.StatusOK, gin.H{
+					"msg": "Success",
+				})
+				return
+			}
+
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"msg": "Failed",
+			})
+
+		})
+
+		grp.GET("/login", func(c *gin.Context) {
+
+			c.HTML(http.StatusOK, "index", gin.H{
+				"title": "ette",
+			})
+
+		})
+
 		// For checking whether `ette` has synced upto blockchain latest state or not
 		grp.GET("/synced", func(c *gin.Context) {
 

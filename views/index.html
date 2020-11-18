@@ -1,0 +1,76 @@
+{{define "head"}}
+    <style>
+
+        html {
+            background: linear-gradient(to right, #669999 0%, #666699 100%);
+        }
+
+        .centered{
+            border-radius: 15px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+            width: 12vmin;
+            user-select: none;
+            font-size: 18px;
+            background-color: #00ff99;
+        }
+
+        .centered:hover{
+            background-color:#00ff33;
+        }
+
+        div {
+            padding: 20px;
+            color: black;
+            text-align: center;
+        }
+
+    </style>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.0.umd.min.js" type="application/javascript">
+    </script>
+{{end}}
+
+
+{{define "content"}}
+    <div class="centered" onclick="{ 
+        if (typeof ethereum !== 'undefined') {
+            ethereum.request({method: 'eth_requestAccounts'}).then(accounts => {
+
+                if(accounts.length !== 0) {
+                    const from = accounts[0]
+
+                    const msg = {
+                        address: from,
+                        timestamp: Math.round(Date.now() / 1000)
+                    }
+
+                    ethereum.request({
+                        method: 'personal_sign',
+                        params: [JSON.stringify(msg), from]
+                    }).then(signature => {
+
+                        fetch('/v1/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({message: msg, signature})
+                        })
+                        .then(resp => resp.json())
+                        .then(v => {console.log(v)})
+                        .catch(e => {console.error(e)})
+
+                    }).catch(_ => alert('Metamask failed to sign message !'))
+                } else {
+                    alert('Metamask access required !')
+                }
+
+            }).catch(_ => alert('Metamask access required !'))
+        } else {
+            alert('Metamask needs to be installed !')
+        } }" >Login</div>
+{{end}}
