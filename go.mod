@@ -6,6 +6,7 @@ require (
 	github.com/ethereum/go-ethereum v1.9.24
 	github.com/foolin/goview v0.3.0
 	github.com/gammazero/workerpool v1.1.1
+	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-redis/redis/v8 v8.3.4

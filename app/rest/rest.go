@@ -11,6 +11,7 @@ import (
 
 	"github.com/foolin/goview"
 	"github.com/foolin/goview/supports/ginview"
+	"github.com/gin-contrib/cors"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
@@ -106,6 +107,9 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 	}
 
 	router := gin.Default()
+
+	// enabled cors
+	router.Use(cors.Default())
 
 	router.HTMLRender = ginview.New(goview.Config{
 		Root:         "./views",
