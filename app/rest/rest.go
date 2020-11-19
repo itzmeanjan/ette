@@ -185,17 +185,13 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 			sessionID, err := c.Cookie("SessionID")
 			if err == http.ErrNoCookie {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"msg": "No Cookie Found",
-				})
+				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
 				return
 			}
 
 			cached, err := _redisClient.Get(context.Background(), sessionID).Result()
 			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"msg": "No Cookie Found",
-				})
+				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
 				return
 			}
 
