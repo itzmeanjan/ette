@@ -235,7 +235,7 @@ func (a *AuthPayload) IsAdmin(signer []byte) bool {
 }
 
 // HasExpired - Checking if message was signed with in
-// `window` ( will be kept generally 30s ) seconds time span
+// `window` seconds ( will be kept generally 30s ) time span
 // from current server time or not
 func (a *AuthPayload) HasExpired(window int64) bool {
 	return !(int64(a.Message.TimeStamp)+window >= time.Now().Unix())

@@ -124,24 +124,40 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		grp.POST("/login", func(c *gin.Context) {
 
-			var payload d.LoginPayload
+			var payload d.AuthPayload
 
 			if err := c.ShouldBindJSON(&payload); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
-					"msg": "Bad Login Payload",
+					"msg": "Bad Authentication Payload",
 				})
 				return
 			}
 
-			if payload.VerifySignature() {
+			signer := payload.RecoverSigner()
+
+			if !payload.VerifySignature(signer) {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"msg": "Verification Failed",
+				})
+				return
+			}
+
+			if payload.HasExpired(30) {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"msg": "Signature Expired",
+				})
+				return
+			}
+
+			if payload.IsAdmin(signer) {
 				c.JSON(http.StatusOK, gin.H{
 					"msg": "Success",
 				})
 				return
 			}
 
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"msg": "Failed",
+			c.JSON(http.StatusOK, gin.H{
+				"msg": "Success",
 			})
 
 		})
