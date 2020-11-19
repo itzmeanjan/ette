@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -118,6 +119,18 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		Master:       "layouts/master",
 		Extension:    ".html",
 		DisableCache: true,
+	})
+
+	// Delivering `ette` icon to be shown in web UI
+	router.GET("/favicon.ico", func(c *gin.Context) {
+		data, err := ioutil.ReadFile("./favicon.ico")
+		if err != nil {
+			c.Status(http.StatusNoContent)
+			c.Abort()
+			return
+		}
+
+		c.Data(http.StatusOK, "image/x-icon", data)
 	})
 
 	grp := router.Group("/v1")
