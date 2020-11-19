@@ -45,10 +45,16 @@ func ComputeAPIKeyForAddress(_db *gorm.DB, address common.Address) []byte {
 	return crypto.Keccak256(data)
 }
 
-// RegisterNewApp - ...
+// RegisterNewApp - Registering new application for given address
 func RegisterNewApp(_db *gorm.DB, address common.Address) bool {
+	apiKey := ComputeAPIKeyForAddress(_db, address)
+	if apiKey == nil {
+		return false
+	}
+
 	if err := _db.Create(&Users{
 		Address:   address,
+		APIKey:    common.BytesToHash(apiKey),
 		TimeStamp: time.Now(),
 	}).Error; err != nil {
 		return false
