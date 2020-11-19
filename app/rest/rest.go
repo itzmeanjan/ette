@@ -158,7 +158,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 				return
 			}
 
-			c.SetCookie("SessionID", payload.Signature, 120, "/v1/dashboard", cfg.Get("Domain"), true, true)
+			c.SetCookie("SessionID", payload.Signature, 120, "/v1/dashboard", cfg.Get("Domain"), false, false)
 
 			if payload.IsAdmin(signer) {
 				c.JSON(http.StatusOK, gin.H{
