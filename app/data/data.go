@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	cfg "github.com/itzmeanjan/ette/app/config"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -211,10 +213,29 @@ type AuthPayload struct {
 	Signature string             `json:"signature" binding:"required"`
 }
 
-// HasExpired - Checking if message was signed with in
-// 30 seconds time span from current server time or not
-func (a *AuthPayload) HasExpired() bool {
-	return !(int64(a.Message.TimeStamp)+30 >= time.Now().Unix())
+// VerifySignature - Given original & signed message, we're verifying it here
+//
+// If returns true, login attempt will be successful, otherwise it'll lead to failure
+func (a *AuthPayload) VerifySignature() bool {
+
+	signer := a.RecoverSigner()
+	if signer == nil {
+		return false
+	}
+
+	return common.BytesToAddress(signer) == a.Message.Address
+
+}
+
+// IsAdmin - Given recovered signer address from authentication payload
+// checks whether this address matches with admin address present in `.env` file
+// or not
+func (a *AuthPayload) IsAdmin(signer []byte) bool {
+	if signer == nil {
+		return false
+	}
+
+	return common.BytesToAddress(signer) == common.HexToAddress(cfg.Get("Admin"))
 }
 
 // RecoverSigner - Given signed message & original message
@@ -254,41 +275,10 @@ func (a *AuthPayload) RecoverSigner() []byte {
 
 }
 
-// VerifySignature - Given original & signed message, we're verifying it here
-//
-// If returns true, login attempt will be successful, otherwise it'll lead to failure
-func (a *AuthPayload) VerifySignature() bool {
-
-	data := a.Message.ToJSON()
-	if data == nil {
-		return false
-	}
-
-	signature, err := hexutil.Decode(a.Signature)
-	if err != nil {
-		return false
-	}
-
-	if !(signature[64] == 27 || signature[64] == 28) {
-		return false
-	}
-
-	signature[64] -= 27
-
-	pubKey, err := crypto.SigToPub(
-		// After `Ethereum Signed Message` is prepended
-		// we're performing keccak256 hash, which is actual message, signed in metamask
-		crypto.Keccak256(
-			// this is required, because for web3.personal.sign, it'll prepend this part
-			// so we're also prepending it before recovering signature
-			[]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))),
-		signature)
-	if err != nil {
-		return false
-	}
-
-	return a.Message.Address == crypto.PubkeyToAddress(*pubKey) && !a.HasExpired()
-
+// HasExpired - Checking if message was signed with in
+// 30 seconds time span from current server time or not
+func (a *AuthPayload) HasExpired() bool {
+	return !(int64(a.Message.TimeStamp)+30 >= time.Now().Unix())
 }
 
 // AuthPayloadMessage - Message to be signed by user
