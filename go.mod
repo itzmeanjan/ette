@@ -11,6 +11,7 @@ require (
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-redis/redis/v8 v8.3.4
 	github.com/golang/protobuf v1.4.3 // indirect
+	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/lib/pq v1.8.0
