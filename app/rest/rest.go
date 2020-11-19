@@ -151,14 +151,14 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 				return
 			}
 
-			if _, err := _redisClient.Set(context.Background(), payload.Signature, payload.Message.Address.Hex(), time.Duration(2)*time.Minute).Result(); err != nil {
+			if _, err := _redisClient.Set(context.Background(), payload.Signature, payload.Message.Address.Hex(), time.Duration(3600)*time.Second).Result(); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"msg": "Something went wrong",
 				})
 				return
 			}
 
-			c.SetCookie("SessionID", payload.Signature, 120, "/v1/dashboard", cfg.Get("Domain"), false, false)
+			c.SetCookie("SessionID", payload.Signature, 3600, "/v1/dashboard", cfg.Get("Domain"), false, false)
 
 			if payload.IsAdmin(signer) {
 				c.JSON(http.StatusOK, gin.H{
