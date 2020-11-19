@@ -41,3 +41,10 @@ create table delivery_history (
     endpoint varchar(100) not null,
     datalength bigint not null
 );
+
+create table users (
+    address varchar(42) not null,
+    apikey varchar(66) not null,
+    ts timestamp not null,
+    primary key (apikey)
+);
