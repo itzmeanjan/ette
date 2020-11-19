@@ -1,42 +1,40 @@
 {{define "head"}}
-    <style>
+<style>
+    html {
+        background: linear-gradient(to right, #669999 0%, #666699 100%);
+    }
 
-        html {
-            background: linear-gradient(to right, #669999 0%, #666699 100%);
-        }
+    .centered {
+        border-radius: 15px;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        -webkit-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+        width: 12vmin;
+        user-select: none;
+        font-size: 18px;
+        background-color: #00ff99;
+    }
 
-        .centered{
-            border-radius: 15px;
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            -webkit-transform: translate(-50%, -50%);
-            transform: translate(-50%, -50%);
-            width: 12vmin;
-            user-select: none;
-            font-size: 18px;
-            background-color: #00ff99;
-        }
+    .centered:hover {
+        background-color: #00ff33;
+    }
 
-        .centered:hover{
-            background-color:#00ff33;
-        }
+    div {
+        padding: 20px;
+        color: black;
+        text-align: center;
+    }
+</style>
 
-        div {
-            padding: 20px;
-            color: black;
-            text-align: center;
-        }
-
-    </style>
-
-    <script src="https://cdn.ethers.io/lib/ethers-5.0.umd.min.js" type="application/javascript">
-    </script>
+<script src="https://cdn.ethers.io/lib/ethers-5.0.umd.min.js" type="application/javascript">
+</script>
 {{end}}
 
 
 {{define "content"}}
-    <div class="centered" onclick="{ 
+<div class="centered" onclick="{ 
         if (typeof ethereum !== 'undefined') {
             ethereum.request({method: 'eth_requestAccounts'}).then(accounts => {
 
@@ -61,9 +59,23 @@
                             },
                             body: JSON.stringify({message: msg, signature})
                         })
-                        .then(resp => resp.json())
-                        .then(v => { if(v.msg === 'Success') { location.pathname = '/v1/dashboard' } })
-                        .catch(e => {console.error(e)})
+                        .then(async resp => {
+
+                            try {
+                                const v = await resp.json()
+
+                                if (resp.status !== 200) {
+                                    alert(v.msg)
+                                    return
+                                }
+
+                                location.pathname = '/v1/dashboard'
+                            } catch(e) {
+                                alert('Authentication Failed !')
+                            }
+
+                        })
+                        .catch(_ => alert('Authentication Failed !'))
 
                     }).catch(_ => alert('Metamask failed to sign message !'))
                 } else {
@@ -73,5 +85,5 @@
             }).catch(_ => alert('Metamask access required !'))
         } else {
             alert('Metamask needs to be installed !')
-        } }" >Login</div>
+        } }">Login</div>
 {{end}}
