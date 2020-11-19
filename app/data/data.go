@@ -213,18 +213,14 @@ type AuthPayload struct {
 	Signature string             `json:"signature" binding:"required"`
 }
 
-// VerifySignature - Given original & signed message, we're verifying it here
-//
-// If returns true, login attempt will be successful, otherwise it'll lead to failure
-func (a *AuthPayload) VerifySignature() bool {
-
-	signer := a.RecoverSigner()
+// VerifySignature - Given recovered signer address from authentication payload
+// checks whether person claiming to sign message has really signed or not
+func (a *AuthPayload) VerifySignature(signer []byte) bool {
 	if signer == nil {
 		return false
 	}
 
 	return common.BytesToAddress(signer) == a.Message.Address
-
 }
 
 // IsAdmin - Given recovered signer address from authentication payload
