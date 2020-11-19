@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/foolin/goview"
 	"github.com/foolin/goview/supports/ginview"
 	"github.com/gin-contrib/cors"
@@ -153,17 +151,14 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 				return
 			}
 
-			// During login attempt, new session being created
-			sessionID := uuid.New()
-
-			if _, err := _redisClient.Set(context.Background(), sessionID.String(), payload.Message.Address.Hex(), time.Duration(2)*time.Minute).Result(); err != nil {
+			if _, err := _redisClient.Set(context.Background(), payload.Signature, payload.Message.Address.Hex(), time.Duration(2)*time.Minute).Result(); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"msg": "Something went wrong",
 				})
 				return
 			}
 
-			c.SetCookie("SessionID", sessionID.String(), 0, "/v1/dashboard", cfg.Get("Domain"), true, true)
+			c.SetCookie("SessionID", payload.Signature, 120, "/v1/dashboard", cfg.Get("Domain"), true, true)
 
 			if payload.IsAdmin(signer) {
 				c.JSON(http.StatusOK, gin.H{
@@ -186,7 +181,29 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		})
 
-		grp.GET("/dashboard", func(c *gin.Context) {})
+		grp.GET("/dashboard", func(c *gin.Context) {
+
+			sessionID, err := c.Cookie("SessionID")
+			if err == http.ErrNoCookie {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"msg": "No Cookie Found",
+				})
+				return
+			}
+
+			cached, err := _redisClient.Get(context.Background(), sessionID).Result()
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"msg": "No Cookie Found",
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"msg": cached,
+			})
+
+		})
 
 		// For checking whether `ette` has synced upto blockchain latest state or not
 		grp.GET("/synced", func(c *gin.Context) {
