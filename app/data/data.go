@@ -204,30 +204,67 @@ func (e *Events) ToJSON() []byte {
 
 }
 
-// LoginPayload - Payload to be sent in post request body, when performing
+// AuthPayload - Payload to be sent in post request body, when performing
 // login
-type LoginPayload struct {
-	Message   LoginPayloadMessage `json:"message" binding:"required"`
-	Signature string              `json:"signature" binding:"required"`
+type AuthPayload struct {
+	Message   AuthPayloadMessage `json:"message" binding:"required"`
+	Signature string             `json:"signature" binding:"required"`
 }
 
 // HasExpired - Checking if message was signed with in
 // 30 seconds time span from current server time or not
-func (l *LoginPayload) HasExpired() bool {
-	return !(int64(l.Message.TimeStamp)+30 >= time.Now().Unix())
+func (a *AuthPayload) HasExpired() bool {
+	return !(int64(a.Message.TimeStamp)+30 >= time.Now().Unix())
+}
+
+// RecoverSigner - Given signed message & original message
+// it recovers signer address as byte array, which is to be
+// later used for matching against claimed signer address
+func (a *AuthPayload) RecoverSigner() []byte {
+
+	data := a.Message.ToJSON()
+	if data == nil {
+		return nil
+	}
+
+	signature, err := hexutil.Decode(a.Signature)
+	if err != nil {
+		return nil
+	}
+
+	if !(signature[64] == 27 || signature[64] == 28) {
+		return nil
+	}
+
+	signature[64] -= 27
+
+	pubKey, err := crypto.SigToPub(
+		// After `Ethereum Signed Message` is prepended
+		// we're performing keccak256 hash, which is actual message, signed in metamask
+		crypto.Keccak256(
+			// this is required, because for web3.personal.sign, it'll prepend this part
+			// so we're also prepending it before recovering signature
+			[]byte(fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data))),
+		signature)
+	if err != nil {
+		return nil
+	}
+
+	return crypto.PubkeyToAddress(*pubKey).Bytes()
+
 }
 
 // VerifySignature - Given original & signed message, we're verifying it here
 //
 // If returns true, login attempt will be successful, otherwise it'll lead to failure
-func (l *LoginPayload) VerifySignature() bool {
+func (a *AuthPayload) VerifySignature() bool {
 
-	data := l.Message.ToJSON()
+	data := a.Message.ToJSON()
 	if data == nil {
 		return false
 	}
 
-	signature, err := hexutil.Decode(l.Signature)
+	signature, err := hexutil.Decode(a.Signature)
 	if err != nil {
 		return false
 	}
@@ -250,20 +287,20 @@ func (l *LoginPayload) VerifySignature() bool {
 		return false
 	}
 
-	return l.Message.Address == crypto.PubkeyToAddress(*pubKey) && !l.HasExpired()
+	return a.Message.Address == crypto.PubkeyToAddress(*pubKey) && !a.HasExpired()
 
 }
 
-// LoginPayloadMessage - Message to be signed by user
-type LoginPayloadMessage struct {
+// AuthPayloadMessage - Message to be signed by user
+type AuthPayloadMessage struct {
 	Address   common.Address `json:"address" binding:"required"`
 	TimeStamp uint64         `json:"timestamp" binding:"required"`
 }
 
 // ToJSON - Encoding message to JSON, this is what was signed by user
-func (l *LoginPayloadMessage) ToJSON() []byte {
+func (a *AuthPayloadMessage) ToJSON() []byte {
 
-	if data, err := json.Marshal(l); err == nil {
+	if data, err := json.Marshal(a); err == nil {
 		return data
 	}
 
