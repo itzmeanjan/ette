@@ -55,13 +55,14 @@
 
                         fetch('/v1/login', {
                             method: 'POST',
+                            credentials: 'include',
                             headers: {
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({message: msg, signature})
                         })
                         .then(resp => resp.json())
-                        .then(v => {console.log(v)})
+                        .then(v => { if(v.msg === 'Success') { location.pathname = '/v1/dashboard' } })
                         .catch(e => {console.error(e)})
 
                     }).catch(_ => alert('Metamask failed to sign message !'))
