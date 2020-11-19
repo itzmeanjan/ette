@@ -43,8 +43,7 @@ create table delivery_history (
 );
 
 create table users (
-    address varchar(42) not null,
-    apikey varchar(66) not null,
-    ts timestamp not null,
-    primary key (apikey)
+    address char(42) not null,
+    apikey char(66) primary key,
+    ts timestamp not null
 );

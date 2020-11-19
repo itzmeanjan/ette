@@ -3,6 +3,7 @@ package db
 import (
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/lib/pq"
 )
 
@@ -81,4 +82,16 @@ type DeliveryHistory struct {
 // TableName - Overriding default table name
 func (DeliveryHistory) TableName() string {
 	return "delivery_history"
+}
+
+// Users - User address & created api key related info holder table
+type Users struct {
+	Address   common.Address `gorm:"column:address;type:char(42);not null"`
+	APIKey    common.Hash    `gorm:"column:apikey;type:char(66);primaryKey"`
+	TimeStamp time.Time      `gorm:"column:ts;type:timestamp;not null"`
+}
+
+// TableName - Overriding default table name
+func (Users) TableName() string {
+	return "users"
 }
