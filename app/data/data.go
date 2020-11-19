@@ -234,6 +234,13 @@ func (a *AuthPayload) IsAdmin(signer []byte) bool {
 	return common.BytesToAddress(signer) == common.HexToAddress(cfg.Get("Admin"))
 }
 
+// HasExpired - Checking if message was signed with in
+// `window` ( will be kept generally 30s ) seconds time span
+// from current server time or not
+func (a *AuthPayload) HasExpired(window int64) bool {
+	return !(int64(a.Message.TimeStamp)+window >= time.Now().Unix())
+}
+
 // RecoverSigner - Given signed message & original message
 // it recovers signer address as byte array, which is to be
 // later used for matching against claimed signer address
@@ -269,12 +276,6 @@ func (a *AuthPayload) RecoverSigner() []byte {
 
 	return crypto.PubkeyToAddress(*pubKey).Bytes()
 
-}
-
-// HasExpired - Checking if message was signed with in
-// 30 seconds time span from current server time or not
-func (a *AuthPayload) HasExpired() bool {
-	return !(int64(a.Message.TimeStamp)+30 >= time.Now().Unix())
 }
 
 // AuthPayloadMessage - Message to be signed by user
