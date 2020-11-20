@@ -17,14 +17,18 @@ type SyncState struct {
 
 // Block - Block related info to be delivered to client in this format
 type Block struct {
-	Hash       string `json:"hash" gorm:"column:hash"`
-	Number     uint64 `json:"number" gorm:"column:number"`
-	Time       uint64 `json:"time" gorm:"column:time"`
-	ParentHash string `json:"parentHash" gorm:"column:parenthash"`
-	Difficulty string `json:"difficulty" gorm:"column:difficulty"`
-	GasUsed    uint64 `json:"gasUsed" gorm:"column:gasused"`
-	GasLimit   uint64 `json:"gasLimit" gorm:"column:gaslimit"`
-	Nonce      uint64 `json:"nonce" gorm:"column:nonce"`
+	Hash                string `json:"hash" gorm:"column:hash"`
+	Number              uint64 `json:"number" gorm:"column:number"`
+	Time                uint64 `json:"time" gorm:"column:time"`
+	ParentHash          string `json:"parentHash" gorm:"column:parenthash"`
+	Difficulty          string `json:"difficulty" gorm:"column:difficulty"`
+	GasUsed             uint64 `json:"gasUsed" gorm:"column:gasused"`
+	GasLimit            uint64 `json:"gasLimit" gorm:"column:gaslimit"`
+	Nonce               uint64 `json:"nonce" gorm:"column:nonce"`
+	Miner               string `json:"miner" gorm:"column:miner"`
+	Size                uint64 `json:"size" gorm:"column:size"`
+	TransactionRootHash string `json:"txRootHash" gorm:"column:txroothash"`
+	ReceiptRootHash     string `json:"receiptRootHash" gorm:"column:receiptroothash"`
 }
 
 // MarshalBinary - Implementing binary marshalling function, to be invoked
@@ -148,15 +152,15 @@ type Event struct {
 // MarshalBinary - Implementing binary marshalling function, to be invoked
 // by redis before publishing data on channel
 func (e *Event) MarshalBinary() ([]byte, error) {
-	return json.Marshal(e)
+	return e.MarshalJSON()
 }
 
 // MarshalJSON - Custom JSON encoder
 func (e *Event) MarshalJSON() ([]byte, error) {
 
 	data := ""
-	if hex.EncodeToString(e.Data) != "" {
-		data = fmt.Sprintf("0x%s", hex.EncodeToString(e.Data))
+	if _h := hex.EncodeToString(e.Data); _h != "" && _h != strings.Repeat("0", 64) {
+		data = fmt.Sprintf("0x%s", _h)
 	}
 
 	return []byte(fmt.Sprintf(`{"origin":%q,"index":%d,"topics":%v,"data":%q,"txHash":%q,"blockHash":%q}`,

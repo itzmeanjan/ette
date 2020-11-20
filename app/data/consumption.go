@@ -5,6 +5,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Consumer - Block, transaction & event consumers need to implement these methods
+type Consumer interface {
+	Subscribe()
+	Listen()
+	Send(msg string) bool
+	SendData(data interface{}) bool
+}
+
 // NewBlockConsumer - Creating one new block data consumer, which will subscribe to block
 // topic & listen for data being published on this channel, which will eventually be
 // delivered to client application over websocket connection

@@ -2,12 +2,14 @@ package data
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
+	"github.com/lib/pq"
 )
 
 // EventConsumer - Event consumption to be managed by this struct, when new websocket
@@ -82,7 +84,14 @@ func (e *EventConsumer) Listen() {
 // Send - Sending event occurrence data to client application, which has subscribed to this event
 // & connected over websocket
 func (e *EventConsumer) Send(msg string) bool {
-	var event Event
+	var event struct {
+		Origin          string         `json:"origin"`
+		Index           uint           `json:"index"`
+		Topics          pq.StringArray `json:"topics"`
+		Data            string         `json:"data"`
+		TransactionHash string         `json:"txHash"`
+		BlockHash       string         `json:"blockHash"`
+	}
 
 	_msg := []byte(msg)
 
@@ -91,8 +100,28 @@ func (e *EventConsumer) Send(msg string) bool {
 		log.Printf("[!] Failed to decode published event data to JSON : %s\n", err.Error())
 		return true
 	}
+
+	data := make([]byte, 0)
+	err = nil
+
+	if len(event.Data) != 0 {
+		data, err = hex.DecodeString(event.Data[2:])
+	}
+
+	if err != nil {
+		log.Printf("[!] Failed to decode data field of event : %s\n", err.Error())
+		return true
+	}
+
 	// If doesn't match with specified criteria, simply ignoring received data
-	if !e.Request.DoesMatchWithPublishedEventData(&event) {
+	if !e.Request.DoesMatchWithPublishedEventData(&Event{
+		Origin:          event.Origin,
+		Index:           event.Index,
+		Topics:          event.Topics,
+		Data:            data,
+		TransactionHash: event.TransactionHash,
+		BlockHash:       event.BlockHash,
+	}) {
 		return true
 	}
 
