@@ -234,8 +234,40 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 				return
 			}
 
+			var payload d.AuthPayload
+
+			if err := c.ShouldBindJSON(&payload); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"msg": "Bad Authentication Payload",
+				})
+				return
+			}
+
+			signer := payload.RecoverSigner()
+
+			if !payload.VerifySignature(signer) {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"msg": "Verification Failed",
+				})
+				return
+			}
+
+			if payload.HasExpired(30) {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"msg": "Signature Expired",
+				})
+				return
+			}
+
+			if !db.RegisterNewApp(_db, common.HexToAddress(address)) {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"msg": "Failed to register app",
+				})
+				return
+			}
+
 			c.JSON(http.StatusOK, gin.H{
-				"msg": address,
+				"msg": "Success",
 			})
 
 		})
