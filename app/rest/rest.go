@@ -111,18 +111,20 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 	// Validates sessionId, which is passed as cookie for
 	// `/v1/dashboard/*` endpoints
+	//
 	// This cookie is set when login is performed
-	validateSessionID := func(c *gin.Context) {
+	validateSessionID := func(c *gin.Context) string {
 		sessionID, err := c.Cookie("SessionID")
 		if err == http.ErrNoCookie {
-			c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
-			return
+			return ""
 		}
 
-		if _, err = _redisClient.Get(context.Background(), sessionID).Result(); err != nil {
-			c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
-			return
+		address, err := _redisClient.Get(context.Background(), sessionID).Result()
+		if err != nil {
+			return ""
 		}
+
+		return address
 	}
 
 	router := gin.Default()
@@ -210,27 +212,31 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		})
 
-		grp.GET("/dashboard", validateSessionID, func(c *gin.Context) {
+		grp.GET("/dashboard", func(c *gin.Context) {
 
-			sessionID, err := c.Cookie("SessionID")
-			if err == http.ErrNoCookie {
-				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
-				return
-			}
-
-			cached, err := _redisClient.Get(context.Background(), sessionID).Result()
-			if err != nil {
+			address := validateSessionID(c)
+			if address == "" {
 				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
 				return
 			}
 
 			c.JSON(http.StatusOK, gin.H{
-				"msg": cached,
+				"msg": address,
 			})
 
 		})
 
 		grp.POST("/dashboard/newApp", func(c *gin.Context) {
+
+			address := validateSessionID(c)
+			if address == "" {
+				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"msg": address,
+			})
 
 		})
 
