@@ -20,7 +20,7 @@ type Blocks struct {
 	GasLimit            uint64       `gorm:"column:gaslimit;type:bigint;not null"`
 	Nonce               uint64       `gorm:"column:nonce;type:bigint;not null"`
 	Miner               string       `gorm:"column:miner;type:char(42);not null"`
-	Size                uint64       `gorm:"column:size;type:bigint;not null"`
+	Size                float64      `gorm:"column:size;type:float(8);not null"`
 	TransactionRootHash string       `gorm:"column:txroothash;type:char(66);not null"`
 	ReceiptRootHash     string       `gorm:"column:receiptroothash;type:char(66);not null"`
 	Transactions        Transactions `gorm:"foreignKey:blockhash"`

@@ -3,7 +3,6 @@ package db
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -38,12 +37,6 @@ func GetBlock(_db *gorm.DB, number uint64) *Blocks {
 
 // PutBlock - Persisting fetched block information in database
 func PutBlock(_db *gorm.DB, _block *types.Block) {
-
-	size, err := strconv.ParseUint(_block.Size().String(), 10, 64)
-	if err != nil {
-		log.Printf("[!] Failed to parse block size : %s\n", err.Error())
-	}
-
 	if err := _db.Create(&Blocks{
 		Hash:                _block.Hash().Hex(),
 		Number:              _block.NumberU64(),
@@ -54,7 +47,7 @@ func PutBlock(_db *gorm.DB, _block *types.Block) {
 		GasLimit:            _block.GasLimit(),
 		Nonce:               _block.Nonce(),
 		Miner:               _block.Coinbase().Hex(),
-		Size:                size,
+		Size:                float64(_block.Size()),
 		TransactionRootHash: _block.TxHash().Hex(),
 		ReceiptRootHash:     _block.ReceiptHash().Hex(),
 	}).Error; err != nil {
