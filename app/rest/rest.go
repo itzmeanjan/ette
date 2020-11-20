@@ -127,41 +127,6 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		return address
 	}
 
-	// Validates POST request payload, authenticates request
-	// coming to POST endpoint
-	//
-	// This middleware can be used for enabling passwordless
-	// authentication mechanism
-	authenticate := func(c *gin.Context) {
-
-		var payload d.AuthPayload
-
-		if err := c.ShouldBindJSON(&payload); err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"msg": "Bad Authentication Payload",
-			})
-			return
-		}
-
-		signer := payload.RecoverSigner()
-
-		if !payload.VerifySignature(signer) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"msg": "Verification Failed",
-			})
-			return
-		}
-
-		if payload.HasExpired(30) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"msg": "Signature Expired",
-			})
-			return
-		}
-
-		c.Next()
-	}
-
 	router := gin.Default()
 
 	// enabled cors
