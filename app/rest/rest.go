@@ -109,6 +109,22 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		return
 	}
 
+	// Validates sessionId, which is passed as cookie for
+	// `/v1/dashboard/*` endpoints
+	// This cookie is set when login is performed
+	validateSessionID := func(c *gin.Context) {
+		sessionID, err := c.Cookie("SessionID")
+		if err == http.ErrNoCookie {
+			c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
+			return
+		}
+
+		if _, err = _redisClient.Get(context.Background(), sessionID).Result(); err != nil {
+			c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
+			return
+		}
+	}
+
 	router := gin.Default()
 
 	// enabled cors
@@ -194,7 +210,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		})
 
-		grp.GET("/dashboard", func(c *gin.Context) {
+		grp.GET("/dashboard", validateSessionID, func(c *gin.Context) {
 
 			sessionID, err := c.Cookie("SessionID")
 			if err == http.ErrNoCookie {
@@ -211,6 +227,10 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			c.JSON(http.StatusOK, gin.H{
 				"msg": cached,
 			})
+
+		})
+
+		grp.POST("/dashboard/newApp", func(c *gin.Context) {
 
 		})
 
