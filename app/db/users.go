@@ -18,6 +18,10 @@ func GetAppsByUserAddress(_db *gorm.DB, address common.Address) []*Users {
 		return nil
 	}
 
+	if len(apps) == 0 {
+		return nil
+	}
+
 	return apps
 }
 
