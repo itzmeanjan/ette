@@ -143,7 +143,7 @@ func PutEvent(_db *gorm.DB, _txReceipt *types.Receipt) {
 func PutDataDeliveryInfo(_db *gorm.DB, client string, endPoint string, dataLength uint64) {
 	if err := _db.Create(&DeliveryHistory{
 		Client:     client,
-		TimeStamp:  time.Now(),
+		TimeStamp:  time.Now().UTC(),
 		EndPoint:   endPoint,
 		DataLength: dataLength,
 	}).Error; err != nil {
