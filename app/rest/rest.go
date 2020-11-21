@@ -127,6 +127,33 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		return address
 	}
 
+	// For any query/ real-time data subscription request
+	// APIKey needs to be delivered in header
+	//
+	// headers: { 'APIKey': '0x...' }
+	// Which is checked against database & responded
+	// accordingly
+	validateAPIKey := func(c *gin.Context) {
+
+		apiKey := c.GetHeader("APIKey")
+		if apiKey == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"msg": "API Key required",
+			})
+			return
+		}
+
+		if !db.ValidateAPIKey(_db, apiKey) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"msg": "Bad API Key",
+			})
+			return
+		}
+
+		c.Next()
+
+	}
+
 	router := gin.Default()
 
 	// enabled cors
