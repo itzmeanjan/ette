@@ -4,64 +4,46 @@
         background: linear-gradient(to right, #669999 0%, #666699 100%);
     }
 
-    .card {
-        margin-top: 10px;
-        margin-bottom: 10px;
-        margin-left: 5px;
-        margin-right: 5px;
-        padding: 20px;
-        border-radius: 15px;
-        width:75%;
-        position: relative;
-        text-align:center;
-        border: 1px solid gray;
-        display:inline-block;    
-        background-color: #8776a1;
+    html, body {
+        margin: 0;
+        padding: 0;
     }
 
     ::selection {
         color: white;
     }
-    
+
     .container {
-        padding: 20px;
-    	text-align:center;
-        width:80%;
-        height: auto;
-        margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        -webkit-transform: translate(-50%, -50%);
-        transform: translate(-50%, -50%);
+        padding: 1.5vmax;
+        margin: 1.5vmax;
+        overflow: hidden;
+        overflow-y: scroll;
     }
 
-    .btn-holder {
-        margin-top: 20px;
-        align-self: flex-end;
-        justify-content: center;
-        align-items: center;
-        height: 36px;
-        text-align: center;
-        border-radius: 15px;
-        user-select: none;
+    .card {
+        background: linear-gradient(to right, #669999 0%, #666693 100%);
+        border-radius: 2vmin;
+        width: 70%;
+        margin: 0 auto;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        display: block;
+        padding: 10px;
+        border: 0;
+    }
+
+    .card:hover {
+        background: linear-gradient(to right, #6699aa 0%, #666693 100%);
     }
 
     button {
         background-color: rgb(114, 212, 114);
         color: black;
         width: 100%;
-        border-radius: 15px;
+        height: 50px;
         border: 0;
-        height: 100%;
-        padding-left: 10px;
-        padding-right: 10px;
-        user-select: none;
+        position: fixed;
+        bottom: 0;
     }
 
     button:hover {
@@ -73,69 +55,67 @@
 
 {{define "content"}}
 <div id="container" class="container">
-    <div class="btn-holder">
-    <button onclick="{
+</div>
+<button onclick="{
 
-        if (typeof ethereum !== 'undefined') {
-            ethereum.request({method: 'eth_requestAccounts'}).then(accounts => {
+    if (typeof ethereum !== 'undefined') {
+        ethereum.request({method: 'eth_requestAccounts'}).then(accounts => {
 
-                if(accounts.length !== 0) {
-                    const from = accounts[0]
+            if(accounts.length !== 0) {
+                const from = accounts[0]
 
-                    const msg = {
-                        address: from,
-                        timestamp: Math.round(Date.now() / 1000)
-                    }
+                const msg = {
+                    address: from,
+                    timestamp: Math.round(Date.now() / 1000)
+                }
 
-                    ethereum.request({
-                        method: 'personal_sign',
-                        params: [JSON.stringify(msg), from]
-                    }).then(signature => {
+                ethereum.request({
+                    method: 'personal_sign',
+                    params: [JSON.stringify(msg), from]
+                }).then(signature => {
 
-                        fetch('/v1/dashboard/newApp', {
-                            method: 'POST',
-                            credentials: 'include',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({message: msg, signature})
-                        })
-                        .then(async resp => {
+                    fetch('/v1/dashboard/newApp', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({message: msg, signature})
+                    })
+                    .then(async resp => {
 
-                            if(resp.status === 307) {
-                                location.pathname = '/v1/login'
+                        if(resp.status === 307) {
+                            location.pathname = '/v1/login'
+                            return
+                        }
+
+                        try {
+                            const v = await resp.json()
+
+                            if (resp.status !== 200) {
+                                alert(v.msg)
                                 return
                             }
 
-                            try {
-                                const v = await resp.json()
+                            window.location = '/v1/dashboard'
+                        } catch(_) {
+                            alert('Something unexpected happened !')
+                        }
 
-                                if (resp.status !== 200) {
-                                    alert(v.msg)
-                                    return
-                                }
+                    })
+                    .catch(_ => alert('Something unexpected happened !')) 
 
-                                window.location = '/v1/dashboard'
-                            } catch(_) {
-                                alert('Something unexpected happened !')
-                            }
+                }).catch(_ => alert('Metamask failed to sign message !'))
+            } else {
+                alert('Metamask access required !')
+            }
 
-                        })
-                        .catch(_ => alert('Something unexpected happened !')) 
+        }).catch(_ => alert('Metamask access required !'))
+    } else {
+        alert('Metamask needs to be installed !')
+    }
 
-                    }).catch(_ => alert('Metamask failed to sign message !'))
-                } else {
-                    alert('Metamask access required !')
-                }
-
-            }).catch(_ => alert('Metamask access required !'))
-        } else {
-            alert('Metamask needs to be installed !')
-        }
-
-    }">Create new app</button>
-    </div>
-</div>
+}">Create new app</button>
 <script>
     fetch('/v1/dashboard/apps', {
         method: 'GET',
@@ -153,8 +133,15 @@
             
             const card = document.createElement('div')
             card.className = 'card'
-            card.innerHTML = '!!! No Apps created yet !!!'
-            card.style.color = '#eeffee'
+            card.style.color = '#4a1144'
+
+            const p = document.createElement('p')
+
+            p.innerHTML = 'Why so empty ? 🤔'
+            p.style.color = '#bbccdd'
+            p.style.textAlign = 'center'
+                    
+            card.appendChild(p)
 
             container.insertBefore(card, container.firstChild)
 
@@ -170,13 +157,13 @@
                 const card = document.createElement('div')
                 card.className = 'card'
              
-                const paras = [`Address: ${v.address}`, `API Key: ${v.apiKey}`, `Created At: ${(new Date(v.timeStamp)).toString()}`]
+                const paras = [`API Key: ${v.apiKey}`, `Created At: ${(new Date(v.timeStamp)).toString()}`]
                 paras.forEach(v => {
                     const p = document.createElement('p')
 
                     p.innerHTML = v
-                    p.style.color = '#5a356e'
-
+                    p.style.color = '#4a1144'
+                    
                     card.appendChild(p)
                 })
 
