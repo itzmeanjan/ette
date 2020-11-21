@@ -152,6 +152,15 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			return
 		}
 
+		// Checking if user has crossed allowed rate limit or not
+		// If yes, we're dropping request
+		if !db.IsUnderRateLimit(_db, apiKey) {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+				"msg": "Rate limited",
+			})
+			return
+		}
+
 		c.Next()
 
 	}
