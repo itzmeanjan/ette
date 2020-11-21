@@ -333,7 +333,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		})
 
 		// Query block data using block hash/ number/ block number range ( 10 at max )
-		grp.GET("/block", func(c *gin.Context) {
+		grp.GET("/block", validateAPIKey, func(c *gin.Context) {
 
 			hash := c.Query("hash")
 			number := c.Query("number")
@@ -468,7 +468,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		})
 
 		// Transaction fetch ( by query params ) request handler
-		grp.GET("/transaction", func(c *gin.Context) {
+		grp.GET("/transaction", validateAPIKey, func(c *gin.Context) {
 
 			hash := c.Query("hash")
 
@@ -729,7 +729,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		})
 
 		// Event(s) fetched by query params handler end point
-		grp.GET("/event", func(c *gin.Context) {
+		grp.GET("/event", validateAPIKey, func(c *gin.Context) {
 
 			fromBlock := c.Query("fromBlock")
 			toBlock := c.Query("toBlock")
