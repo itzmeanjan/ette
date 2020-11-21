@@ -86,7 +86,11 @@ func ValidateAPIKey(_db *gorm.DB, apiKey string) bool {
 func IsUnderRateLimit(_db *gorm.DB, apiKey string) bool {
 	var count int64
 
-	if err := _db.Model(&DeliveryHistory{}).Where("delivery_history.client = ? and delivery_history.ts > now() - interval '1 day'", apiKey).Count(&count).Error; err != nil {
+	if err := _db.Model(&DeliveryHistory{}).
+		Joins("inner join users on delivery_history.client = users.apikey").
+		Where("users.address = (?)",
+			_db.Model(&Users{}).Where("apikey = ?", apiKey).Select("address")).
+		Where("delivery_history.ts > now() - interval '1 day'").Count(&count).Error; err != nil {
 		return false
 	}
 
