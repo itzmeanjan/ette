@@ -226,6 +226,27 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		})
 
+		grp.GET("/dashboard/apps", func(c *gin.Context) {
+
+			address := validateSessionID(c)
+			if address == "" {
+				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
+				return
+			}
+
+			if apps := db.GetAppsByUserAddress(_db, common.HexToAddress(address)); apps != nil {
+				c.JSON(http.StatusOK, gin.H{
+					"apps": apps,
+				})
+				return
+			}
+
+			c.JSON(http.StatusNoContent, gin.H{
+				"msg": "No apps created yet",
+			})
+
+		})
+
 		grp.POST("/dashboard/newApp", func(c *gin.Context) {
 
 			address := validateSessionID(c)
