@@ -1,4 +1,4 @@
-package data
+package pubsub
 
 import (
 	"context"
@@ -6,6 +6,10 @@ import (
 	"encoding/json"
 	"log"
 	"time"
+
+	d "github.com/itzmeanjan/ette/app/data"
+	"github.com/itzmeanjan/ette/app/db"
+	"gorm.io/gorm"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
@@ -21,6 +25,7 @@ type EventConsumer struct {
 	Request    *SubscriptionRequest
 	Connection *websocket.Conn
 	PubSub     *redis.PubSub
+	DB         *gorm.DB
 }
 
 // Subscribe - Event consumer is subscribing to `event` topic,
@@ -84,6 +89,13 @@ func (e *EventConsumer) Listen() {
 // Send - Sending event occurrence data to client application, which has subscribed to this event
 // & connected over websocket
 func (e *EventConsumer) Send(msg string) bool {
+
+	// Don't deliver data & close underlying connection
+	// if client has crossed it's allowed data delivery limit
+	if !db.IsUnderRateLimit(e.DB, e.Request.APIKey) {
+		return false
+	}
+
 	var event struct {
 		Origin          string         `json:"origin"`
 		Index           uint           `json:"index"`
@@ -114,7 +126,7 @@ func (e *EventConsumer) Send(msg string) bool {
 	}
 
 	// If doesn't match with specified criteria, simply ignoring received data
-	if !e.Request.DoesMatchWithPublishedEventData(&Event{
+	if !e.Request.DoesMatchWithPublishedEventData(&d.Event{
 		Origin:          event.Origin,
 		Index:           event.Index,
 		Topics:          event.Topics,
@@ -125,7 +137,12 @@ func (e *EventConsumer) Send(msg string) bool {
 		return true
 	}
 
-	return e.SendData(&event)
+	if e.SendData(&event) {
+		db.PutDataDeliveryInfo(e.DB, e.Request.APIKey, "/v1/ws/event", uint64(len(msg)))
+		return true
+	}
+
+	return false
 }
 
 // SendData - Sending message to client application, connected over websocket

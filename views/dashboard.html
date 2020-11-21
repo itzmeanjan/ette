@@ -1,0 +1,192 @@
+{{define "head"}}
+<style>
+    html {
+        background: linear-gradient(to right, #669999 0%, #666699 100%);
+    }
+
+    .card {
+        margin-top: 10px;
+        margin-bottom: 10px;
+        margin-left: 5px;
+        margin-right: 5px;
+        padding: 20px;
+        border-radius: 15px;
+        width:75%;
+        position: relative;
+        text-align:center;
+        border: 1px solid gray;
+        display:inline-block;    
+        background: linear-gradient(to left, #669999 0%, #666699 100%);
+    }
+
+    ::selection {
+        color: white;
+    }
+    
+    .container {
+        padding: 20px;
+    	text-align:center;
+        width:80%;
+        height: auto;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        -webkit-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+    }
+
+    .btn-holder {
+        margin-top: 20px;
+        align-self: flex-end;
+        justify-content: center;
+        align-items: center;
+        height: 36px;
+        text-align: center;
+        border-radius: 15px;
+        user-select: none;
+    }
+
+    button {
+        background-color: rgb(114, 212, 114);
+        color: black;
+        width: 100%;
+        border-radius: 15px;
+        border: 0;
+        height: 100%;
+        padding-left: 10px;
+        padding-right: 10px;
+        user-select: none;
+    }
+
+    button:hover {
+        background-color: #00ff33;
+    }
+</style>
+{{end}}
+
+
+{{define "content"}}
+<div id="container" class="container">
+    <div class="btn-holder">
+    <button onclick="{
+
+        if (typeof ethereum !== 'undefined') {
+            ethereum.request({method: 'eth_requestAccounts'}).then(accounts => {
+
+                if(accounts.length !== 0) {
+                    const from = accounts[0]
+
+                    const msg = {
+                        address: from,
+                        timestamp: Math.round(Date.now() / 1000)
+                    }
+
+                    ethereum.request({
+                        method: 'personal_sign',
+                        params: [JSON.stringify(msg), from]
+                    }).then(signature => {
+
+                        fetch('/v1/dashboard/newApp', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({message: msg, signature})
+                        })
+                        .then(async resp => {
+
+                            if(resp.status === 307) {
+                                location.pathname = '/v1/login'
+                                return
+                            }
+
+                            try {
+                                const v = await resp.json()
+
+                                if (resp.status !== 200) {
+                                    alert(v.msg)
+                                    return
+                                }
+
+                                window.location = '/v1/dashboard'
+                            } catch(_) {
+                                alert('Something unexpected happened !')
+                            }
+
+                        })
+                        .catch(_ => alert('Something unexpected happened !')) 
+
+                    }).catch(_ => alert('Metamask failed to sign message !'))
+                } else {
+                    alert('Metamask access required !')
+                }
+
+            }).catch(_ => alert('Metamask access required !'))
+        } else {
+            alert('Metamask needs to be installed !')
+        }
+
+    }">Create new app</button>
+    </div>
+</div>
+<script>
+    fetch('/v1/dashboard/apps', {
+        method: 'GET',
+        credentials: 'include',
+    }).then(async resp => {
+
+        if(resp.status === 307) {
+            location.pathname = '/v1/login'
+            return
+        }
+
+        if(resp.status === 204) {
+
+            const container = document.getElementById('container')
+            
+            const card = document.createElement('div')
+            card.className = 'card'
+            card.innerHTML = '!!! No Apps created yet !!!'
+            card.style.color = '#eeffee'
+
+            container.insertBefore(card, container.firstChild)
+
+            return
+        }
+
+        try{
+            let apps = await resp.json()
+
+            const container = document.getElementById('container')
+
+            apps['apps'].forEach(v => {
+                const card = document.createElement('div')
+                card.className = 'card'
+             
+                const paras = [`Address: ${v.address}`, `API Key: ${v.apiKey}`, `Created At: ${(new Date(v.timeStamp)).toString()}`]
+                paras.forEach(v => {
+                    const p = document.createElement('p')
+
+                    p.innerHTML = v
+                    p.style.color = '#172737'
+
+                    card.appendChild(p)
+                })
+
+                container.insertBefore(card, container.firstChild)
+            })
+            
+        } catch(_) {
+            alert('Something unexpected happened !')
+        }
+
+    }).catch(_ => alert('Something unexpected happened !'))
+</script>
+{{end}}

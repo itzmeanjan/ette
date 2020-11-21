@@ -1,4 +1,4 @@
-package data
+package pubsub
 
 import (
 	"context"
@@ -8,6 +8,9 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
+	"github.com/itzmeanjan/ette/app/data"
+	"github.com/itzmeanjan/ette/app/db"
+	"gorm.io/gorm"
 )
 
 // TransactionConsumer - Transaction consumer info holder struct, to be used
@@ -20,6 +23,7 @@ type TransactionConsumer struct {
 	Request    *SubscriptionRequest
 	Connection *websocket.Conn
 	PubSub     *redis.PubSub
+	DB         *gorm.DB
 }
 
 // Subscribe - Subscribe to `transaction` topic, under which all transaction related data to be published
@@ -81,7 +85,14 @@ func (t *TransactionConsumer) Listen() {
 // Send - Tries to deliver subscribed transaction data to client application
 // connected over websocket
 func (t *TransactionConsumer) Send(msg string) bool {
-	var transaction Transaction
+
+	// Don't deliver data & close underlying connection
+	// if client has crossed it's allowed data delivery limit
+	if !db.IsUnderRateLimit(t.DB, t.Request.APIKey) {
+		return false
+	}
+
+	var transaction data.Transaction
 
 	_msg := []byte(msg)
 
@@ -95,7 +106,12 @@ func (t *TransactionConsumer) Send(msg string) bool {
 		return true
 	}
 
-	return t.SendData(&transaction)
+	if t.SendData(&transaction) {
+		db.PutDataDeliveryInfo(t.DB, t.Request.APIKey, "/v1/ws/transaction", uint64(len(msg)))
+		return true
+	}
+
+	return false
 }
 
 // SendData - Sending message to client application, connected over websocket
