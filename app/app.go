@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"log"
 	"sync"
 
@@ -23,6 +24,11 @@ func bootstrap(file string) (*ethclient.Client, *redis.Client, *gorm.DB, *sync.M
 
 	_client := getClient()
 	_redisClient := getPubSubClient()
+
+	if err := _redisClient.FlushAll(context.Background()).Err(); err != nil {
+		log.Printf("[!] Failed to flush all keys from redis : %s\n", err.Error())
+	}
+
 	_db := db.Connect()
 
 	_lock := &sync.Mutex{}
