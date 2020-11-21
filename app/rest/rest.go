@@ -220,8 +220,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 				return
 			}
 
-			c.JSON(http.StatusOK, gin.H{
-				"msg": address,
+			c.HTML(http.StatusOK, "dashboard", gin.H{
+				"title": "ette",
 			})
 
 		})
