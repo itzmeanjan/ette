@@ -1,6 +1,8 @@
 package db
 
 import (
+	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -94,4 +96,15 @@ type Users struct {
 // TableName - Overriding default table name
 func (Users) TableName() string {
 	return "users"
+}
+
+// ToJSON - Encodes into JSON, to be supplied when queried for apps created by user
+func (u *Users) ToJSON() []byte {
+	data, err := json.Marshal(u)
+	if err != nil {
+		log.Printf("[!] Failed to encode `ette` apps data to JSON : %s\n", err.Error())
+		return nil
+	}
+
+	return data
 }
