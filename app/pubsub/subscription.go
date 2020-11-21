@@ -11,8 +11,9 @@ import (
 // SubscriptionRequest - Real time data subscription/ unsubscription request
 // needs to be sent in this form, from client application
 type SubscriptionRequest struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Name   string `json:"name"`
+	Type   string `json:"type"`
+	APIKey string `json:"apiKey"`
 }
 
 // GetRegex - Returns regex to be used for validating subscription request
