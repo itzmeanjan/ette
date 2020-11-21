@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/lib/pq"
 )
 
@@ -88,9 +87,9 @@ func (DeliveryHistory) TableName() string {
 
 // Users - User address & created api key related info holder table
 type Users struct {
-	Address   common.Address `gorm:"column:address;type:char(42);not null" json:"address"`
-	APIKey    common.Hash    `gorm:"column:apikey;type:char(66);primaryKey" json:"apiKey"`
-	TimeStamp time.Time      `gorm:"column:ts;type:timestamp;not null" json:"timeStamp"`
+	Address   string    `gorm:"column:address;type:char(42);not null" json:"address"`
+	APIKey    string    `gorm:"column:apikey;type:char(66);primaryKey" json:"apiKey"`
+	TimeStamp time.Time `gorm:"column:ts;type:timestamp;not null" json:"timeStamp"`
 }
 
 // TableName - Overriding default table name

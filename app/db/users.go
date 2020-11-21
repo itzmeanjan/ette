@@ -57,8 +57,8 @@ func RegisterNewApp(_db *gorm.DB, address common.Address) bool {
 	}
 
 	if err := _db.Create(&Users{
-		Address:   address,
-		APIKey:    common.BytesToHash(apiKey),
+		Address:   address.Hex(),
+		APIKey:    common.BytesToHash(apiKey).Hex(),
 		TimeStamp: time.Now(),
 	}).Error; err != nil {
 		return false
