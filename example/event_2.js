@@ -18,7 +18,7 @@ _client.on('connect', c => {
 
     handler = _ => {
 
-        c.send(JSON.stringify({ name: 'event/0xcb3fA413B23b12E402Cfcd8FA120f983FB70d8E8/*/*/*/*', type: state ? 'subscribe' : 'unsubscribe' }))
+        c.send(JSON.stringify({ name: 'event/0xcb3fA413B23b12E402Cfcd8FA120f983FB70d8E8/*/*/*/*', type: state ? 'subscribe' : 'unsubscribe', apiKey: '0x43ee4523fc8cc569b492fcda6f32e07d90d2afdf7a8a02b5e74c933be1785487' }))
         state = !state
 
     }

@@ -21,7 +21,7 @@ Ethereum Blockchain Data Indexing Engine 😎
 
 ## Inspiration 🤔
 
-I was looking for one tool which will be able to keep itself in sync with latest happenings on EVM based blockchain, while exposing REST API for querying blockchain data with various filters. That tool will also expose real time notification functionalities over websocket, when subscribed to topics.
+I was looking for one tool which will be able to keep itself in sync with latest happenings on EVM based blockchain i.e. index blockchain data, while exposing REST API for querying blockchain data with various filters. That tool will also expose real time notification functionalities over websocket, when subscribed to topics.
 
 It's not that I was unable find any solution, but wasn't fully satisfied with those, so I decided to write `ette`, which will do following
 
@@ -73,6 +73,8 @@ DB_PORT=5432
 DB_NAME=ette
 RedisConnection=tcp
 RedisAddress=x.x.x.x:6379
+Admin=e19b9EB3Bf05F1C8100C9b6E8a3D8A14F6384BFb
+Domain=localhost
 ```
 
 - Now build `ette`
@@ -99,6 +101,8 @@ curl http://localhost:7000/v1/synced
 ## Usage 🦾
 
 `ette` exposes REST API for querying historical block, transaction & event related data. It can also play role of real time notification engine, when subscribed to supported topics.
+
+> **_All historical data query requests need to be strictly accompanied with valid `APIKey` as request header param_** 🤖
 
 ### Historical Block Data 🤩
 
@@ -167,7 +171,8 @@ For listening to blocks getting mined, connect to `/v1/ws` endpoint using websoc
 ```json
 {
     "name": "block",
-    "type": "subscribe"
+    "type": "subscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -200,7 +205,8 @@ If you want to cancel subscription, consider sending 👇
 ```json
 {
     "name": "block",
-    "type": "unsubscribe"
+    "type": "unsubscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -222,7 +228,8 @@ For listening to any transaction happening in network in real-time, send 👇 JS
 ```json
 {
     "name": "transaction/<from-address>/<to-address>",
-    "type": "subscribe"
+    "type": "subscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -233,7 +240,8 @@ For listening to any transaction happening in network in real-time, send 👇 JS
 ```json
 {
     "name": "transaction/*/*",
-    "type": "subscribe"
+    "type": "subscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -244,7 +252,8 @@ For listening to any transaction happening in network in real-time, send 👇 JS
 ```json
 {
     "name": "transaction/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c/*",
-    "type": "subscribe"
+    "type": "subscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -255,7 +264,8 @@ For listening to any transaction happening in network in real-time, send 👇 JS
 ```json
 {
     "name": "transaction/*/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c",
-    "type": "subscribe"
+    "type": "subscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -266,7 +276,8 @@ For listening to any transaction happening in network in real-time, send 👇 JS
 ```json
 {
     "name": "transaction/0xc9D50e0a571aDd06C7D5f1452DcE2F523FB711a1/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c",
-    "type": "subscribe"
+    "type": "subscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -277,7 +288,8 @@ If everything goes fine, your subscription will be confirmed with 👇 response 
 ```json
 {
     "code": 1,
-    "message": "Subscribed to `transaction`"
+    "message": "Subscribed to `transaction`",
+    "apiKey": "0x..."
 }
 ```
 
@@ -303,7 +315,8 @@ If you want to cancel subscription, consider sending 👇, while replacing `<fro
 ```json
 {
     "name": "transaction/<from-address>/<to-address>",
-    "type": "unsubscribe"
+    "type": "unsubscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -323,7 +336,8 @@ For listening to any events getting emitted by smart contracts deployed on netwo
 ```json
 {
     "name": "event/<contract-address>/<topic-0-signature>/<topic-1-signature>/<topic-2-signature>/<topic-3-signature>",
-    "type": "subscribe"
+    "type": "subscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -334,7 +348,8 @@ For listening to any events getting emitted by smart contracts deployed on netwo
 ```json
 {
     "name": "event/*/*/*/*/*",
-    "type": "subscribe"
+    "type": "subscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -343,7 +358,8 @@ For listening to any events getting emitted by smart contracts deployed on netwo
 ```json
 {
     "name": "event/0xcb3fA413B23b12E402Cfcd8FA120f983FB70d8E8/*/*/*/*",
-    "type": "subscribe"
+    "type": "subscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -352,7 +368,8 @@ For listening to any events getting emitted by smart contracts deployed on netwo
 ```json
 {
     "name": "event/0xcb3fA413B23b12E402Cfcd8FA120f983FB70d8E8/0x2ab93f65628379309f36cb125e90d7c902454a545c4f8b8cb0794af75c24b807/*/*/*",
-    "type": "subscribe"
+    "type": "subscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -361,7 +378,8 @@ For listening to any events getting emitted by smart contracts deployed on netwo
 ```json
 {
     "name": "event/*/0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef/*/*/*",
-    "type": "subscribe"
+    "type": "subscribe",
+    "apiKey": "0x..."
 }
 ```
 
@@ -399,7 +417,8 @@ If you want to cancel subscription, consider sending 👇, while replacing `<con
 ```json
 {
     "name": "event/<contract-address>/<topic-0-signature>/<topic-1-signature>/<topic-2-signature>/<topic-3-signature>",
-    "type": "unsubscribe"
+    "type": "unsubscribe",
+    "apiKey": "0x..."
 }
 ```
 

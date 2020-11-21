@@ -20,7 +20,7 @@ _client.on('connect', c => {
     // periodic subscription & unsubscription request performed
     handler = _ => {
 
-        c.send(JSON.stringify({ name: 'block', type: state ? 'subscribe' : 'unsubscribe' }))
+        c.send(JSON.stringify({ name: 'block', type: state ? 'subscribe' : 'unsubscribe', apiKey: '0x43ee4523fc8cc569b492fcda6f32e07d90d2afdf7a8a02b5e74c933be1785487' }))
         state = !state
 
     }

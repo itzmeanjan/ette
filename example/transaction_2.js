@@ -19,7 +19,7 @@ _client.on('connect', c => {
 
         // from address is specified, any tx outgoing from account `0x...`
         // can be listened using this topic
-        c.send(JSON.stringify({ name: 'transaction/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c/*', type: state ? 'subscribe' : 'unsubscribe' }))
+        c.send(JSON.stringify({ name: 'transaction/0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c/*', type: state ? 'subscribe' : 'unsubscribe', apiKey: '0x43ee4523fc8cc569b492fcda6f32e07d90d2afdf7a8a02b5e74c933be1785487' }))
         state = !state
 
     }
