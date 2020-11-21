@@ -94,7 +94,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 	}
 
 	if b.SendData(&block) {
-		db.PutDataDeliveryInfo(b.DB, b.Connection.RemoteAddr().String(), "/v1/ws/block", uint64(len(msg)))
+		db.PutDataDeliveryInfo(b.DB, b.Request.APIKey, "/v1/ws/block", uint64(len(msg)))
 		return true
 	}
 

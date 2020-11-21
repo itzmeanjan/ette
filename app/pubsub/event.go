@@ -131,7 +131,7 @@ func (e *EventConsumer) Send(msg string) bool {
 	}
 
 	if e.SendData(&event) {
-		db.PutDataDeliveryInfo(e.DB, e.Connection.RemoteAddr().String(), "/v1/ws/event", uint64(len(msg)))
+		db.PutDataDeliveryInfo(e.DB, e.Request.APIKey, "/v1/ws/event", uint64(len(msg)))
 		return true
 	}
 

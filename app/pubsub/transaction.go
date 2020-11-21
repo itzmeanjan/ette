@@ -100,7 +100,7 @@ func (t *TransactionConsumer) Send(msg string) bool {
 	}
 
 	if t.SendData(&transaction) {
-		db.PutDataDeliveryInfo(t.DB, t.Connection.RemoteAddr().String(), "/v1/ws/transaction", uint64(len(msg)))
+		db.PutDataDeliveryInfo(t.DB, t.Request.APIKey, "/v1/ws/transaction", uint64(len(msg)))
 		return true
 	}
 
