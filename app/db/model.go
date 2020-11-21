@@ -74,7 +74,7 @@ func (Events) TableName() string {
 // to resources they're requesting
 type DeliveryHistory struct {
 	ID         uint64    `gorm:"column:id;type:bigserial;primaryKey"`
-	Client     string    `gorm:"column:client;type:varchar(20);not null"`
+	Client     string    `gorm:"column:client;type:char(66);not null"`
 	TimeStamp  time.Time `gorm:"column:ts;type:timestamp;not null"`
 	EndPoint   string    `gorm:"column:endpoint;type:varchar(100);not null"`
 	DataLength uint64    `gorm:"column:datalength;type:bigint;not null"`
