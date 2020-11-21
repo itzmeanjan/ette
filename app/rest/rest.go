@@ -937,6 +937,15 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 				break
 			}
 
+			// Validating client provided API key, if fails, we return
+			// failure message to client & close connection
+			if !req.ValidateAPIKey(_db) {
+				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
+					log.Printf("[!] Failed to write message : %s\n", err.Error())
+				}
+				break
+			}
+
 			// Validating incoming request on websocket subscription channel
 			if !req.Validate(topics) {
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
