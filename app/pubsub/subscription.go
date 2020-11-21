@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/itzmeanjan/ette/app/data"
+	_db "github.com/itzmeanjan/ette/app/db"
+	"gorm.io/gorm"
 )
 
 // SubscriptionRequest - Real time data subscription/ unsubscription request
@@ -14,6 +16,17 @@ type SubscriptionRequest struct {
 	Name   string `json:"name"`
 	Type   string `json:"type"`
 	APIKey string `json:"apiKey"`
+}
+
+// ValidateAPIKey - Given API key along with realtime notification
+// subscription/ unsubscription request, validates API key, by checking
+// existence against database
+func (s *SubscriptionRequest) ValidateAPIKey(db *gorm.DB) bool {
+	if !(len(s.APIKey) == 66 && strings.HasPrefix(s.APIKey, "0x")) {
+		return false
+	}
+
+	return _db.ValidateAPIKey(db, s.APIKey)
 }
 
 // GetRegex - Returns regex to be used for validating subscription request
