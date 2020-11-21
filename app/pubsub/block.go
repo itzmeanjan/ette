@@ -83,6 +83,13 @@ func (b *BlockConsumer) Listen() {
 // Send - Tries to deliver subscribed block data to client application
 // connected over websocket
 func (b *BlockConsumer) Send(msg string) bool {
+
+	// Don't deliver data & close underlying connection
+	// if client has crossed it's allowed data delivery limit
+	if !db.IsUnderRateLimit(b.DB, b.Request.APIKey) {
+		return false
+	}
+
 	var block d.Block
 
 	_msg := []byte(msg)

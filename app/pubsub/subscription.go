@@ -26,7 +26,7 @@ func (s *SubscriptionRequest) ValidateAPIKey(db *gorm.DB) bool {
 		return false
 	}
 
-	return _db.ValidateAPIKey(db, s.APIKey)
+	return _db.ValidateAPIKey(db, s.APIKey) && _db.IsUnderRateLimit(db, s.APIKey)
 }
 
 // GetRegex - Returns regex to be used for validating subscription request

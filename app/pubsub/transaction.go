@@ -85,6 +85,13 @@ func (t *TransactionConsumer) Listen() {
 // Send - Tries to deliver subscribed transaction data to client application
 // connected over websocket
 func (t *TransactionConsumer) Send(msg string) bool {
+
+	// Don't deliver data & close underlying connection
+	// if client has crossed it's allowed data delivery limit
+	if !db.IsUnderRateLimit(t.DB, t.Request.APIKey) {
+		return false
+	}
+
 	var transaction data.Transaction
 
 	_msg := []byte(msg)

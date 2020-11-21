@@ -89,6 +89,13 @@ func (e *EventConsumer) Listen() {
 // Send - Sending event occurrence data to client application, which has subscribed to this event
 // & connected over websocket
 func (e *EventConsumer) Send(msg string) bool {
+
+	// Don't deliver data & close underlying connection
+	// if client has crossed it's allowed data delivery limit
+	if !db.IsUnderRateLimit(e.DB, e.Request.APIKey) {
+		return false
+	}
+
 	var event struct {
 		Origin          string         `json:"origin"`
 		Index           uint           `json:"index"`

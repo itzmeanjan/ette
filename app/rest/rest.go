@@ -140,7 +140,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		apiKey := c.GetHeader("APIKey")
 		if apiKey == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"msg": "API Key required",
+				"msg": "API Key Required",
 			})
 			return
 		}
@@ -156,7 +156,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		// If yes, we're dropping request
 		if !db.IsUnderRateLimit(_db, apiKey) {
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-				"msg": "Rate limited",
+				"msg": "Crossed Allowed Rate Limit",
 			})
 			return
 		}
