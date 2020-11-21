@@ -1,6 +1,10 @@
 package db
 
 import (
+	"encoding/json"
+	"log"
+	"time"
+
 	"github.com/lib/pq"
 )
 
@@ -65,4 +69,45 @@ type Events struct {
 // TableName - Overriding default table name
 func (Events) TableName() string {
 	return "events"
+}
+
+// DeliveryHistory - For each request coming from client application
+// we're keeping track of how much data gets sent back in response of their query
+//
+// This is to be used for controlling client application's access
+// to resources they're requesting
+type DeliveryHistory struct {
+	ID         uint64    `gorm:"column:id;type:bigserial;primaryKey"`
+	Client     string    `gorm:"column:client;type:char(66);not null"`
+	TimeStamp  time.Time `gorm:"column:ts;type:timestamp;not null"`
+	EndPoint   string    `gorm:"column:endpoint;type:varchar(100);not null"`
+	DataLength uint64    `gorm:"column:datalength;type:bigint;not null"`
+}
+
+// TableName - Overriding default table name
+func (DeliveryHistory) TableName() string {
+	return "delivery_history"
+}
+
+// Users - User address & created api key related info holder table
+type Users struct {
+	Address   string    `gorm:"column:address;type:char(42);not null" json:"address"`
+	APIKey    string    `gorm:"column:apikey;type:char(66);primaryKey" json:"apiKey"`
+	TimeStamp time.Time `gorm:"column:ts;type:timestamp;not null" json:"timeStamp"`
+}
+
+// TableName - Overriding default table name
+func (Users) TableName() string {
+	return "users"
+}
+
+// ToJSON - Encodes into JSON, to be supplied when queried for apps created by user
+func (u *Users) ToJSON() []byte {
+	data, err := json.Marshal(u)
+	if err != nil {
+		log.Printf("[!] Failed to encode `ette` apps data to JSON : %s\n", err.Error())
+		return nil
+	}
+
+	return data
 }

@@ -31,5 +31,19 @@ create table events (
     blockhash char(66) not null,
     primary key (blockhash, index),
     foreign key (txhash) references transactions(hash),
-    foreign key (blockhash) references blocks(hash),
+    foreign key (blockhash) references blocks(hash)
+);
+
+create table delivery_history (
+    id bigserial primary key,
+    client varchar(20) not null,
+    ts timestamp not null,
+    endpoint varchar(100) not null,
+    datalength bigint not null
+);
+
+create table users (
+    address char(42) not null,
+    apikey char(66) primary key,
+    ts timestamp not null
 );

@@ -1,13 +1,20 @@
 package rest
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/foolin/goview"
+	"github.com/foolin/goview/supports/ginview"
+	"github.com/gin-contrib/cors"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
@@ -16,6 +23,7 @@ import (
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
+	ps "github.com/itzmeanjan/ette/app/pubsub"
 	"gorm.io/gorm"
 )
 
@@ -76,8 +84,24 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 	}
 
 	respondWithJSON := func(data []byte, c *gin.Context) {
+
+		uri := c.Request.RequestURI
+		// API key based client identification
+		// being logged for implementing rate limiting
+		apiKey := c.GetHeader("APIKey")
+
 		if data != nil {
 			c.Data(http.StatusOK, "application/json", data)
+
+			switch {
+			case strings.HasPrefix(uri, "/v1/block"):
+				db.PutDataDeliveryInfo(_db, apiKey, "/v1/block", uint64(len(data)))
+			case strings.HasPrefix(uri, "/v1/transaction"):
+				db.PutDataDeliveryInfo(_db, apiKey, "/v1/transaction", uint64(len(data)))
+			case strings.HasPrefix(uri, "/v1/event"):
+				db.PutDataDeliveryInfo(_db, apiKey, "/v1/event", uint64(len(data)))
+			}
+
 			return
 		}
 
@@ -87,11 +111,226 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		return
 	}
 
+	// Validates sessionId, which is passed as cookie for
+	// `/v1/dashboard/*` endpoints
+	//
+	// This cookie is set when login is performed
+	validateSessionID := func(c *gin.Context) string {
+		sessionID, err := c.Cookie("SessionID")
+		if err == http.ErrNoCookie {
+			return ""
+		}
+
+		address, err := _redisClient.Get(context.Background(), sessionID).Result()
+		if err != nil {
+			return ""
+		}
+
+		return address
+	}
+
+	// For any query/ real-time data subscription request
+	// APIKey needs to be delivered in header
+	//
+	// headers: { 'APIKey': '0x...' }
+	// Which is checked against database & responded
+	// accordingly
+	validateAPIKey := func(c *gin.Context) {
+
+		apiKey := c.GetHeader("APIKey")
+		if apiKey == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"msg": "API Key Required",
+			})
+			return
+		}
+
+		if !db.ValidateAPIKey(_db, apiKey) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"msg": "Bad API Key",
+			})
+			return
+		}
+
+		// Checking if user has crossed allowed rate limit or not
+		// If yes, we're dropping request
+		if !db.IsUnderRateLimit(_db, apiKey) {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+				"msg": "Crossed Allowed Rate Limit",
+			})
+			return
+		}
+
+		c.Next()
+
+	}
+
 	router := gin.Default()
+
+	// enabled cors
+	router.Use(cors.Default())
+
+	router.HTMLRender = ginview.New(goview.Config{
+		Root:         "./views",
+		Master:       "layouts/master",
+		Extension:    ".html",
+		DisableCache: true,
+	})
+
+	// Delivering `ette` icon to be shown in web UI
+	router.GET("/favicon.ico", func(c *gin.Context) {
+		data, err := ioutil.ReadFile("./favicon.ico")
+		if err != nil {
+			c.Status(http.StatusNoContent)
+			c.Abort()
+			return
+		}
+
+		c.Data(http.StatusOK, "image/x-icon", data)
+	})
 
 	grp := router.Group("/v1")
 
 	{
+
+		grp.POST("/login", func(c *gin.Context) {
+
+			var payload d.AuthPayload
+
+			if err := c.ShouldBindJSON(&payload); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"msg": "Bad Authentication Payload",
+				})
+				return
+			}
+
+			signer := payload.RecoverSigner()
+
+			if !payload.VerifySignature(signer) {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"msg": "Verification Failed",
+				})
+				return
+			}
+
+			if payload.HasExpired(30) {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"msg": "Signature Expired",
+				})
+				return
+			}
+
+			if _, err := _redisClient.Set(context.Background(), payload.Signature, payload.Message.Address.Hex(), time.Duration(3600)*time.Second).Result(); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"msg": "Something went wrong",
+				})
+				return
+			}
+
+			c.SetCookie("SessionID", payload.Signature, 3600, "/v1/dashboard", cfg.Get("Domain"), false, false)
+
+			if payload.IsAdmin(signer) {
+				c.JSON(http.StatusOK, gin.H{
+					"msg": "Success",
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"msg": "Success",
+			})
+
+		})
+
+		grp.GET("/login", func(c *gin.Context) {
+
+			c.HTML(http.StatusOK, "index", gin.H{
+				"title": "ette",
+			})
+
+		})
+
+		grp.GET("/dashboard", func(c *gin.Context) {
+
+			address := validateSessionID(c)
+			if address == "" {
+				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
+				return
+			}
+
+			c.HTML(http.StatusOK, "dashboard", gin.H{
+				"title": "ette",
+			})
+
+		})
+
+		grp.GET("/dashboard/apps", func(c *gin.Context) {
+
+			address := validateSessionID(c)
+			if address == "" {
+				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
+				return
+			}
+
+			if apps := db.GetAppsByUserAddress(_db, common.HexToAddress(address)); apps != nil {
+				c.JSON(http.StatusOK, gin.H{
+					"apps": apps,
+				})
+				return
+			}
+
+			c.JSON(http.StatusNoContent, gin.H{
+				"msg": "No apps created yet",
+			})
+
+		})
+
+		grp.POST("/dashboard/newApp", func(c *gin.Context) {
+
+			address := validateSessionID(c)
+			if address == "" {
+				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
+				return
+			}
+
+			var payload d.AuthPayload
+
+			if err := c.ShouldBindJSON(&payload); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"msg": "Bad Authentication Payload",
+				})
+				return
+			}
+
+			signer := payload.RecoverSigner()
+
+			if !payload.VerifySignature(signer) {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"msg": "Verification Failed",
+				})
+				return
+			}
+
+			if payload.HasExpired(30) {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"msg": "Signature Expired",
+				})
+				return
+			}
+
+			if !db.RegisterNewApp(_db, common.HexToAddress(address)) {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"msg": "Failed to register app",
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"msg": "Success",
+			})
+
+		})
+
 		// For checking whether `ette` has synced upto blockchain latest state or not
 		grp.GET("/synced", func(c *gin.Context) {
 
@@ -105,7 +344,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		})
 
 		// Query block data using block hash/ number/ block number range ( 10 at max )
-		grp.GET("/block", func(c *gin.Context) {
+		grp.GET("/block", validateAPIKey, func(c *gin.Context) {
 
 			hash := c.Query("hash")
 			number := c.Query("number")
@@ -240,7 +479,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		})
 
 		// Transaction fetch ( by query params ) request handler
-		grp.GET("/transaction", func(c *gin.Context) {
+		grp.GET("/transaction", validateAPIKey, func(c *gin.Context) {
 
 			hash := c.Query("hash")
 
@@ -501,7 +740,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		})
 
 		// Event(s) fetched by query params handler end point
-		grp.GET("/event", func(c *gin.Context) {
+		grp.GET("/event", validateAPIKey, func(c *gin.Context) {
 
 			fromBlock := c.Query("fromBlock")
 			toBlock := c.Query("toBlock")
@@ -698,20 +937,29 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		// keeping track of which topics this client has already subscribed to
 		// or unsubscrribed from
-		topics := make(map[string]d.Consumer)
+		topics := make(map[string]ps.Consumer)
 
 		// Communication with client handling logic
 		for {
-			var req d.SubscriptionRequest
+			var req ps.SubscriptionRequest
 
 			if err := conn.ReadJSON(&req); err != nil {
 				log.Printf("[!] Failed to read message : %s\n", err.Error())
 				break
 			}
 
+			// Validating client provided API key, if fails, we return
+			// failure message to client & close connection
+			if !req.ValidateAPIKey(_db) {
+				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
+					log.Printf("[!] Failed to write message : %s\n", err.Error())
+				}
+				break
+			}
+
 			// Validating incoming request on websocket subscription channel
 			if !req.Validate(topics) {
-				if err := conn.WriteJSON(&d.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
+				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
 				break
@@ -721,24 +969,24 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			case "subscribe":
 				switch req.Topic() {
 				case "block":
-					topics[req.Name] = d.NewBlockConsumer(_redisClient, conn, &req)
+					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req, _db)
 				case "transaction":
-					topics[req.Name] = d.NewTransactionConsumer(_redisClient, conn, &req)
+					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req, _db)
 				case "event":
-					topics[req.Name] = d.NewEventConsumer(_redisClient, conn, &req)
+					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req, _db)
 				}
 			case "unsubscribe":
 				switch req.Topic() {
 				case "block":
-					if v, ok := topics[req.Name].(*d.BlockConsumer); ok {
+					if v, ok := topics[req.Name].(*ps.BlockConsumer); ok {
 						v.Request.Type = req.Type
 					}
 				case "transaction":
-					if v, ok := topics[req.Name].(*d.TransactionConsumer); ok {
+					if v, ok := topics[req.Name].(*ps.TransactionConsumer); ok {
 						v.Request.Type = req.Type
 					}
 				case "event":
-					if v, ok := topics[req.Name].(*d.EventConsumer); ok {
+					if v, ok := topics[req.Name].(*ps.EventConsumer); ok {
 						v.Request.Type = req.Type
 					}
 				}

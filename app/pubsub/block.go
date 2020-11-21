@@ -1,4 +1,4 @@
-package data
+package pubsub
 
 import (
 	"context"
@@ -8,6 +8,10 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
+	"gorm.io/gorm"
+
+	d "github.com/itzmeanjan/ette/app/data"
+	"github.com/itzmeanjan/ette/app/db"
 )
 
 // BlockConsumer - To be subscribed to `block` topic using this consumer handle
@@ -17,6 +21,7 @@ type BlockConsumer struct {
 	Request    *SubscriptionRequest
 	Connection *websocket.Conn
 	PubSub     *redis.PubSub
+	DB         *gorm.DB
 }
 
 // Subscribe - Subscribe to `block` channel
@@ -78,7 +83,14 @@ func (b *BlockConsumer) Listen() {
 // Send - Tries to deliver subscribed block data to client application
 // connected over websocket
 func (b *BlockConsumer) Send(msg string) bool {
-	var block Block
+
+	// Don't deliver data & close underlying connection
+	// if client has crossed it's allowed data delivery limit
+	if !db.IsUnderRateLimit(b.DB, b.Request.APIKey) {
+		return false
+	}
+
+	var block d.Block
 
 	_msg := []byte(msg)
 
@@ -88,7 +100,12 @@ func (b *BlockConsumer) Send(msg string) bool {
 		return true
 	}
 
-	return b.SendData(&block)
+	if b.SendData(&block) {
+		db.PutDataDeliveryInfo(b.DB, b.Request.APIKey, "/v1/ws/block", uint64(len(msg)))
+		return true
+	}
+
+	return false
 }
 
 // SendData - Sending message to client application, connected over websocket
@@ -96,6 +113,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 // If failed, we're going to remove subscription & close websocket
 // connection ( connection might be already closed though )
 func (b *BlockConsumer) SendData(data interface{}) bool {
+
 	if err := b.Connection.WriteJSON(data); err != nil {
 		log.Printf("[!] Failed to deliver `block` data to client : %s\n", err.Error())
 
