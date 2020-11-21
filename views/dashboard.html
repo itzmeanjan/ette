@@ -12,19 +12,22 @@
         padding: 20px;
         border-radius: 15px;
         width:75%;
-        height: 30px;
         position: relative;
         text-align:center;
         border: 1px solid gray;
         display:inline-block;    
         background: linear-gradient(to left, #669999 0%, #666699 100%);
     }
+
+    ::selection {
+        color: white;
+    }
     
     .container {
         padding: 20px;
     	text-align:center;
         width:80%;
-    	height: auto;
+        height: auto;
         margin: 0 auto;
         display: flex;
         flex-direction: column;
@@ -73,19 +76,62 @@
     <div class="btn-holder">
     <button onclick="{
 
-        fetch('/v1/dashboard/newApp', {
-            method: 'POST',
-            credentials: 'include',
-        }).then(async resp => {
+        if (typeof ethereum !== 'undefined') {
+            ethereum.request({method: 'eth_requestAccounts'}).then(accounts => {
 
-            if (resp.status !== 200) {
-                alert('Failed to create app')
-                return
-            }
+                if(accounts.length !== 0) {
+                    const from = accounts[0]
 
-            window.location = '/v1/dashboard'
+                    const msg = {
+                        address: from,
+                        timestamp: Math.round(Date.now() / 1000)
+                    }
 
-        }).catch(_ => alert('Something unexpected happened !'))
+                    ethereum.request({
+                        method: 'personal_sign',
+                        params: [JSON.stringify(msg), from]
+                    }).then(signature => {
+
+                        fetch('/v1/dashboard/newApp', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({message: msg, signature})
+                        })
+                        .then(async resp => {
+
+                            if(resp.status === 307) {
+                                location.pathname = '/v1/login'
+                                return
+                            }
+
+                            try {
+                                const v = await resp.json()
+
+                                if (resp.status !== 200) {
+                                    alert(v.msg)
+                                    return
+                                }
+
+                                window.location = '/v1/dashboard'
+                            } catch(_) {
+                                alert('Something unexpected happened !')
+                            }
+
+                        })
+                        .catch(_ => alert('Something unexpected happened !')) 
+
+                    }).catch(_ => alert('Metamask failed to sign message !'))
+                } else {
+                    alert('Metamask access required !')
+                }
+
+            }).catch(_ => alert('Metamask access required !'))
+        } else {
+            alert('Metamask needs to be installed !')
+        }
 
     }">Create new app</button>
     </div>
@@ -108,8 +154,7 @@
             const card = document.createElement('div')
             card.className = 'card'
             card.innerHTML = '!!! No Apps created yet !!!'
-            card.style.color = 'white'
-            card.style.fontStyle = 'bold'
+            card.style.color = '#eeffee'
 
             container.insertBefore(card, container.firstChild)
 
@@ -119,14 +164,21 @@
         try{
             let apps = await resp.json()
 
-            console.log(apps)
-
             const container = document.getElementById('container')
 
             apps['apps'].forEach(v => {
                 const card = document.createElement('div')
                 card.className = 'card'
-                card.innerHTML = `${v}`
+             
+                const paras = [`Address: ${v.address}`, `API Key: ${v.apiKey}`, `Created At: ${(new Date(v.timeStamp)).toString()}`]
+                paras.forEach(v => {
+                    const p = document.createElement('p')
+
+                    p.innerHTML = v
+                    p.style.color = '#172737'
+
+                    card.appendChild(p)
+                })
 
                 container.insertBefore(card, container.firstChild)
             })
