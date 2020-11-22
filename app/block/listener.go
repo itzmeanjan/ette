@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -31,6 +32,10 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 	//
 	// If yes, we'll start syncer to fetch all block starting from 0 to this block
 	first := true
+
+	_lock.Lock()
+	_synced.StartedAt = time.Now().UTC()
+	_lock.Unlock()
 
 	for {
 		select {

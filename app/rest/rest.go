@@ -337,10 +337,14 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			_lock.Lock()
 			defer _lock.Unlock()
 
+			elapsed := time.Now().UTC().Sub(_synced.StartedAt)
+
 			c.JSON(http.StatusOK, gin.H{
-				"synced": fmt.Sprintf("%f%%", (float64(_synced.Done)/float64(_synced.Target))*100),
-				"done":   _synced.Done,
-				"target": _synced.Target,
+				"synced":  fmt.Sprintf("%f%%", (float64(_synced.Done)/float64(_synced.Target))*100),
+				"done":    _synced.Done,
+				"target":  _synced.Target,
+				"elapsed": elapsed.String(),
+				"rate":    fmt.Sprintf("%f blocks/s", float64(_synced.Done)/elapsed.Seconds()),
 			})
 
 		})
