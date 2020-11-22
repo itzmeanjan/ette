@@ -47,22 +47,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 				first = false
 			}
 
-			if err := redisClient.Publish(context.Background(), "block", &d.Block{
-				Hash:       header.Hash().Hex(),
-				Number:     header.Number.Uint64(),
-				Time:       header.Time,
-				ParentHash: header.ParentHash.Hex(),
-				Difficulty: header.Difficulty.String(),
-				GasUsed:    header.GasUsed,
-				GasLimit:   header.GasLimit,
-				Nonce:      header.Nonce.Uint64(),
-			}).Err(); err != nil {
-
-				log.Printf("[!] Failed to publish block %d in channel : %s\n", header.Number.Uint64(), err.Error())
-
-			}
-
-			go fetchBlockByHash(client, header.Hash(), _db, redisClient)
+			go fetchBlockByHash(client, header.Hash(), _db, redisClient, _lock, _synced)
 		}
 	}
 }
