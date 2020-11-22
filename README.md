@@ -1,6 +1,8 @@
 # ette
 
-Ethereum Blockchain Data Indexing Engine 😎
+EVM-based Blockchain Indexer, with historical data query & real-time notification support 😎
+
+**Deploy your `ette` instance today**
 
 ![banner](sc/banner.gif)
 
@@ -10,7 +12,7 @@ Ethereum Blockchain Data Indexing Engine 😎
 - [What do I need to have to use it ?](#prerequisite-)
 - [How to install it ?](#installation-)
 - [What are possible use cases of `ette` ?](#use-cases-)
-- [How do I generate `APIKey`(s) ?](#management-using-webui-)
+- [How do I generate `APIKey`(s) ?](#management-using-webui)
 - [How to use it ?](#usage-)
     - Historical Data 
         - [Query historical block data](#historical-block-data-)
@@ -112,12 +114,12 @@ curl -s http://localhost:7000/v1/synced | jq
 
 ```json
 {
-  "done": 4242, // number of blocks synced in 
-  "elapsed": "3m2.487237s", // time elapsed during syncing
-  "eta": "87h51m38s", // expected time of completion of syncing i.e. reaching 100%
-  "rate": "23.245461 blocks/s", // per second average sync rate
-  "synced": "0.057695 %", // percentage of completed syncing
-  "target": 7352494 // total number blocks to be synced
+  "done": 4242,
+  "elapsed": "3m2.487237s",
+  "eta": "87h51m38s",
+  "rate": "23.245461 blocks/s",
+  "synced": "0.057695 %",
+  "target": 7352494
 }
 ```
 
@@ -133,7 +135,7 @@ All client requests are rate limited _( 50k requests/ day )_. This rate limit is
 
 **More features coming here, soon**
 
-## Management using webUI
+## Management using webUI 🖥
 
 `ette` has one minimalistic webUI for generating & managing `APIKey`(s). It doesn't have any password based login mechanism. You need to have [Metamask](https://metamask.io/download.html) browser plugin installed for logging into `ette` management webUI.
 
