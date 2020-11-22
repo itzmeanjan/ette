@@ -9,6 +9,8 @@ Ethereum Blockchain Data Indexing Engine 😎
 - [Why did you build `ette` ?](#inspiration-)
 - [What do I need to have to use it ?](#prerequisite-)
 - [How to install it ?](#installation-)
+- [What are possible use cases of `ette` ?](#use-cases-)
+- [How do I generate `APIKey`(s) ?](#management-using-webui-)
 - [How to use it ?](#usage-)
     - Historical Data 
         - [Query historical block data](#historical-block-data-)
@@ -120,6 +122,48 @@ curl -s http://localhost:7000/v1/synced | jq
 ```
 
 > Note: For production, you'll most probably run it using `systemd`
+
+## Use Cases 🤯
+
+`ette` is supposed to be deployed by anyone, interested in running a historical data query & real-time notification service for EVM-based blockchain(s).
+
+All client requests are rate limited _( 50k requests/ day )_. This rate limit is enforced on all `APIKey`(s) created by any single Ethereum Address. You can create multiple `APIKey`(s) from your account & accumulated requests made from those keys to be considered before dropping your requests.
+
+> So, it'll be helpful for protecting from spam attacks.
+
+**More features coming here, soon**
+
+## Management using webUI
+
+`ette` has one minimalistic webUI for generating & managing `APIKey`(s). It doesn't have any password based login mechanism. You need to have [Metamask](https://metamask.io/download.html) browser plugin installed for logging into `ette` management webUI.
+
+Once you've started `ette` on your machine, open browser & head to [http://localhost:7000/v1/login](http://localhost:7000/v1/login).
+
+You'll be greeted with 👇
+
+![ui](./sc/login_1.png)
+
+Assuming you've Metamask browser plugin installed, you can click `Login` & you'll be asked to sign a message of specific format, which will be validated by `ette`.
+
+![ui](./sc/login_2.png)
+
+Once logged in, you can find out all `APIKey`(s) created by you.
+
+![ui](./sc/webUI_1.png)
+
+If you've not any `APIKey`(s) created yet, go ahead & click `Create new app`. Again you'll be asked to sign a message of specific format.
+
+![ui](./sc/webUI_2.png)
+
+And you'll see new `APIKey` on your screen.
+
+![ui](./sc/webUI_3.png)
+
+You can create any number of `APIKey`(s), but rate limiting to be applied on aggregated requests from all those `APIKey`(s).
+
+> Now go ahead & use `APIKey` in header of historical data query requests/ payload of real-time notification subscription/ unsubscription request.
+
+Read further for usage examples.
 
 ## Usage 🦾
 
