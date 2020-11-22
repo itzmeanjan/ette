@@ -12,7 +12,7 @@ EVM-based Blockchain Indexer, with historical data query & real-time notificatio
 - [What do I need to have to use it ?](#prerequisite-)
 - [How to install it ?](#installation-)
 - [What are possible use cases of `ette` ?](#use-cases-)
-- [How do I generate `APIKey`(s) ?](#management-using-webui)
+- [How do I generate `APIKey`(s) ?](#management-using-webui-)
 - [How to use it ?](#usage-)
     - Historical Data 
         - [Query historical block data](#historical-block-data-)
