@@ -70,13 +70,15 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	if block.Transactions().Len() == 0 {
 		log.Printf("[!] Empty Block : %d\n", block.NumberU64())
 
+		// -- Safely updating sync state holder
 		_lock.Lock()
 		defer _lock.Unlock()
 
 		_synced.Done++
-		if block.NumberU64() > _synced.Target {
-			_synced.Target = block.NumberU64()
+		if block.NumberU64() >= _synced.Target {
+			_synced.Target = block.NumberU64() + 1
 		}
+		// ---
 
 		return
 	}

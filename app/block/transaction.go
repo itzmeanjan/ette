@@ -3,6 +3,7 @@ package block
 import (
 	"context"
 	"log"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -14,7 +15,7 @@ import (
 )
 
 // Fetching specific transaction related data & persisting in database
-func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client) {
+func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client, _lock *sync.Mutex, _synced *d.SyncState) {
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		log.Printf("[!] Failed to fetch tx receipt : %s\n", err.Error())
@@ -35,6 +36,17 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 	db.PutTransaction(_db, tx, receipt, sender)
 	db.PutEvent(_db, receipt)
 	log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
+
+	// --- Safely updating sync state holder
+	_lock.Lock()
+
+	_synced.Done++
+	if block.NumberU64() >= _synced.Target {
+		_synced.Target = block.NumberU64() + 1
+	}
+
+	_lock.Unlock()
+	// ---
 
 	// This is not a case when real time data is received, rather this is probably
 	// a sync attempt to latest state of blockchain

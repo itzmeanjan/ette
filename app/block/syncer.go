@@ -24,7 +24,7 @@ func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB, fromBlock uint64,
 
 		func(num uint64) {
 			wp.Submit(func() {
-				fetchBlockByNumber(client, num, _db)
+				fetchBlockByNumber(client, num, _db, _lock, _synced)
 			})
 		}(i)
 
@@ -33,9 +33,13 @@ func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB, fromBlock uint64,
 	wp.StopWait()
 
 	// Safely updating sync state
+	//
+	// Unlocking is scheduled here, it'll definitely
+	// happen
 	_lock.Lock()
+	defer _lock.Unlock()
+
 	_synced.Synced = true
-	_lock.Unlock()
 
 	log.Printf("[+] Syncing Completed\n")
 }
