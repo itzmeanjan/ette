@@ -23,9 +23,10 @@ func getClient() *ethclient.Client {
 func getPubSubClient() *redis.Client {
 
 	return redis.NewClient(&redis.Options{
-		Network: cfg.Get("RedisConnection"),
-		Addr:    cfg.Get("RedisAddress"),
-		DB:      0,
+		Network:  cfg.Get("RedisConnection"),
+		Addr:     cfg.Get("RedisAddress"),
+		Password: cfg.Get("RedisPassword"),
+		DB:       0,
 	})
 
 }
