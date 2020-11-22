@@ -90,10 +90,23 @@ go build
 ```
 
 - Database migration to be taken care of during application start up.
-- Syncing `ette` with latest state of blockchain takes time. Whether syncing is done or not, can be checked by querying
+- Syncing `ette` with latest state of blockchain takes time. Current sync state can be queried
 
 ```bash
-curl http://localhost:7000/v1/synced
+curl -s http://localhost:7000/v1/synced | jq
+```
+
+- You'll receive response of form 👇
+
+```json
+{
+  "done": 4242, // number of blocks synced in 
+  "elapsed": "3m2.487237s", // time elapsed during syncing
+  "eta": "87h51m38s", // expected time of completion of syncing i.e. reaching 100%
+  "rate": "23.245461 blocks/s", // per second sync rate
+  "synced": "0.057695 %", // percentage of completed syncing
+  "target": 7352494 // total number blocks to be synced
+}
 ```
 
 > Note: For production, you'll most probably run it using `systemd`
