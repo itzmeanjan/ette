@@ -338,7 +338,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			defer _lock.Unlock()
 
 			c.JSON(http.StatusOK, gin.H{
-				"synced": _synced.Synced,
+				"done":   _synced.Done,
+				"target": _synced.Target,
 			})
 
 		})

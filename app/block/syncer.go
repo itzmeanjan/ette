@@ -32,14 +32,5 @@ func SyncToLatestBlock(client *ethclient.Client, _db *gorm.DB, fromBlock uint64,
 
 	wp.StopWait()
 
-	// Safely updating sync state
-	//
-	// Unlocking is scheduled here, it'll definitely
-	// happen
-	_lock.Lock()
-	defer _lock.Unlock()
-
-	_synced.Synced = true
-
-	log.Printf("[+] Syncing Completed\n")
+	log.Printf("[+] Historical Data Syncing Completed\n")
 }

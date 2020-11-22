@@ -32,7 +32,7 @@ func bootstrap(file string) (*ethclient.Client, *redis.Client, *gorm.DB, *sync.M
 	_db := db.Connect()
 
 	_lock := &sync.Mutex{}
-	_synced := &d.SyncState{Synced: false, Target: 0, Done: 0}
+	_synced := &d.SyncState{Target: 0, Done: 0}
 
 	return _client, _redisClient, _db, _lock, _synced
 }
