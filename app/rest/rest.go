@@ -92,7 +92,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		// Data delivery being logged for implementing rate limiting
 		user := db.GetUserFromAPIKey(_db, c.GetHeader("APIKey"))
 		if user == nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
+			c.JSON(http.StatusUnauthorized, gin.H{
 				"msg": "Bad API Key",
 			})
 			return
@@ -137,7 +137,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		return address
 	}
 
-	// For any query/ real-time data subscription request
+	// For any historical query request
 	// APIKey needs to be delivered in header
 	//
 	// headers: { 'APIKey': '0x...' }
@@ -153,7 +153,8 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			return
 		}
 
-		if !db.ValidateAPIKey(_db, apiKey) {
+		user := db.GetUserFromAPIKey(_db, apiKey)
+		if user == nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"msg": "Bad API Key",
 			})
@@ -162,7 +163,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		// Checking if user has crossed allowed rate limit or not
 		// If yes, we're dropping request
-		if !db.IsUnderRateLimit(_db, apiKey) {
+		if !db.IsUnderRateLimit(_db, user.Address) {
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
 				"msg": "Crossed Allowed Rate Limit",
 			})

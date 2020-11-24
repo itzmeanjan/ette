@@ -86,19 +86,18 @@ func ValidateAPIKey(_db *gorm.DB, apiKey string) bool {
 }
 
 // IsUnderRateLimit - Checks whether number of times data delivered
-// to client application ( identified using API Key ), for query response
-// or for real-time data delivery, is under a limit ( currently hardcoded inside code )
-// or not
-func IsUnderRateLimit(_db *gorm.DB, apiKey string) bool {
+// to client application ( identified using signer address i.e. who created API Key ),
+//  for query response or for real-time data delivery, is under a limit
+// ( currently hardcoded inside code ) or not
+func IsUnderRateLimit(_db *gorm.DB, userAddress string) bool {
 	var count int64
 
 	if err := _db.Model(&DeliveryHistory{}).
-		Joins("inner join users on delivery_history.client = users.apikey").
-		Where("users.address = (?)",
-			_db.Model(&Users{}).Where("apikey = ?", apiKey).Select("address")).
-		Where("delivery_history.ts > now() - interval '1 day'").Count(&count).Error; err != nil {
+		Where("delivery_history.client = ? and delivery_history.ts > now() - interval '1 day'", userAddress).
+		Count(&count).Error; err != nil {
 		return false
 	}
 
+	// 50k times data delivered to client in a day
 	return count < 50000
 }
