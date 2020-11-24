@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/itzmeanjan/ette/app/data"
 	_db "github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
@@ -18,15 +19,21 @@ type SubscriptionRequest struct {
 	APIKey string `json:"apiKey"`
 }
 
+// GetUserFromAPIKey - Given API Key, which is being used for subscribing to
+// real-time topic, it returns if there exists any user who has signed creation of this API Key
+func (s *SubscriptionRequest) GetUserFromAPIKey(db *gorm.DB) *_db.Users {
+	return _db.GetUserFromAPIKey(db, s.APIKey)
+}
+
 // ValidateAPIKey - Given API key along with realtime notification
 // subscription/ unsubscription request, validates API key, by checking
 // existence against database
-func (s *SubscriptionRequest) ValidateAPIKey(db *gorm.DB) bool {
+func (s *SubscriptionRequest) ValidateAPIKey(db *gorm.DB, address common.Address) bool {
 	if !(len(s.APIKey) == 66 && strings.HasPrefix(s.APIKey, "0x")) {
 		return false
 	}
 
-	return _db.ValidateAPIKey(db, s.APIKey) && _db.IsUnderRateLimit(db, s.APIKey)
+	return _db.ValidateAPIKey(db, s.APIKey) && _db.IsUnderRateLimit(db, address.Hex())
 }
 
 // GetRegex - Returns regex to be used for validating subscription request
