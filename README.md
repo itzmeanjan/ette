@@ -267,7 +267,11 @@ After that as long as your machine is reachable, `ette` will keep notifying you 
   "difficulty": "6",
   "gasUsed": 78746,
   "gasLimit": 20000000,
-  "nonce": 0
+  "nonce": 0,
+  "miner": "0x0000000000000000000000000000000000000000",
+  "size": 1044,
+  "txRootHash": "0x088d6142b1d79803c851b1d839888b1e9f26c31e1266b4e221121f2cd8e85f86",
+  "receiptRootHash": "0xca3949d52f113935ac08bae15e0816cd0472f01590f0fe0b65584bfb3aa324a6"
 }
 ```
 
