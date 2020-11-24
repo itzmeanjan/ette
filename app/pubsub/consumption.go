@@ -1,6 +1,7 @@
 package pubsub
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
@@ -17,12 +18,13 @@ type Consumer interface {
 // NewBlockConsumer - Creating one new block data consumer, which will subscribe to block
 // topic & listen for data being published on this channel, which will eventually be
 // delivered to client application over websocket connection
-func NewBlockConsumer(client *redis.Client, conn *websocket.Conn, req *SubscriptionRequest, db *gorm.DB) *BlockConsumer {
+func NewBlockConsumer(client *redis.Client, conn *websocket.Conn, req *SubscriptionRequest, db *gorm.DB, address common.Address) *BlockConsumer {
 	consumer := BlockConsumer{
-		Client:     client,
-		Request:    req,
-		Connection: conn,
-		DB:         db,
+		Client:      client,
+		Request:     req,
+		UserAddress: address,
+		Connection:  conn,
+		DB:          db,
 	}
 
 	consumer.Subscribe()
@@ -35,12 +37,13 @@ func NewBlockConsumer(client *redis.Client, conn *websocket.Conn, req *Subscript
 // topic & listen for data being published on this channel & check whether received data
 // is what, client is interested in or not, which will eventually be
 // delivered to client application over websocket connection
-func NewTransactionConsumer(client *redis.Client, conn *websocket.Conn, req *SubscriptionRequest, db *gorm.DB) *TransactionConsumer {
+func NewTransactionConsumer(client *redis.Client, conn *websocket.Conn, req *SubscriptionRequest, db *gorm.DB, address common.Address) *TransactionConsumer {
 	consumer := TransactionConsumer{
-		Client:     client,
-		Request:    req,
-		Connection: conn,
-		DB:         db,
+		Client:      client,
+		Request:     req,
+		UserAddress: address,
+		Connection:  conn,
+		DB:          db,
 	}
 
 	consumer.Subscribe()
@@ -53,12 +56,13 @@ func NewTransactionConsumer(client *redis.Client, conn *websocket.Conn, req *Sub
 // topic & listen for data being published on this channel & check whether received data
 // is what, client is interested in or not, which will eventually be
 // delivered to client application over websocket connection
-func NewEventConsumer(client *redis.Client, conn *websocket.Conn, req *SubscriptionRequest, db *gorm.DB) *EventConsumer {
+func NewEventConsumer(client *redis.Client, conn *websocket.Conn, req *SubscriptionRequest, db *gorm.DB, address common.Address) *EventConsumer {
 	consumer := EventConsumer{
-		Client:     client,
-		Request:    req,
-		Connection: conn,
-		DB:         db,
+		Client:      client,
+		Request:     req,
+		UserAddress: address,
+		Connection:  conn,
+		DB:          db,
 	}
 
 	consumer.Subscribe()

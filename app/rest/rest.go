@@ -987,8 +987,10 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 				break
 			}
 
+			userAddress := common.HexToAddress(user.Address)
+
 			// Checking if client is under allowed rate limit or not
-			if !req.IsUnderRateLimit(_db, common.HexToAddress(user.Address)) {
+			if !req.IsUnderRateLimit(_db, userAddress) {
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Crossed Allowed Rate Limit"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
@@ -1007,11 +1009,11 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			case "subscribe":
 				switch req.Topic() {
 				case "block":
-					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req, _db)
+					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req, _db, userAddress)
 				case "transaction":
-					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req, _db)
+					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req, _db, userAddress)
 				case "event":
-					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req, _db)
+					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req, _db, userAddress)
 				}
 			case "unsubscribe":
 				switch req.Topic() {

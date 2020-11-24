@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/itzmeanjan/ette/app/data"
@@ -19,11 +20,12 @@ import (
 //
 // If yes, also deliver data to client application, connected over websocket
 type TransactionConsumer struct {
-	Client     *redis.Client
-	Request    *SubscriptionRequest
-	Connection *websocket.Conn
-	PubSub     *redis.PubSub
-	DB         *gorm.DB
+	Client      *redis.Client
+	Request     *SubscriptionRequest
+	UserAddress common.Address
+	Connection  *websocket.Conn
+	PubSub      *redis.PubSub
+	DB          *gorm.DB
 }
 
 // Subscribe - Subscribe to `transaction` topic, under which all transaction related data to be published

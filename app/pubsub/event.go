@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
@@ -21,11 +22,12 @@ import (
 // of information, which is to be required when delivering data & checking whether this connection
 // has really requested notification for this event or not
 type EventConsumer struct {
-	Client     *redis.Client
-	Request    *SubscriptionRequest
-	Connection *websocket.Conn
-	PubSub     *redis.PubSub
-	DB         *gorm.DB
+	Client      *redis.Client
+	Request     *SubscriptionRequest
+	UserAddress common.Address
+	Connection  *websocket.Conn
+	PubSub      *redis.PubSub
+	DB          *gorm.DB
 }
 
 // Subscribe - Event consumer is subscribing to `event` topic,

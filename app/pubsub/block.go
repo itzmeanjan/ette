@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
@@ -17,11 +18,12 @@ import (
 // BlockConsumer - To be subscribed to `block` topic using this consumer handle
 // and client connected using websocket needs to be delivered this piece of data
 type BlockConsumer struct {
-	Client     *redis.Client
-	Request    *SubscriptionRequest
-	Connection *websocket.Conn
-	PubSub     *redis.PubSub
-	DB         *gorm.DB
+	Client      *redis.Client
+	Request     *SubscriptionRequest
+	UserAddress common.Address
+	Connection  *websocket.Conn
+	PubSub      *redis.PubSub
+	DB          *gorm.DB
 }
 
 // Subscribe - Subscribe to `block` channel
