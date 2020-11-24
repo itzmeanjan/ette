@@ -75,6 +75,7 @@ cd ette
     - Please enable password based authentication in Redis Server.
     - `Admin` is ethereum address who will be able to administer `ette` using webUI. _[ **This feature is not yet implemented, but please put `Admin` in config file** ]_
     - Replace `Domain` with your domain name i.e. `ette.company.com`
+    - Set `Production` to `yes` before running it in production; otherwise you can simply skip it
 
 ```
 RPC=wss://<websocket-endpoint>
