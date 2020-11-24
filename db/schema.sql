@@ -47,3 +47,9 @@ create table users (
     apikey char(66) primary key,
     ts timestamp not null
 );
+
+create table subscription_plans (
+    id serial primary key,
+    name varchar(20) not null,
+    deliverycount bigint not null
+);
