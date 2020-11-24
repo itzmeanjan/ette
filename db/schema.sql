@@ -34,22 +34,28 @@ create table events (
     foreign key (blockhash) references blocks(hash)
 );
 
-create table delivery_history (
-    id bigserial primary key,
-    client varchar(20) not null,
-    ts timestamp not null,
-    endpoint varchar(100) not null,
-    datalength bigint not null
-);
-
 create table users (
     address char(42) not null,
     apikey char(66) primary key,
     ts timestamp not null
 );
 
+create table delivery_history (
+    id bigserial primary key,
+    client char(20) not null,
+    ts timestamp not null,
+    endpoint varchar(100) not null,
+    datalength bigint not null,
+);
+
 create table subscription_plans (
     id serial primary key,
     name varchar(20) not null,
     deliverycount bigint not null
+);
+
+create table subscription_details (
+    address char(42) primary key,
+    subscriptionplan int not null,
+    foreign key (subscriptionplan) references subscription_plans(id)
 );
