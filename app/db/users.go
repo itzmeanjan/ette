@@ -82,13 +82,7 @@ func GetUserFromAPIKey(_db *gorm.DB, apiKey string) *Users {
 // ValidateAPIKey - Given an API Key, checks whether this API Key is present
 // or not, if yes, request from client can be taken up
 func ValidateAPIKey(_db *gorm.DB, apiKey string) bool {
-	var user Users
-
-	if err := _db.Model(&Users{}).Where("users.apikey = ?", apiKey).First(&user).Error; err != nil {
-		return false
-	}
-
-	return &user != nil
+	return GetUserFromAPIKey(_db, apiKey) != nil
 }
 
 // IsUnderRateLimit - Checks whether number of times data delivered
