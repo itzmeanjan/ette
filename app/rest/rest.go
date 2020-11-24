@@ -165,6 +165,19 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 	}
 
+	// Checking if user has asked to run webserver in production mode or not
+	checkIfInProduction := func() bool {
+		return strings.ToLower(cfg.Get("Production")) == "yes"
+	}
+
+	// Running in production/ debug mode depending upon
+	// user choice specified in .env file
+	if checkIfInProduction() {
+		gin.SetMode(gin.ReleaseMode)
+	} else {
+		gin.SetMode(gin.DebugMode)
+	}
+
 	router := gin.Default()
 
 	// enabled cors

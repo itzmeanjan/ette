@@ -89,6 +89,7 @@ RedisAddress=x.x.x.x:6379
 RedisPassword=password
 Admin=e19b9EB3Bf05F1C8100C9b6E8a3D8A14F6384BFb
 Domain=localhost
+Production=yes
 ```
 
 - Now build `ette`
