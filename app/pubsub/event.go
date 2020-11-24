@@ -94,7 +94,7 @@ func (e *EventConsumer) Send(msg string) bool {
 
 	// Don't deliver data & close underlying connection
 	// if client has crossed it's allowed data delivery limit
-	if !db.IsUnderRateLimit(e.DB, e.Request.APIKey) {
+	if !db.IsUnderRateLimit(e.DB, e.UserAddress.Hex()) {
 		return false
 	}
 
@@ -140,7 +140,7 @@ func (e *EventConsumer) Send(msg string) bool {
 	}
 
 	if e.SendData(&event) {
-		db.PutDataDeliveryInfo(e.DB, e.Request.APIKey, "/v1/ws/event", uint64(len(msg)))
+		db.PutDataDeliveryInfo(e.DB, e.UserAddress.Hex(), "/v1/ws/event", uint64(len(msg)))
 		return true
 	}
 

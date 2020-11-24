@@ -90,7 +90,7 @@ func (t *TransactionConsumer) Send(msg string) bool {
 
 	// Don't deliver data & close underlying connection
 	// if client has crossed it's allowed data delivery limit
-	if !db.IsUnderRateLimit(t.DB, t.Request.APIKey) {
+	if !db.IsUnderRateLimit(t.DB, t.UserAddress.Hex()) {
 		return false
 	}
 
@@ -109,7 +109,7 @@ func (t *TransactionConsumer) Send(msg string) bool {
 	}
 
 	if t.SendData(&transaction) {
-		db.PutDataDeliveryInfo(t.DB, t.Request.APIKey, "/v1/ws/transaction", uint64(len(msg)))
+		db.PutDataDeliveryInfo(t.DB, t.UserAddress.Hex(), "/v1/ws/transaction", uint64(len(msg)))
 		return true
 	}
 

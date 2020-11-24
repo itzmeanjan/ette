@@ -88,7 +88,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 
 	// Don't deliver data & close underlying connection
 	// if client has crossed it's allowed data delivery limit
-	if !db.IsUnderRateLimit(b.DB, b.Request.APIKey) {
+	if !db.IsUnderRateLimit(b.DB, b.UserAddress.Hex()) {
 		return false
 	}
 
@@ -103,7 +103,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 	}
 
 	if b.SendData(&block) {
-		db.PutDataDeliveryInfo(b.DB, b.Request.APIKey, "/v1/ws/block", uint64(len(msg)))
+		db.PutDataDeliveryInfo(b.DB, b.UserAddress.Hex(), "/v1/ws/block", uint64(len(msg)))
 		return true
 	}
 
