@@ -42,7 +42,7 @@ create table users (
 
 create table delivery_history (
     id bigserial primary key,
-    client char(20) not null,
+    client char(42) not null,
     ts timestamp not null,
     endpoint varchar(100) not null,
     datalength bigint not null,
@@ -56,6 +56,5 @@ create table subscription_plans (
 
 create table subscription_details (
     address char(42) primary key,
-    subscriptionplan int not null,
-    foreign key (subscriptionplan) references subscription_plans(id)
+    subscriptionplan int not null
 );

@@ -67,6 +67,18 @@ func RegisterNewApp(_db *gorm.DB, address common.Address) bool {
 	return true
 }
 
+// GetUserFromAPIKey - Given API Key, tries to find out if there's any user registered
+// who signed for creating this API Key
+func GetUserFromAPIKey(_db *gorm.DB, apiKey string) *Users {
+	var user Users
+
+	if err := _db.Model(&Users{}).Where("users.apikey = ?", apiKey).First(&user).Error; err != nil {
+		return nil
+	}
+
+	return &user
+}
+
 // ValidateAPIKey - Given an API Key, checks whether this API Key is present
 // or not, if yes, request from client can be taken up
 func ValidateAPIKey(_db *gorm.DB, apiKey string) bool {
