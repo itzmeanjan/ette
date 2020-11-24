@@ -979,8 +979,17 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 			// Validating client provided API key, if fails, we return
 			// failure message to client & close connection
-			if !req.ValidateAPIKey(_db) {
+			user := req.GetUserFromAPIKey(_db)
+			if user == nil {
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
+					log.Printf("[!] Failed to write message : %s\n", err.Error())
+				}
+				break
+			}
+
+			// Checking if client is under allowed rate limit or not
+			if !req.IsUnderRateLimit(_db, common.HexToAddress(user.Address)) {
+				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Crossed Allowed Rate Limit"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
 				break
