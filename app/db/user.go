@@ -14,7 +14,7 @@ import (
 func GetAppsByUserAddress(_db *gorm.DB, address common.Address) []*Users {
 	var apps []*Users
 
-	if err := _db.Model(&Users{}).Where("users.address = ?", address.Hex()).Find(&apps).Error; err != nil {
+	if err := _db.Model(&Users{}).Where("users.address = ?", address.Hex()).Order("users.ts desc").Find(&apps).Error; err != nil {
 		return nil
 	}
 
