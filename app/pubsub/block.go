@@ -89,6 +89,18 @@ func (b *BlockConsumer) Send(msg string) bool {
 	// Don't deliver data & close underlying connection
 	// if client has crossed it's allowed data delivery limit
 	if !db.IsUnderRateLimit(b.DB, b.UserAddress.Hex()) {
+
+		if err := b.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Crossed Allowed Rate Limit",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
+		}
+
+		if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
+			log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
+		}
+
 		return false
 	}
 
