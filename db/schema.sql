@@ -50,8 +50,8 @@ create table delivery_history (
 
 create table subscription_plans (
     id serial primary key,
-    name varchar(20) not null,
-    deliverycount bigint not null
+    name varchar(20) not null unique,
+    deliverycount bigint not null unique
 );
 
 create table subscription_details (
