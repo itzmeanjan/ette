@@ -8,10 +8,15 @@ import (
 )
 
 func main() {
-	abs, err := filepath.Abs(".env")
+	configFile, err := filepath.Abs(".env")
 	if err != nil {
 		log.Fatalf("[!] Failed to find `.env` : %s\n", err.Error())
 	}
 
-	app.Run(abs)
+	subscriptionPlansFile, err := filepath.Abs(".env")
+	if err != nil {
+		log.Fatalf("[!] Failed to find `.plans.json` : %s\n", err.Error())
+	}
+
+	app.Run(configFile, subscriptionPlansFile)
 }

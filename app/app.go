@@ -16,8 +16,8 @@ import (
 )
 
 // Setting ground up
-func bootstrap(file string) (*ethclient.Client, *redis.Client, *gorm.DB, *sync.Mutex, *d.SyncState) {
-	err := cfg.Read(file)
+func bootstrap(configFile, subscriptionPlansFile string) (*ethclient.Client, *redis.Client, *gorm.DB, *sync.Mutex, *d.SyncState) {
+	err := cfg.Read(configFile)
 	if err != nil {
 		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
 	}
@@ -31,6 +31,10 @@ func bootstrap(file string) (*ethclient.Client, *redis.Client, *gorm.DB, *sync.M
 
 	_db := db.Connect()
 
+	// Populating subscription plans from `.plans.json` into
+	// database table, at application start up
+	db.PersistAllSubscriptionPlans(_db, subscriptionPlansFile)
+
 	_lock := &sync.Mutex{}
 	_synced := &d.SyncState{Target: 0, Done: 0}
 
@@ -38,8 +42,8 @@ func bootstrap(file string) (*ethclient.Client, *redis.Client, *gorm.DB, *sync.M
 }
 
 // Run - Application to be invoked from main runner using this function
-func Run(file string) {
-	_client, _redisClient, _db, _lock, _synced := bootstrap(file)
+func Run(configFile, subscriptionPlansFile string) {
+	_client, _redisClient, _db, _lock, _synced := bootstrap(configFile, subscriptionPlansFile)
 
 	// Pushing block header propagation listener to another thread of execution
 	go blk.SubscribeToNewBlocks(_client, _db, _lock, _synced, _redisClient)
