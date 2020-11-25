@@ -85,7 +85,7 @@
                     .then(async resp => {
 
                         if(resp.redirected) {
-                            location.pathname = resp.url
+                            window.location = resp.url
                             return
                         }
 
@@ -97,7 +97,7 @@
                                 return
                             }
 
-                            location.pathname = '/v1/dashboard'
+                            window.location = '/v1/dashboard'
                         } catch(_) {
                             alert('Something unexpected happened !')
                         }
@@ -123,7 +123,7 @@
     }).then(async resp => {
 
         if(resp.redirected) {
-            location.pathname = resp.url
+            window.location = resp.url
             return
         }
 
@@ -180,7 +180,7 @@
                     .then(async resp => {
 
                         if(resp.redirected) {
-                            location.pathname = resp.url
+                            window.location = resp.url
                             return
                         }
 
@@ -192,7 +192,7 @@
                                 return
                             }
 
-                            location.pathname = '/v1/dashboard'
+                            window.location = '/v1/dashboard'
                         } catch(_) {
                             alert('Something unexpected happened !')
                         }
