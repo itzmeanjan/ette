@@ -16,3 +16,4 @@
 .env
 ette
 node_modules
+.plans.json
