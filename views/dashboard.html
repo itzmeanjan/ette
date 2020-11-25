@@ -97,13 +97,13 @@
                                 return
                             }
 
-                            window.location = '/v1/dashboard'
+                            location.pathname = '/v1/dashboard'
                         } catch(_) {
                             alert('Something unexpected happened !')
                         }
 
                     })
-                    .catch(_ => alert('Something unexpected happened !')) 
+                    .catch(_ => alert('Something unexpected happened !'))
 
                 }).catch(_ => alert('Metamask failed to sign message !'))
             } else {
@@ -166,6 +166,41 @@
                     
                     card.appendChild(p)
                 })
+
+                card.ondblclick = _ => {
+
+                    fetch('/v1/dashboard/toggleApp', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({apiKey: v.apiKey})
+                    })
+                    .then(async resp => {
+
+                        if(resp.status === 307) {
+                            location.pathname = '/v1/login'
+                            return
+                        }
+
+                        try {
+                            const v = await resp.json()
+
+                            if (resp.status !== 200) {
+                                alert(v.msg)
+                                return
+                            }
+
+                            location.pathname = '/v1/dashboard'
+                        } catch(_) {
+                            alert('Something unexpected happened !')
+                        }
+
+                    })
+                    .catch(_ => alert('Something unexpected happened !'))
+
+                }
 
                 container.insertBefore(card, container.firstChild)
             })
