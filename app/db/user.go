@@ -67,6 +67,20 @@ func RegisterNewApp(_db *gorm.DB, address common.Address) bool {
 	return true
 }
 
+// ToggleAPIKeyState - Given valid API key, toggles its enabled state
+func ToggleAPIKeyState(_db *gorm.DB, apiKey string) bool {
+	user := GetUserFromAPIKey(_db, apiKey)
+	if user == nil {
+		return false
+	}
+
+	if err := _db.Model(&Users{}).Update("enabled", !user.Enabled).Error; err != nil {
+		return false
+	}
+
+	return true
+}
+
 // GetUserFromAPIKey - Given API Key, tries to find out if there's any user registered
 // who signed for creating this API Key
 func GetUserFromAPIKey(_db *gorm.DB, apiKey string) *Users {

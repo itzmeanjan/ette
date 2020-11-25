@@ -158,11 +158,11 @@
                 card.className = 'card'
              
                 const paras = [`API Key: ${v.apiKey}`, `Created At: ${(new Date(v.timeStamp)).toString()}`]
-                paras.forEach(v => {
+                paras.forEach(e => {
                     const p = document.createElement('p')
 
-                    p.innerHTML = v
-                    p.style.color = '#4a1144'
+                    p.innerHTML = e
+                    p.style.color = v.enabled ? '#64d9a4' : '#eb8975'
                     
                     card.appendChild(p)
                 })

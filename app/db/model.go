@@ -76,6 +76,7 @@ type Users struct {
 	Address   string    `gorm:"column:address;type:char(42);not null" json:"address"`
 	APIKey    string    `gorm:"column:apikey;type:char(66);primaryKey" json:"apiKey"`
 	TimeStamp time.Time `gorm:"column:ts;type:timestamp;not null" json:"timeStamp"`
+	Enabled   bool      `gorm:"column:enabled;type:boolean;default:true" json:"enabled"`
 }
 
 // TableName - Overriding default table name
