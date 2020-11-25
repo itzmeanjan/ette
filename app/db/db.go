@@ -17,6 +17,6 @@ func Connect() *gorm.DB {
 		log.Fatalf("[!] Failed to connect to db : %s\n", err.Error())
 	}
 
-	_db.AutoMigrate(&Blocks{}, &Transactions{}, &Events{}, &Users{}, &DeliveryHistory{}, &SubscriptionPlans{})
+	_db.AutoMigrate(&Blocks{}, &Transactions{}, &Events{}, &Users{}, &DeliveryHistory{}, &SubscriptionPlans{}, &SubscriptionDetails{})
 	return _db
 }
