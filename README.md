@@ -167,6 +167,17 @@ You can create any number of `APIKey`(s), but rate limiting to be applied on agg
 
 > Now go ahead & use `APIKey` in header of historical data query requests/ payload of real-time notification subscription/ unsubscription request.
 
+**Double clicking on created `APIKey` toggles its enabled state, which is represented visually.** 👇
+
+![ui](./sc/webUI.gif)
+
+Enabled | Text Color
+--- | ---
+Yes | Green
+No | Red
+
+> **Quick Tip:** As you can create any number of `APIKey`(s) from one Ethereum address, if you feel any of those has been exposed, disabling those ensures all requests accompanied with those `APIKey`(s) to be dropped, by `ette`
+
 Read further for usage examples.
 
 ## Usage 🦾
