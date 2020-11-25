@@ -161,6 +161,14 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			return
 		}
 
+		// Checking if user has kept this APIKey enabled or not
+		if !user.Enabled {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"msg": "Bad API Key",
+			})
+			return
+		}
+
 		// Checking if user has crossed allowed rate limit or not
 		// If yes, we're dropping request
 		if !db.IsUnderRateLimit(_db, user.Address) {
@@ -1016,6 +1024,14 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			// failure message to client & close connection
 			user := req.GetUserFromAPIKey(_db)
 			if user == nil {
+				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
+					log.Printf("[!] Failed to write message : %s\n", err.Error())
+				}
+				break
+			}
+
+			// Checking if user has kept this APIKey enabled or not
+			if !user.Enabled {
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}

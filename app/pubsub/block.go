@@ -86,6 +86,41 @@ func (b *BlockConsumer) Listen() {
 // connected over websocket
 func (b *BlockConsumer) Send(msg string) bool {
 
+	user := db.GetUserFromAPIKey(b.DB, b.Request.APIKey)
+	if user == nil {
+
+		if err := b.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Bad API Key",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
+		}
+
+		if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
+			log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
+		}
+
+		return false
+
+	}
+
+	if !user.Enabled {
+
+		if err := b.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Bad API Key",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
+		}
+
+		if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
+			log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
+		}
+
+		return false
+
+	}
+
 	// Don't deliver data & close underlying connection
 	// if client has crossed it's allowed data delivery limit
 	if !db.IsUnderRateLimit(b.DB, b.UserAddress.Hex()) {
