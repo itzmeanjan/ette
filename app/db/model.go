@@ -111,3 +111,16 @@ func (u *Users) ToJSON() []byte {
 
 	return data
 }
+
+// SubscriptionPlans - Allowed subscription plans, to be auto populated from
+// .plans.json, at application start up
+type SubscriptionPlans struct {
+	ID            uint64 `gorm:"column:id;type:serial;primaryKey"`
+	Name          string `gorm:"column:name;type:varchar(20);not null"`
+	DeliveryCount uint64 `gorm:"column:deliverycount;type:bigint;not null"`
+}
+
+// TableName - Overriding default table name
+func (SubscriptionPlans) TableName() string {
+	return "subscription_plans"
+}
