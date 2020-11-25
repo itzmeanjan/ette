@@ -84,8 +84,8 @@
                     })
                     .then(async resp => {
 
-                        if(resp.status === 307) {
-                            location.pathname = '/v1/login'
+                        if(resp.redirected) {
+                            location.pathname = resp.url
                             return
                         }
 
@@ -122,8 +122,8 @@
         credentials: 'include',
     }).then(async resp => {
 
-        if(resp.status === 307) {
-            location.pathname = '/v1/login'
+        if(resp.redirected) {
+            location.pathname = resp.url
             return
         }
 
@@ -179,8 +179,8 @@
                     })
                     .then(async resp => {
 
-                        if(resp.status === 307) {
-                            location.pathname = '/v1/login'
+                        if(resp.redirected) {
+                            location.pathname = resp.url
                             return
                         }
 
