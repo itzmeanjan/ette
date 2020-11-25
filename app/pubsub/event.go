@@ -92,6 +92,41 @@ func (e *EventConsumer) Listen() {
 // & connected over websocket
 func (e *EventConsumer) Send(msg string) bool {
 
+	user := db.GetUserFromAPIKey(e.DB, e.Request.APIKey)
+	if user == nil {
+
+		if err := e.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Bad API Key",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
+		}
+
+		if err := e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
+			log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
+		}
+
+		return false
+
+	}
+
+	if !user.Enabled {
+
+		if err := e.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Bad API Key",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
+		}
+
+		if err := e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
+			log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
+		}
+
+		return false
+
+	}
+
 	// Don't deliver data & close underlying connection
 	// if client has crossed it's allowed data delivery limit
 	if !db.IsUnderRateLimit(e.DB, e.UserAddress.Hex()) {
