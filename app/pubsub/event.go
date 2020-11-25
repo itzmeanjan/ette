@@ -95,7 +95,20 @@ func (e *EventConsumer) Send(msg string) bool {
 	// Don't deliver data & close underlying connection
 	// if client has crossed it's allowed data delivery limit
 	if !db.IsUnderRateLimit(e.DB, e.UserAddress.Hex()) {
+
+		if err := e.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Crossed Allowed Rate Limit",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
+		}
+
+		if err := e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
+			log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
+		}
+
 		return false
+
 	}
 
 	var event struct {

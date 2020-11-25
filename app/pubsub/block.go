@@ -102,6 +102,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 		}
 
 		return false
+
 	}
 
 	var block d.Block

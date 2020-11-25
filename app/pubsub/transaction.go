@@ -91,7 +91,20 @@ func (t *TransactionConsumer) Send(msg string) bool {
 	// Don't deliver data & close underlying connection
 	// if client has crossed it's allowed data delivery limit
 	if !db.IsUnderRateLimit(t.DB, t.UserAddress.Hex()) {
+
+		if err := t.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Crossed Allowed Rate Limit",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
+		}
+
+		if err := t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
+			log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
+		}
+
 		return false
+
 	}
 
 	var transaction data.Transaction
