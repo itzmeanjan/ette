@@ -340,9 +340,44 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 				return
 			}
 
+			if common.HexToAddress(address) != common.BytesToAddress(signer) {
+				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
+				return
+			}
+
 			if !db.RegisterNewApp(_db, common.HexToAddress(address)) {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"msg": "Failed to register app",
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"msg": "Success",
+			})
+
+		})
+
+		grp.POST("/dashboard/toggleApp", func(c *gin.Context) {
+
+			address := validateSessionID(c)
+			if address == "" {
+				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
+				return
+			}
+
+			var apiKey d.APIKey
+
+			if err := c.ShouldBindJSON(&apiKey); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"msg": "Bad APIKey Payload",
+				})
+				return
+			}
+
+			if !db.ToggleAPIKeyState(_db, apiKey.APIKey.Hex()) {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"msg": "Failed to toggle app state",
 				})
 				return
 			}

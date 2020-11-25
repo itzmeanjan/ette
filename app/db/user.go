@@ -74,7 +74,7 @@ func ToggleAPIKeyState(_db *gorm.DB, apiKey string) bool {
 		return false
 	}
 
-	if err := _db.Model(&Users{}).Update("enabled", !user.Enabled).Error; err != nil {
+	if err := _db.Model(&Users{}).Where("users.address = ? and users.apikey = ?", user.Address, user.APIKey).Update("enabled", !user.Enabled).Error; err != nil {
 		return false
 	}
 
