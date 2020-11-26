@@ -204,6 +204,42 @@
 
                 container.insertBefore(card, container.firstChild)
             })
+
+            fetch('/v1/dashboard/plan', {
+                method:'GET',
+                credentials: 'include'
+            }).then(async resp => {
+
+                if(resp.redirected) {
+                    window.location = resp.url
+                    return
+                }
+
+                try {
+
+                    if (resp.status === 200) {
+
+                        const v = await resp.json()
+
+                        const user = apps['apps'][0]['address']
+
+                        const card = document.createElement('div')
+                        card.className = 'card'
+
+                        const p = document.createElement('p')
+                        p.innerHTML = `👋 ${user}, you're subscribed to : ${v.name} with ${v.deliveryCount} requests/day`
+                        p.style.color = '#4f0854'
+                        card.appendChild(p)
+
+                        container.insertBefore(card, container.firstChild)
+
+                    }
+
+                } catch(_) {
+                    alert('Something unexpected happened !')
+                }
+
+            })
             
         } catch(_) {
             alert('Something unexpected happened !')
