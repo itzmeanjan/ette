@@ -93,6 +93,42 @@ Domain=localhost
 Production=yes
 ```
 
+- Create another file in same directory, named `.plans.json`, whose content will look like 👇.
+
+    - This file holds subscription plans for clients, allowed by this `ette` instance.
+    - Each plan is denoted by one unique `name` & `deliveryCount`, where _`deliveryCount` denotes number of times data to be delivered to client application in 24 hours of time span._
+    - Because each request must be accompanied with `APIKey`, `ette` knows which user is requesting for resources & how many were delivered successfully in last 24 hours of time span.
+    - If one user crosses allowed request limit in 24 hours, no new request will be taken under consideration & any existing connection will stop delivering data to client.
+
+> **Quick Tip :** Setting `deliveryCount` is fully upto you. Please consider VM specifications before doing so.
+
+```json
+{
+    "plans": [
+        {
+            "name": "TIER 1",
+            "deliveryCount": 50000
+        },
+        {
+            "name": "TIER 2",
+            "deliveryCount": 100000
+        },
+        {
+            "name": "TIER 3",
+            "deliveryCount": 500000
+        },
+        {
+            "name": "TIER 4",
+            "deliveryCount": 750000
+        },
+        {
+            "name": "TIER 5",
+            "deliveryCount": 1000000
+        }
+    ]
+}
+```
+
 - Now build `ette`
 
 ```bash
