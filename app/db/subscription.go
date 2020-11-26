@@ -94,13 +94,13 @@ func IsValidSubscriptionPlan(_db *gorm.DB, id uint32) bool {
 // GetDefaultSubscriptionPlanID - Finding out that subscription plan id, which has lowest daily deliveryCount
 // promise, which is going to be always default plan, when a new ethereum address joins `ette`
 func GetDefaultSubscriptionPlanID(_db *gorm.DB) uint32 {
-	var planID uint32
+	var plan SubscriptionPlans
 
-	if err := _db.Model(&SubscriptionPlans{}).Where("deliverycount = (?)", _db.Model(&SubscriptionPlans{}).Select("min(deliverycount)")).Select("id").First(&planID).Error; err != nil {
+	if err := _db.Model(&SubscriptionPlans{}).Where("deliverycount = (?)", _db.Model(&SubscriptionPlans{}).Select("min(deliverycount)")).Select("id").First(&plan).Error; err != nil {
 		return 0
 	}
 
-	return planID
+	return plan.ID
 }
 
 // AddSubscriptionPlanForAddress - Persisting subscription plan for one ethereum address
