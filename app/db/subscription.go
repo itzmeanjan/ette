@@ -90,3 +90,15 @@ func IsValidSubscriptionPlan(_db *gorm.DB, id uint32) bool {
 
 	return plan.ID == id
 }
+
+// AddSubscriptionPlanForAddress - Persisting subscription plan for one ethereum address
+func AddSubscriptionPlanForAddress(_db *gorm.DB, address common.Address, planID uint32) bool {
+	if err := _db.Create(&SubscriptionDetails{
+		Address:          address.Hex(),
+		SubscriptionPlan: planID,
+	}).Error; err != nil {
+		return false
+	}
+
+	return true
+}
