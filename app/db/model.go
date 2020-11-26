@@ -116,9 +116,10 @@ func (DeliveryHistory) TableName() string {
 // SubscriptionPlans - Allowed subscription plans, to be auto populated from
 // .plans.json, at application start up
 type SubscriptionPlans struct {
-	ID            uint32 `gorm:"column:id;type:serial;primaryKey" json:"id"`
-	Name          string `gorm:"column:name;type:varchar(20);not null;unique" json:"name"`
-	DeliveryCount uint64 `gorm:"column:deliverycount;type:bigint;not null;unique" json:"deliveryCount"`
+	ID                  uint32              `gorm:"column:id;type:serial;primaryKey" json:"id"`
+	Name                string              `gorm:"column:name;type:varchar(20);not null;unique" json:"name"`
+	DeliveryCount       uint64              `gorm:"column:deliverycount;type:bigint;not null;unique" json:"deliveryCount"`
+	SubscriptionDetails SubscriptionDetails `gorm:"foreignKey:subscriptionplan"`
 }
 
 // TableName - Overriding default table name
