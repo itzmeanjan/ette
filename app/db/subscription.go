@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/ethereum/go-ethereum/common"
 	"gorm.io/gorm"
 )
 
@@ -64,4 +65,16 @@ func GetAllSubscriptionPlans(_db *gorm.DB) []*SubscriptionPlans {
 	}
 
 	return plans
+}
+
+// CheckSubscriptionPlanByAddress - Given user's ethereum address, checking if user has
+// already subscribed to any plan or not
+func CheckSubscriptionPlanByAddress(_db *gorm.DB, address common.Address) *SubscriptionDetails {
+	var details SubscriptionDetails
+
+	if err := _db.Model(&SubscriptionDetails{}).Where("address = ?", address.Hex()).First(&details).Error; err != nil {
+		return nil
+	}
+
+	return &details
 }
