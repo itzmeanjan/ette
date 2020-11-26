@@ -396,6 +396,28 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		})
 
+		grp.GET("/dashboard/plans", func(c *gin.Context) {
+
+			address := validateSessionID(c)
+			if address == "" {
+				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
+				return
+			}
+
+			plans := db.GetAllSubscriptionPlans(_db)
+			if plans == nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"msg": "Failed to fetch subscription plans",
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"plans": plans,
+			})
+
+		})
+
 		// For checking whether `ette` has synced upto blockchain latest state or not
 		grp.GET("/synced", func(c *gin.Context) {
 
