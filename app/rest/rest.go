@@ -418,6 +418,25 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		})
 
+		grp.GET("/dashboard/plan", func(c *gin.Context) {
+
+			address := validateSessionID(c)
+			if address == "" {
+				c.Redirect(http.StatusTemporaryRedirect, "/v1/login")
+				return
+			}
+
+			if plan := db.CheckSubscriptionPlanDetailsByAddress(_db, common.HexToAddress(address)); plan != nil {
+				c.JSON(http.StatusOK, plan)
+				return
+			}
+
+			c.JSON(http.StatusNoContent, gin.H{
+				"msg": "No Subscription plan found",
+			})
+
+		})
+
 		// For checking whether `ette` has synced upto blockchain latest state or not
 		grp.GET("/synced", func(c *gin.Context) {
 
