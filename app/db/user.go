@@ -68,7 +68,12 @@ func RegisterNewApp(_db *gorm.DB, address common.Address) bool {
 		return true
 	}
 
-	return AddSubscriptionPlanForAddress(_db, address, 1)
+	planID := GetDefaultSubscriptionPlanID(_db)
+	if planID == 0 {
+		return false
+	}
+
+	return AddSubscriptionPlanForAddress(_db, address, planID)
 }
 
 // ToggleAPIKeyState - Given valid API key, toggles its enabled state
