@@ -78,3 +78,15 @@ func CheckSubscriptionPlanByAddress(_db *gorm.DB, address common.Address) *Subsc
 
 	return &details
 }
+
+// IsValidSubscriptionPlan - Given subscription plan id, checking against
+// database whether it's a valid one or not
+func IsValidSubscriptionPlan(_db *gorm.DB, id uint32) bool {
+	var plan SubscriptionPlans
+
+	if err := _db.Model(&SubscriptionPlans{}).Where("id = ?", id).First(&plan).Error; err != nil {
+		return false
+	}
+
+	return plan.ID == id
+}
