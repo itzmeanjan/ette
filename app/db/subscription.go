@@ -79,6 +79,23 @@ func CheckSubscriptionPlanByAddress(_db *gorm.DB, address common.Address) *Subsc
 	return &details
 }
 
+// CheckSubscriptionPlanDetailsByAddress - Given address of subscriber, returns full plan details
+// to which they're subscribed
+func CheckSubscriptionPlanDetailsByAddress(_db *gorm.DB, address common.Address) *SubscriptionPlans {
+	details := CheckSubscriptionPlanByAddress(_db, address)
+	if details == nil {
+		return nil
+	}
+
+	var plan SubscriptionPlans
+
+	if err := _db.Model(&SubscriptionPlans{}).Where("id = ?", details.SubscriptionPlan).First(&plan).Error; err != nil {
+		return nil
+	}
+
+	return &plan
+}
+
 // IsValidSubscriptionPlan - Given subscription plan id, checking against
 // database whether it's a valid one or not
 func IsValidSubscriptionPlan(_db *gorm.DB, id uint32) bool {
@@ -103,7 +120,8 @@ func GetDefaultSubscriptionPlanID(_db *gorm.DB) uint32 {
 	return plan.ID
 }
 
-// AddSubscriptionPlanForAddress - Persisting subscription plan for one ethereum address
+// AddSubscriptionPlanForAddress - Persisting subscription plan for one ethereum address, when this address
+// is first time creating one `ette` application
 func AddSubscriptionPlanForAddress(_db *gorm.DB, address common.Address, planID uint32) bool {
 	if err := _db.Create(&SubscriptionDetails{
 		Address:          address.Hex(),

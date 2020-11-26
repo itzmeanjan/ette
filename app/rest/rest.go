@@ -275,7 +275,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		grp.GET("/login", func(c *gin.Context) {
 
 			c.HTML(http.StatusOK, "index", gin.H{
-				"title": "ette",
+				"title": "ette: Ethereum Blockchain Indexing Engine",
 			})
 
 		})
@@ -289,7 +289,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			}
 
 			c.HTML(http.StatusOK, "dashboard", gin.H{
-				"title": "ette",
+				"title": "ette: Ethereum Blockchain Indexing Engine",
 			})
 
 		})
