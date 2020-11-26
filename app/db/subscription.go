@@ -53,3 +53,15 @@ func PersistAllSubscriptionPlans(_db *gorm.DB, file string) {
 	log.Printf("[+] Successfully persisted subscription plans into database")
 
 }
+
+// GetAllSubscriptionPlans - Returns a list of all available susbcription plans
+// from this `ette` instance
+func GetAllSubscriptionPlans(_db *gorm.DB) []*SubscriptionPlans {
+	var plans []*SubscriptionPlans
+
+	if err := _db.Model(&SubscriptionPlans{}).Find(&plans).Error; err != nil {
+		return nil
+	}
+
+	return plans
+}
