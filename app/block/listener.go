@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
+	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
 )
@@ -44,12 +45,18 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 			break
 		case header := <-headerChan:
 			if first {
-				// Starting syncer in another thread, where it'll keep fetching
-				// blocks starting from genesis to this block
-				go SyncToLatestBlock(client, _db, 0, header.Number.Uint64(), _lock, _synced)
-				// Making sure on when next latest block header is received, it'll not
-				// start another syncer
-				first = false
+
+				// If historical data query features are enabled
+				// only then we need to sync to latest state of block chain
+				if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
+					// Starting syncer in another thread, where it'll keep fetching
+					// blocks starting from genesis to this block
+					go SyncToLatestBlock(client, _db, 0, header.Number.Uint64(), _lock, _synced)
+					// Making sure on when next latest block header is received, it'll not
+					// start another syncer
+					first = false
+				}
+
 			}
 
 			go fetchBlockByHash(client, header.Hash(), _db, redisClient, _lock, _synced)
