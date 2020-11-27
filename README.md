@@ -76,6 +76,15 @@ cd ette
     - `Admin` is ethereum address who will be able to administer `ette` using webUI. _[ **This feature is not yet implemented, but please put `Admin` in config file** ]_
     - Replace `Domain` with your domain name i.e. `ette.company.com`
     - Set `Production` to `yes` before running it in production; otherwise you can simply skip it
+    - `ette` can be run in any of 3 possible modes, which can be set by `EtteMode`
+
+    ```json
+    {
+        "1": "Only Historical Data Query Allowed",
+        "2": "Only Real-time Event Subscription Allowed",
+        "3": "Both Historical Data Query & Real-time Event Subscription Allowed"
+    }
+    ```
 
 ```
 RPC=wss://<websocket-endpoint>
@@ -91,6 +100,7 @@ RedisPassword=password
 Admin=e19b9EB3Bf05F1C8100C9b6E8a3D8A14F6384BFb
 Domain=localhost
 Production=yes
+EtteMode=2
 ```
 
 - Create another file in same directory, named `.plans.json`, whose content will look like 👇.
