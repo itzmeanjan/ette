@@ -182,6 +182,21 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 	}
 
+	// Checking whether this `ette` instance support
+	// historical data query or not
+	checkEtteMode := func(c *gin.Context) {
+
+		if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"msg": "Disabled Feature",
+			})
+			return
+		}
+
+		c.Next()
+
+	}
+
 	// Checking if user has asked to run webserver in production mode or not
 	checkIfInProduction := func() bool {
 		return strings.ToLower(cfg.Get("Production")) == "yes"
