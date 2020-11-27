@@ -196,16 +196,17 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 	}
 
 	// Checking whether this `ette` instance support
-	// real-time data delivery or not
-	checkEtteRealTimeMode := func(c *gin.Context) {
+	// real-time data delivery or not, if not letting client know
+	// about it & closing connection
+	checkEtteRealTimeMode := func(conn *websocket.Conn) bool {
 		if !(cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3") {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"msg": "Disabled Feature",
-			})
-			return
+			if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Disabled Feature"}); err != nil {
+				log.Printf("[!] Failed to write message : %s\n", err.Error())
+			}
+			return false
 		}
 
-		c.Next()
+		return true
 	}
 
 	// Checking if user has asked to run webserver in production mode or not
@@ -1063,7 +1064,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 	upgrader := websocket.Upgrader{}
 
-	router.GET("/v1/ws", checkEtteRealTimeMode, func(c *gin.Context) {
+	router.GET("/v1/ws", func(c *gin.Context) {
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
 			log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
@@ -1073,6 +1074,10 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		// Registering websocket connection closing, to be executed when leaving
 		// this function block
 		defer conn.Close()
+
+		if !checkEtteRealTimeMode(conn) {
+			return
+		}
 
 		// keeping track of which topics this client has already subscribed to
 		// or unsubscrribed from
