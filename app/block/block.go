@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
+	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
@@ -23,25 +24,36 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, 
 		return
 	}
 
-	db.PutBlock(_db, block)
+	// Publishes block data to all listening parties
+	// on `block` channel
+	publishBlock := func() {
+		if err := redisClient.Publish(context.Background(), "block", &d.Block{
+			Hash:                block.Hash().Hex(),
+			Number:              block.NumberU64(),
+			Time:                block.Time(),
+			ParentHash:          block.ParentHash().Hex(),
+			Difficulty:          block.Difficulty().String(),
+			GasUsed:             block.GasUsed(),
+			GasLimit:            block.GasLimit(),
+			Nonce:               block.Nonce(),
+			Miner:               block.Coinbase().Hex(),
+			Size:                float64(block.Size()),
+			TransactionRootHash: block.TxHash().Hex(),
+			ReceiptRootHash:     block.ReceiptHash().Hex(),
+		}).Err(); err != nil {
+			log.Printf("[!] Failed to publish block %d in channel : %s\n", block.NumberU64(), err.Error())
+		}
+	}
 
-	if err := redisClient.Publish(context.Background(), "block", &d.Block{
-		Hash:                block.Hash().Hex(),
-		Number:              block.NumberU64(),
-		Time:                block.Time(),
-		ParentHash:          block.ParentHash().Hex(),
-		Difficulty:          block.Difficulty().String(),
-		GasUsed:             block.GasUsed(),
-		GasLimit:            block.GasLimit(),
-		Nonce:               block.Nonce(),
-		Miner:               block.Coinbase().Hex(),
-		Size:                float64(block.Size()),
-		TransactionRootHash: block.TxHash().Hex(),
-		ReceiptRootHash:     block.ReceiptHash().Hex(),
-	}).Err(); err != nil {
-
-		log.Printf("[!] Failed to publish block %d in channel : %s\n", block.NumberU64(), err.Error())
-
+	// Controlling behaviour of ette depending upon value of `EtteMode`
+	switch cfg.Get("EtteMode") {
+	case "1":
+		db.PutBlock(_db, block)
+	case "2":
+		publishBlock()
+	case "3":
+		db.PutBlock(_db, block)
+		publishBlock()
 	}
 
 	fetchBlockContent(client, block, _db, redisClient, _lock, _synced)
