@@ -184,17 +184,28 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 	// Checking whether this `ette` instance support
 	// historical data query or not
-	checkEtteMode := func(c *gin.Context) {
-
+	checkEtteHistoricalMode := func(c *gin.Context) {
 		if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"msg": "Disabled Feature",
 			})
 			return
 		}
 
 		c.Next()
+	}
 
+	// Checking whether this `ette` instance support
+	// real-time data delivery or not
+	checkEtteRealTimeMode := func(c *gin.Context) {
+		if !(cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3") {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"msg": "Disabled Feature",
+			})
+			return
+		}
+
+		c.Next()
 	}
 
 	// Checking if user has asked to run webserver in production mode or not
@@ -472,7 +483,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		})
 
 		// Query block data using block hash/ number/ block number range ( 10 at max )
-		grp.GET("/block", validateAPIKey, func(c *gin.Context) {
+		grp.GET("/block", checkEtteHistoricalMode, validateAPIKey, func(c *gin.Context) {
 
 			hash := c.Query("hash")
 			number := c.Query("number")
@@ -607,7 +618,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		})
 
 		// Transaction fetch ( by query params ) request handler
-		grp.GET("/transaction", validateAPIKey, func(c *gin.Context) {
+		grp.GET("/transaction", checkEtteHistoricalMode, validateAPIKey, func(c *gin.Context) {
 
 			hash := c.Query("hash")
 
@@ -868,7 +879,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		})
 
 		// Event(s) fetched by query params handler end point
-		grp.GET("/event", validateAPIKey, func(c *gin.Context) {
+		grp.GET("/event", checkEtteHistoricalMode, validateAPIKey, func(c *gin.Context) {
 
 			fromBlock := c.Query("fromBlock")
 			toBlock := c.Query("toBlock")
@@ -1052,7 +1063,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 	upgrader := websocket.Upgrader{}
 
-	router.GET("/v1/ws", func(c *gin.Context) {
+	router.GET("/v1/ws", checkEtteRealTimeMode, func(c *gin.Context) {
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
 			log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
