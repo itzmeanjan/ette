@@ -24,7 +24,11 @@ import (
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	ps "github.com/itzmeanjan/ette/app/pubsub"
+	"github.com/itzmeanjan/ette/app/rest/graph/generated"
 	"gorm.io/gorm"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/itzmeanjan/ette/app/rest/graph"
 )
 
 // RunHTTPServer - Holds definition for all REST API(s) to be exposed
@@ -1157,6 +1161,14 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 				topics[req.Name] = nil
 			}
 		}
+	})
+
+	gql := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+		Resolvers: &graph.Resolver{},
+	}))
+
+	router.POST("/v1/graphql", func(c *gin.Context) {
+		gql.ServeHTTP(c.Writer, c.Request)
 	})
 
 	router.Run(fmt.Sprintf(":%s", cfg.Get("PORT")))
