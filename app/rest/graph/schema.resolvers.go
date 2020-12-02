@@ -11,7 +11,7 @@ import (
 	"github.com/itzmeanjan/ette/app/rest/graph/model"
 )
 
-func (r *queryResolver) Block(ctx context.Context) (*model.Block, error) {
+func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

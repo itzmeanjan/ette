@@ -1,6 +1,6 @@
 type Block {
-  hash: String!
-  number: Int!
+  hash: String
+  number: Int
   time: Int
   parentHash: String
   difficulty: String
@@ -14,5 +14,5 @@ type Block {
 }
 
 type Query {
-  block: Block!
+  block(hash: String!): Block!
 }

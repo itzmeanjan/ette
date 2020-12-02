@@ -3,8 +3,8 @@
 package model
 
 type Block struct {
-	Hash                string   `json:"hash"`
-	Number              int      `json:"number"`
+	Hash                *string  `json:"hash"`
+	Number              *int     `json:"number"`
 	Time                *int     `json:"time"`
 	ParentHash          *string  `json:"parentHash"`
 	Difficulty          *string  `json:"difficulty"`
