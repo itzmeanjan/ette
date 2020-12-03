@@ -3,16 +3,16 @@
 package model
 
 type Block struct {
-	Hash                *string  `json:"hash"`
-	Number              *int     `json:"number"`
-	Time                *int     `json:"time"`
-	ParentHash          *string  `json:"parentHash"`
-	Difficulty          *string  `json:"difficulty"`
-	GasUsed             *int     `json:"gasUsed"`
-	GasLimit            *int     `json:"gasLimit"`
-	Nonce               *int     `json:"nonce"`
-	Miner               *string  `json:"miner"`
-	Size                *float64 `json:"size"`
-	TransactionRootHash *string  `json:"transactionRootHash"`
-	ReceiptRootHash     *string  `json:"receiptRootHash"`
+	Hash                string  `json:"hash"`
+	Number              string  `json:"number"`
+	Time                string  `json:"time"`
+	ParentHash          string  `json:"parentHash"`
+	Difficulty          string  `json:"difficulty"`
+	GasUsed             string  `json:"gasUsed"`
+	GasLimit            string  `json:"gasLimit"`
+	Nonce               string  `json:"nonce"`
+	Miner               string  `json:"miner"`
+	Size                float64 `json:"size"`
+	TransactionRootHash string  `json:"transactionRootHash"`
+	ReceiptRootHash     string  `json:"receiptRootHash"`
 }

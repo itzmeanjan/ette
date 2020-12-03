@@ -7,22 +7,40 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/itzmeanjan/ette/app/data"
 	_db "github.com/itzmeanjan/ette/app/db"
 	"github.com/itzmeanjan/ette/app/rest/graph/generated"
 	"github.com/itzmeanjan/ette/app/rest/graph/model"
 	"gorm.io/gorm"
 )
 
-// Globally accessibly database handle
 var db *gorm.DB
 
-// Connecting to database when initializing this module
 func init() {
 	db = _db.Connect()
 }
 
 func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, error) {
-	panic(fmt.Errorf("not implemented"))
+	var block data.Block
+
+	if res := db.Model(&_db.Blocks{}).Where("hash = ?", hash).First(&block).Error; res != nil {
+		return nil, res
+	}
+
+	return &model.Block{
+		Hash:                block.Hash,
+		Number:              fmt.Sprintf("%d", block.Number),
+		Time:                fmt.Sprintf("%d", block.Time),
+		ParentHash:          block.ParentHash,
+		Difficulty:          block.Difficulty,
+		GasUsed:             fmt.Sprintf("%d", block.GasUsed),
+		GasLimit:            fmt.Sprintf("%d", block.GasLimit),
+		Nonce:               fmt.Sprintf("%d", block.Nonce),
+		Miner:               block.Miner,
+		Size:                block.Size,
+		TransactionRootHash: block.TransactionRootHash,
+		ReceiptRootHash:     block.ReceiptRootHash,
+	}, nil
 }
 
 // Query returns generated.QueryResolver implementation.

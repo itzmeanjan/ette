@@ -1,16 +1,16 @@
 type Block {
-  hash: String
-  number: Int
-  time: Int
-  parentHash: String
-  difficulty: String
-  gasUsed: Int
-  gasLimit: Int
-  nonce: Int
-  miner: String
-  size: Float
-  transactionRootHash: String
-  receiptRootHash: String
+  hash: String!
+  number: String!
+  time: String!
+  parentHash: String!
+  difficulty: String!
+  gasUsed: String!
+  gasLimit: String!
+  nonce: String!
+  miner: String!
+  size: Float!
+  transactionRootHash: String!
+  receiptRootHash: String!
 }
 
 type Query {
