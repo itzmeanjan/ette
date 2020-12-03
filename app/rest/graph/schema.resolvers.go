@@ -7,9 +7,19 @@ import (
 	"context"
 	"fmt"
 
+	_db "github.com/itzmeanjan/ette/app/db"
 	"github.com/itzmeanjan/ette/app/rest/graph/generated"
 	"github.com/itzmeanjan/ette/app/rest/graph/model"
+	"gorm.io/gorm"
 )
+
+// Globally accessibly database handle
+var db *gorm.DB
+
+// Connecting to database when initializing this module
+func init() {
+	db = _db.Connect()
+}
 
 func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, error) {
 	panic(fmt.Errorf("not implemented"))
