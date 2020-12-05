@@ -54,7 +54,7 @@ func (r *queryResolver) BlockByHash(ctx context.Context, hash string) (*model.Bl
 func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*model.Block, error) {
 	_number, err := strconv.ParseUint(number, 10, 64)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Bad Block Number")
 	}
 
 	var block data.Block
