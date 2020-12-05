@@ -58,12 +58,14 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Block func(childComplexity int, hash string) int
+		BlockByHash   func(childComplexity int, hash string) int
+		BlockByNumber func(childComplexity int, number string) int
 	}
 }
 
 type QueryResolver interface {
-	Block(ctx context.Context, hash string) (*model.Block, error)
+	BlockByHash(ctx context.Context, hash string) (*model.Block, error)
+	BlockByNumber(ctx context.Context, number string) (*model.Block, error)
 }
 
 type executableSchema struct {
@@ -165,17 +167,29 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Block.TransactionRootHash(childComplexity), true
 
-	case "Query.block":
-		if e.complexity.Query.Block == nil {
+	case "Query.blockByHash":
+		if e.complexity.Query.BlockByHash == nil {
 			break
 		}
 
-		args, err := ec.field_Query_block_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_blockByHash_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Block(childComplexity, args["hash"].(string)), true
+		return e.complexity.Query.BlockByHash(childComplexity, args["hash"].(string)), true
+
+	case "Query.blockByNumber":
+		if e.complexity.Query.BlockByNumber == nil {
+			break
+		}
+
+		args, err := ec.field_Query_blockByNumber_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BlockByNumber(childComplexity, args["number"].(string)), true
 
 	}
 	return 0, false
@@ -243,7 +257,8 @@ var sources = []*ast.Source{
 }
 
 type Query {
-  block(hash: String!): Block!
+  blockByHash(hash: String!): Block!
+  blockByNumber(number: String!): Block!
 }
 `, BuiltIn: false},
 }
@@ -268,7 +283,7 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_block_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_blockByHash_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -280,6 +295,21 @@ func (ec *executionContext) field_Query_block_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["hash"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_blockByNumber_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["number"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("number"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["number"] = arg0
 	return args, nil
 }
 
@@ -741,7 +771,7 @@ func (ec *executionContext) _Block_receiptRootHash(ctx context.Context, field gr
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_block(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_blockByHash(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -758,7 +788,7 @@ func (ec *executionContext) _Query_block(ctx context.Context, field graphql.Coll
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_block_args(ctx, rawArgs)
+	args, err := ec.field_Query_blockByHash_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -766,7 +796,49 @@ func (ec *executionContext) _Query_block(ctx context.Context, field graphql.Coll
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Block(rctx, args["hash"].(string))
+		return ec.resolvers.Query().BlockByHash(rctx, args["hash"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Block)
+	fc.Result = res
+	return ec.marshalNBlock2ᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐBlock(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_blockByNumber(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_blockByNumber_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().BlockByNumber(rctx, args["number"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2046,7 +2118,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "block":
+		case "blockByHash":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -2054,7 +2126,21 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_block(ctx, field)
+				res = ec._Query_blockByHash(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "blockByNumber":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_blockByNumber(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

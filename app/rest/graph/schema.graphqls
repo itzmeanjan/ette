@@ -14,5 +14,6 @@ type Block {
 }
 
 type Query {
-  block(hash: String!): Block!
+  blockByHash(hash: String!): Block!
+  blockByNumber(number: String!): Block!
 }
