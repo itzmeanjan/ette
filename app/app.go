@@ -23,7 +23,7 @@ func bootstrap(configFile, subscriptionPlansFile string) (*ethclient.Client, *re
 		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
 	}
 
-	if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3" {
+	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3") {
 		log.Fatalf("[!] Failed to find `EtteMode` in configuration file\n")
 	}
 
