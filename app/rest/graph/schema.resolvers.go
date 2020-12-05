@@ -5,7 +5,10 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/itzmeanjan/ette/app/data"
 	_db "github.com/itzmeanjan/ette/app/db"
@@ -22,6 +25,10 @@ func GetDatabaseConnection(conn *gorm.DB) {
 }
 
 func (r *queryResolver) BlockByHash(ctx context.Context, hash string) (*model.Block, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return nil, errors.New("Bad Block Hash")
+	}
+
 	var block data.Block
 
 	if res := db.Model(&_db.Blocks{}).Where("hash = ?", hash).First(&block).Error; res != nil {
@@ -45,9 +52,14 @@ func (r *queryResolver) BlockByHash(ctx context.Context, hash string) (*model.Bl
 }
 
 func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*model.Block, error) {
+	_number, err := strconv.ParseUint(number, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
 	var block data.Block
 
-	if res := db.Model(&_db.Blocks{}).Where("number = ?", number).First(&block).Error; res != nil {
+	if res := db.Model(&_db.Blocks{}).Where("number = ?", _number).First(&block).Error; res != nil {
 		return nil, res
 	}
 
