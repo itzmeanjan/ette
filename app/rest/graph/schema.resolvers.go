@@ -79,6 +79,31 @@ func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*mode
 	}, nil
 }
 
+func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Transaction, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return nil, errors.New("Bad Transaction Hash")
+	}
+
+	var tx data.Transaction
+
+	if err := db.Model(&_db.Transactions{}).Where("hash = ?", hash).First(&tx).Error; err != nil {
+		return nil, err
+	}
+
+	return &model.Transaction{
+		Hash:      tx.Hash,
+		From:      tx.From,
+		To:        tx.To,
+		Contract:  tx.Contract,
+		Gas:       fmt.Sprintf("%d", tx.Gas),
+		GasPrice:  tx.GasPrice,
+		Cost:      tx.Cost,
+		Nonce:     fmt.Sprintf("%d", tx.Nonce),
+		State:     fmt.Sprintf("%d", tx.State),
+		BlockHash: tx.BlockHash,
+	}, nil
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 

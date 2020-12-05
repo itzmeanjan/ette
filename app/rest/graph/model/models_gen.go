@@ -16,3 +16,16 @@ type Block struct {
 	TransactionRootHash string  `json:"transactionRootHash"`
 	ReceiptRootHash     string  `json:"receiptRootHash"`
 }
+
+type Transaction struct {
+	Hash      string `json:"hash"`
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Contract  string `json:"contract"`
+	Gas       string `json:"gas"`
+	GasPrice  string `json:"gasPrice"`
+	Cost      string `json:"cost"`
+	Nonce     string `json:"nonce"`
+	State     string `json:"state"`
+	BlockHash string `json:"blockHash"`
+}
