@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -14,57 +13,7 @@ import (
 	_db "github.com/itzmeanjan/ette/app/db"
 	"github.com/itzmeanjan/ette/app/rest/graph/generated"
 	"github.com/itzmeanjan/ette/app/rest/graph/model"
-	"gorm.io/gorm"
 )
-
-var db *gorm.DB
-
-// GetDatabaseConnection - ...
-func GetDatabaseConnection(conn *gorm.DB) {
-	db = conn
-}
-
-func getGraphQLCompatibleBlock(block *data.Block) *model.Block {
-	return &model.Block{
-		Hash:                block.Hash,
-		Number:              fmt.Sprintf("%d", block.Number),
-		Time:                fmt.Sprintf("%d", block.Time),
-		ParentHash:          block.ParentHash,
-		Difficulty:          block.Difficulty,
-		GasUsed:             fmt.Sprintf("%d", block.GasUsed),
-		GasLimit:            fmt.Sprintf("%d", block.GasLimit),
-		Nonce:               fmt.Sprintf("%d", block.Nonce),
-		Miner:               block.Miner,
-		Size:                block.Size,
-		TransactionRootHash: block.TransactionRootHash,
-		ReceiptRootHash:     block.ReceiptRootHash,
-	}
-}
-
-func getGraphQLCompatibleTransaction(tx *data.Transaction) *model.Transaction {
-	return &model.Transaction{
-		Hash:      tx.Hash,
-		From:      tx.From,
-		To:        tx.To,
-		Contract:  tx.Contract,
-		Gas:       fmt.Sprintf("%d", tx.Gas),
-		GasPrice:  tx.GasPrice,
-		Cost:      tx.Cost,
-		Nonce:     fmt.Sprintf("%d", tx.Nonce),
-		State:     fmt.Sprintf("%d", tx.State),
-		BlockHash: tx.BlockHash,
-	}
-}
-
-func getGraphQLCompatibleTransactions(tx []*data.Transaction) []*model.Transaction {
-	_tx := make([]*model.Transaction, len(tx))
-
-	for k, v := range tx {
-		_tx[k] = getGraphQLCompatibleTransaction(v)
-	}
-
-	return _tx
-}
 
 func (r *queryResolver) BlockByHash(ctx context.Context, hash string) (*model.Block, error) {
 	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
