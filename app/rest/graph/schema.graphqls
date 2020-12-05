@@ -29,5 +29,6 @@ type Transaction {
 type Query {
   blockByHash(hash: String!): Block!
   blockByNumber(number: String!): Block!
+  transactionsByBlockHash(hash: String!): [Transaction!]!
   transaction(hash: String!): Transaction!
 }

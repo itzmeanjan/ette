@@ -24,17 +24,7 @@ func GetDatabaseConnection(conn *gorm.DB) {
 	db = conn
 }
 
-func (r *queryResolver) BlockByHash(ctx context.Context, hash string) (*model.Block, error) {
-	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
-		return nil, errors.New("Bad Block Hash")
-	}
-
-	var block data.Block
-
-	if res := db.Model(&_db.Blocks{}).Where("hash = ?", hash).First(&block).Error; res != nil {
-		return nil, res
-	}
-
+func getGraphQLCompatibleBlock(block *data.Block) *model.Block {
 	return &model.Block{
 		Hash:                block.Hash,
 		Number:              fmt.Sprintf("%d", block.Number),
@@ -48,48 +38,10 @@ func (r *queryResolver) BlockByHash(ctx context.Context, hash string) (*model.Bl
 		Size:                block.Size,
 		TransactionRootHash: block.TransactionRootHash,
 		ReceiptRootHash:     block.ReceiptRootHash,
-	}, nil
+	}
 }
 
-func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*model.Block, error) {
-	_number, err := strconv.ParseUint(number, 10, 64)
-	if err != nil {
-		return nil, errors.New("Bad Block Number")
-	}
-
-	var block data.Block
-
-	if res := db.Model(&_db.Blocks{}).Where("number = ?", _number).First(&block).Error; res != nil {
-		return nil, res
-	}
-
-	return &model.Block{
-		Hash:                block.Hash,
-		Number:              fmt.Sprintf("%d", block.Number),
-		Time:                fmt.Sprintf("%d", block.Time),
-		ParentHash:          block.ParentHash,
-		Difficulty:          block.Difficulty,
-		GasUsed:             fmt.Sprintf("%d", block.GasUsed),
-		GasLimit:            fmt.Sprintf("%d", block.GasLimit),
-		Nonce:               fmt.Sprintf("%d", block.Nonce),
-		Miner:               block.Miner,
-		Size:                block.Size,
-		TransactionRootHash: block.TransactionRootHash,
-		ReceiptRootHash:     block.ReceiptRootHash,
-	}, nil
-}
-
-func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Transaction, error) {
-	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
-		return nil, errors.New("Bad Transaction Hash")
-	}
-
-	var tx data.Transaction
-
-	if err := db.Model(&_db.Transactions{}).Where("hash = ?", hash).First(&tx).Error; err != nil {
-		return nil, err
-	}
-
+func getGraphQLCompatibleTransaction(tx *data.Transaction) *model.Transaction {
 	return &model.Transaction{
 		Hash:      tx.Hash,
 		From:      tx.From,
@@ -101,7 +53,74 @@ func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Tr
 		Nonce:     fmt.Sprintf("%d", tx.Nonce),
 		State:     fmt.Sprintf("%d", tx.State),
 		BlockHash: tx.BlockHash,
-	}, nil
+	}
+}
+
+func getGraphQLCompatibleTransactions(tx []*data.Transaction) []*model.Transaction {
+	_tx := make([]*model.Transaction, len(tx))
+
+	for k, v := range tx {
+		_tx[k] = getGraphQLCompatibleTransaction(v)
+	}
+
+	return _tx
+}
+
+func (r *queryResolver) BlockByHash(ctx context.Context, hash string) (*model.Block, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return nil, errors.New("Bad Block Hash")
+	}
+
+	var block data.Block
+
+	if res := db.Model(&_db.Blocks{}).Where("hash = ?", hash).First(&block).Error; res != nil {
+		return nil, errors.New("Bad Block Hash")
+	}
+
+	return getGraphQLCompatibleBlock(&block), nil
+}
+
+func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*model.Block, error) {
+	_number, err := strconv.ParseUint(number, 10, 64)
+	if err != nil {
+		return nil, errors.New("Bad Block Number")
+	}
+
+	var block data.Block
+
+	if res := db.Model(&_db.Blocks{}).Where("number = ?", _number).First(&block).Error; res != nil {
+		return nil, errors.New("Bad Block Number")
+	}
+
+	return getGraphQLCompatibleBlock(&block), nil
+}
+
+func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string) ([]*model.Transaction, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return nil, errors.New("Bad Block Hash")
+	}
+
+	var tx []*data.Transaction
+
+	if res := db.Model(&_db.Transactions{}).Where("blockhash = ?", hash).Find(&tx); res.Error != nil {
+		return nil, errors.New("Bad Block Hash")
+	}
+
+	return getGraphQLCompatibleTransactions(tx), nil
+}
+
+func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Transaction, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return nil, errors.New("Bad Transaction Hash")
+	}
+
+	var tx data.Transaction
+
+	if err := db.Model(&_db.Transactions{}).Where("hash = ?", hash).First(&tx).Error; err != nil {
+		return nil, errors.New("Bad Transaction Hash")
+	}
+
+	return getGraphQLCompatibleTransaction(&tx), nil
 }
 
 // Query returns generated.QueryResolver implementation.
