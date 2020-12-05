@@ -12,6 +12,7 @@ import (
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"github.com/itzmeanjan/ette/app/rest"
+	"github.com/itzmeanjan/ette/app/rest/graph"
 	"gorm.io/gorm"
 )
 
@@ -38,6 +39,10 @@ func bootstrap(configFile, subscriptionPlansFile string) (*ethclient.Client, *re
 	// Populating subscription plans from `.plans.json` into
 	// database table, at application start up
 	db.PersistAllSubscriptionPlans(_db, subscriptionPlansFile)
+
+	// Passing db handle, to graph package, so that it can be used
+	// for resolving graphQL queries
+	graph.GetDatabaseConnection(_db)
 
 	_lock := &sync.Mutex{}
 	_synced := &d.SyncState{Target: 0, Done: 0}

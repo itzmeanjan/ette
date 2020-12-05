@@ -16,8 +16,10 @@ import (
 
 var db *gorm.DB
 
-func init() {
-	db = _db.Connect()
+// GetDatabaseConnection - Passing already connected database handle to this package,
+// to be used for resolving graphQL queries
+func GetDatabaseConnection(conn *gorm.DB) {
+	db = conn
 }
 
 func (r *queryResolver) Block(ctx context.Context, hash string) (*model.Block, error) {
