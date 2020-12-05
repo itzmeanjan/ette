@@ -13,7 +13,21 @@ type Block {
   receiptRootHash: String!
 }
 
+type Transaction {
+  hash: String!
+  from: String!
+  to: String!
+  contract: String!
+  gas: String!
+  gasPrice: String!
+  cost: String!
+  nonce: String!
+  state: String!
+  blockHash: String!
+}
+
 type Query {
   blockByHash(hash: String!): Block!
   blockByNumber(number: String!): Block!
+  transaction(hash: String!): Transaction!
 }
