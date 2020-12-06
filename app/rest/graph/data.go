@@ -20,6 +20,10 @@ func GetDatabaseConnection(conn *gorm.DB) {
 
 // Converting block data to graphQL compatible data structure
 func getGraphQLCompatibleBlock(block *data.Block) *model.Block {
+	if block == nil {
+		return nil
+	}
+
 	return &model.Block{
 		Hash:                block.Hash,
 		Number:              fmt.Sprintf("%d", block.Number),
@@ -38,6 +42,10 @@ func getGraphQLCompatibleBlock(block *data.Block) *model.Block {
 
 // Converting block array to graphQL compatible data structure
 func getGraphQLCompatibleBlocks(blocks []*data.Block) []*model.Block {
+	if blocks == nil {
+		return nil
+	}
+
 	_blocks := make([]*model.Block, len(blocks))
 
 	for k, v := range blocks {
@@ -49,6 +57,10 @@ func getGraphQLCompatibleBlocks(blocks []*data.Block) []*model.Block {
 
 // Converting transaction data to graphQL compatible data structure
 func getGraphQLCompatibleTransaction(tx *data.Transaction) *model.Transaction {
+	if tx == nil {
+		return nil
+	}
+
 	return &model.Transaction{
 		Hash:      tx.Hash,
 		From:      tx.From,
@@ -65,6 +77,10 @@ func getGraphQLCompatibleTransaction(tx *data.Transaction) *model.Transaction {
 
 // Converting transaction array to graphQL compatible data structure
 func getGraphQLCompatibleTransactions(tx []*data.Transaction) []*model.Transaction {
+	if tx == nil {
+		return nil
+	}
+
 	_tx := make([]*model.Transaction, len(tx))
 
 	for k, v := range tx {
