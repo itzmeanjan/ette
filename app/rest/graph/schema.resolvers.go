@@ -149,6 +149,24 @@ func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, 
 	return getGraphQLCompatibleTransactions(_tmp.Transactions)
 }
 
+func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
+	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
+		return nil, errors.New("Bad Account Address")
+	}
+
+	_from, _to, err := rangeChecker(from, to, 600)
+	if err != nil {
+		return nil, errors.New("Bad Block Timestamp Range")
+	}
+
+	_tmp := _db.GetTransactionsToAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to)
+	if _tmp == nil {
+		return nil, errors.New("Found nothing")
+	}
+
+	return getGraphQLCompatibleTransactions(_tmp.Transactions)
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
