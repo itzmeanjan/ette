@@ -1,7 +1,9 @@
 package graph
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/rest/graph/model"
@@ -70,4 +72,24 @@ func getGraphQLCompatibleTransactions(tx []*data.Transaction) []*model.Transacti
 	}
 
 	return _tx
+}
+
+// Extracted from, to field of range based block query ( using block numbers/ time stamps )
+// gets parsed into unsigned integers
+func rangeChecker(from string, to string, limit uint64) (uint64, uint64, error) {
+	_from, err := strconv.ParseUint(from, 10, 64)
+	if err != nil {
+		return 0, 0, errors.New("Failed to parse integer")
+	}
+
+	_to, err := strconv.ParseUint(to, 10, 64)
+	if err != nil {
+		return 0, 0, errors.New("Failed to parse integer")
+	}
+
+	if !(_to-_from < limit) {
+		return 0, 0, errors.New("Range too long")
+	}
+
+	return _from, _to, nil
 }

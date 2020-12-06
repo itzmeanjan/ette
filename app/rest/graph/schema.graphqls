@@ -34,4 +34,5 @@ type Query {
   transactionsByBlockHash(hash: String!): [Transaction!]!
   transactionsByBlockNumber(number: String!): [Transaction!]!
   transaction(hash: String!): Transaction!
+  transactionsFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
 }
