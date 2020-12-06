@@ -34,6 +34,17 @@ func getGraphQLCompatibleBlock(block *data.Block) *model.Block {
 	}
 }
 
+// Converting block array to graphQL compatible data structure
+func getGraphQLCompatibleBlocks(blocks []*data.Block) []*model.Block {
+	_blocks := make([]*model.Block, len(blocks))
+
+	for k, v := range blocks {
+		_blocks[k] = getGraphQLCompatibleBlock(v)
+	}
+
+	return _blocks
+}
+
 // Converting transaction data to graphQL compatible data structure
 func getGraphQLCompatibleTransaction(tx *data.Transaction) *model.Transaction {
 	return &model.Transaction{

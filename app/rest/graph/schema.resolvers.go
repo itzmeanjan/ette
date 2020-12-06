@@ -44,6 +44,30 @@ func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*mode
 	return getGraphQLCompatibleBlock(&block), nil
 }
 
+func (r *queryResolver) BlockByNumberRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
+	_from, err := strconv.ParseUint(from, 10, 64)
+	if err != nil {
+		return nil, errors.New("Bad Starting Block Number")
+	}
+
+	_to, err := strconv.ParseUint(to, 10, 64)
+	if err != nil {
+		return nil, errors.New("Bad End Block Number")
+	}
+
+	if !(_to-_from < 10) {
+		return nil, errors.New("Block Number Range Too Large")
+	}
+
+	var blocks []*data.Block
+
+	if res := db.Model(&_db.Blocks{}).Where("number >= ? and number <= ?", _from, _to).Order("number asc").Find(&blocks); res.Error != nil {
+		return nil, errors.New("Bad Block Number Range")
+	}
+
+	return getGraphQLCompatibleBlocks(blocks), nil
+}
+
 func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string) ([]*model.Transaction, error) {
 	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
 		return nil, errors.New("Bad Block Hash")
