@@ -58,10 +58,11 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		BlockByHash             func(childComplexity int, hash string) int
-		BlockByNumber           func(childComplexity int, number string) int
-		Transaction             func(childComplexity int, hash string) int
-		TransactionsByBlockHash func(childComplexity int, hash string) int
+		BlockByHash               func(childComplexity int, hash string) int
+		BlockByNumber             func(childComplexity int, number string) int
+		Transaction               func(childComplexity int, hash string) int
+		TransactionsByBlockHash   func(childComplexity int, hash string) int
+		TransactionsByBlockNumber func(childComplexity int, number string) int
 	}
 
 	Transaction struct {
@@ -82,6 +83,7 @@ type QueryResolver interface {
 	BlockByHash(ctx context.Context, hash string) (*model.Block, error)
 	BlockByNumber(ctx context.Context, number string) (*model.Block, error)
 	TransactionsByBlockHash(ctx context.Context, hash string) ([]*model.Transaction, error)
+	TransactionsByBlockNumber(ctx context.Context, number string) ([]*model.Transaction, error)
 	Transaction(ctx context.Context, hash string) (*model.Transaction, error)
 }
 
@@ -231,6 +233,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.TransactionsByBlockHash(childComplexity, args["hash"].(string)), true
+
+	case "Query.transactionsByBlockNumber":
+		if e.complexity.Query.TransactionsByBlockNumber == nil {
+			break
+		}
+
+		args, err := ec.field_Query_transactionsByBlockNumber_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TransactionsByBlockNumber(childComplexity, args["number"].(string)), true
 
 	case "Transaction.blockHash":
 		if e.complexity.Transaction.BlockHash == nil {
@@ -384,6 +398,7 @@ type Query {
   blockByHash(hash: String!): Block!
   blockByNumber(number: String!): Block!
   transactionsByBlockHash(hash: String!): [Transaction!]!
+  transactionsByBlockNumber(number: String!): [Transaction!]!
   transaction(hash: String!): Transaction!
 }
 `, BuiltIn: false},
@@ -466,6 +481,21 @@ func (ec *executionContext) field_Query_transactionsByBlockHash_args(ctx context
 		}
 	}
 	args["hash"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_transactionsByBlockNumber_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["number"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("number"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["number"] = arg0
 	return args, nil
 }
 
@@ -1037,6 +1067,48 @@ func (ec *executionContext) _Query_transactionsByBlockHash(ctx context.Context, 
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().TransactionsByBlockHash(rctx, args["hash"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Transaction)
+	fc.Result = res
+	return ec.marshalNTransaction2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐTransactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_transactionsByBlockNumber(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_transactionsByBlockNumber_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TransactionsByBlockNumber(rctx, args["number"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2745,6 +2817,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_transactionsByBlockHash(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "transactionsByBlockNumber":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_transactionsByBlockNumber(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

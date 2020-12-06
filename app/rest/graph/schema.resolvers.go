@@ -58,6 +58,21 @@ func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string
 	return getGraphQLCompatibleTransactions(tx), nil
 }
 
+func (r *queryResolver) TransactionsByBlockNumber(ctx context.Context, number string) ([]*model.Transaction, error) {
+	_number, err := strconv.ParseUint(number, 10, 64)
+	if err != nil {
+		return nil, errors.New("Bad Block Number")
+	}
+
+	var tx []*data.Transaction
+
+	if res := db.Model(&_db.Transactions{}).Where("blockhash = (?)", db.Model(&_db.Blocks{}).Where("number = ?", _number).Select("hash")).Find(&tx); res.Error != nil {
+		return nil, errors.New("Bad Block Number")
+	}
+
+	return getGraphQLCompatibleTransactions(tx), nil
+}
+
 func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Transaction, error) {
 	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
 		return nil, errors.New("Bad Transaction Hash")
