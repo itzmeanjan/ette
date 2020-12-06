@@ -40,7 +40,7 @@ func GetBlockByNumber(db *gorm.DB, number uint64) *data.Block {
 // If more blocks are requested, simply to be rejected
 // In that case, consider splitting them such that they satisfy criteria
 func GetBlocksByNumberRange(db *gorm.DB, from uint64, to uint64) *data.Blocks {
-	var blocks []data.Block
+	var blocks []*data.Block
 
 	if res := db.Model(&Blocks{}).Where("number >= ? and number <= ?", from, to).Order("number asc").Find(&blocks); res.Error != nil {
 		return nil
@@ -56,7 +56,7 @@ func GetBlocksByNumberRange(db *gorm.DB, from uint64, to uint64) *data.Blocks {
 //
 // If asked to find out blocks in time span larger than 60 sec, simply drops query request
 func GetBlocksByTimeRange(db *gorm.DB, from uint64, to uint64) *data.Blocks {
-	var blocks []data.Block
+	var blocks []*data.Block
 
 	if res := db.Model(&Blocks{}).Where("time >= ? and time <= ?", from, to).Order("number asc").Find(&blocks); res.Error != nil {
 		return nil

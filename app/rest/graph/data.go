@@ -19,9 +19,9 @@ func GetDatabaseConnection(conn *gorm.DB) {
 }
 
 // Converting block data to graphQL compatible data structure
-func getGraphQLCompatibleBlock(block *data.Block) *model.Block {
+func getGraphQLCompatibleBlock(block *data.Block) (*model.Block, error) {
 	if block == nil {
-		return nil
+		return nil, errors.New("Found nothing")
 	}
 
 	return &model.Block{
@@ -37,28 +37,29 @@ func getGraphQLCompatibleBlock(block *data.Block) *model.Block {
 		Size:                block.Size,
 		TransactionRootHash: block.TransactionRootHash,
 		ReceiptRootHash:     block.ReceiptRootHash,
-	}
+	}, nil
 }
 
 // Converting block array to graphQL compatible data structure
-func getGraphQLCompatibleBlocks(blocks []*data.Block) []*model.Block {
+func getGraphQLCompatibleBlocks(blocks []*data.Block) ([]*model.Block, error) {
 	if blocks == nil {
-		return nil
+		return nil, errors.New("Found nothing")
 	}
 
 	_blocks := make([]*model.Block, len(blocks))
 
 	for k, v := range blocks {
-		_blocks[k] = getGraphQLCompatibleBlock(v)
+		_v, _ := getGraphQLCompatibleBlock(v)
+		_blocks[k] = _v
 	}
 
-	return _blocks
+	return _blocks, nil
 }
 
 // Converting transaction data to graphQL compatible data structure
-func getGraphQLCompatibleTransaction(tx *data.Transaction) *model.Transaction {
+func getGraphQLCompatibleTransaction(tx *data.Transaction) (*model.Transaction, error) {
 	if tx == nil {
-		return nil
+		return nil, errors.New("Found nothing")
 	}
 
 	return &model.Transaction{
@@ -72,22 +73,23 @@ func getGraphQLCompatibleTransaction(tx *data.Transaction) *model.Transaction {
 		Nonce:     fmt.Sprintf("%d", tx.Nonce),
 		State:     fmt.Sprintf("%d", tx.State),
 		BlockHash: tx.BlockHash,
-	}
+	}, nil
 }
 
 // Converting transaction array to graphQL compatible data structure
-func getGraphQLCompatibleTransactions(tx []*data.Transaction) []*model.Transaction {
+func getGraphQLCompatibleTransactions(tx []*data.Transaction) ([]*model.Transaction, error) {
 	if tx == nil {
-		return nil
+		return nil, errors.New("Found nothing")
 	}
 
 	_tx := make([]*model.Transaction, len(tx))
 
 	for k, v := range tx {
-		_tx[k] = getGraphQLCompatibleTransaction(v)
+		_v, _ := getGraphQLCompatibleTransaction(v)
+		_tx[k] = _v
 	}
 
-	return _tx
+	return _tx, nil
 }
 
 // Extracted from, to field of range based block query ( using block numbers/ time stamps )
