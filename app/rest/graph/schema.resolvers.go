@@ -44,7 +44,7 @@ func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*mode
 	return getGraphQLCompatibleBlock(&block), nil
 }
 
-func (r *queryResolver) BlockByNumberRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
+func (r *queryResolver) BlocksByNumberRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
 	_from, err := strconv.ParseUint(from, 10, 64)
 	if err != nil {
 		return nil, errors.New("Bad Starting Block Number")
@@ -63,6 +63,30 @@ func (r *queryResolver) BlockByNumberRange(ctx context.Context, from string, to 
 
 	if res := db.Model(&_db.Blocks{}).Where("number >= ? and number <= ?", _from, _to).Order("number asc").Find(&blocks); res.Error != nil {
 		return nil, errors.New("Bad Block Number Range")
+	}
+
+	return getGraphQLCompatibleBlocks(blocks), nil
+}
+
+func (r *queryResolver) BlocksByTimeRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
+	_from, err := strconv.ParseUint(from, 10, 64)
+	if err != nil {
+		return nil, errors.New("Bad Starting Block Timestamp")
+	}
+
+	_to, err := strconv.ParseUint(to, 10, 64)
+	if err != nil {
+		return nil, errors.New("Bad End Block Timestamp")
+	}
+
+	if !(_to-_from < 60) {
+		return nil, errors.New("Block Timestamp Range Too Large")
+	}
+
+	var blocks []*data.Block
+
+	if res := db.Model(&_db.Blocks{}).Where("time >= ? and time <= ?", from, to).Order("number asc").Find(&blocks); res.Error != nil {
+		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
 	return getGraphQLCompatibleBlocks(blocks), nil

@@ -60,7 +60,8 @@ type ComplexityRoot struct {
 	Query struct {
 		BlockByHash               func(childComplexity int, hash string) int
 		BlockByNumber             func(childComplexity int, number string) int
-		BlockByNumberRange        func(childComplexity int, from string, to string) int
+		BlocksByNumberRange       func(childComplexity int, from string, to string) int
+		BlocksByTimeRange         func(childComplexity int, from string, to string) int
 		Transaction               func(childComplexity int, hash string) int
 		TransactionsByBlockHash   func(childComplexity int, hash string) int
 		TransactionsByBlockNumber func(childComplexity int, number string) int
@@ -83,7 +84,8 @@ type ComplexityRoot struct {
 type QueryResolver interface {
 	BlockByHash(ctx context.Context, hash string) (*model.Block, error)
 	BlockByNumber(ctx context.Context, number string) (*model.Block, error)
-	BlockByNumberRange(ctx context.Context, from string, to string) ([]*model.Block, error)
+	BlocksByNumberRange(ctx context.Context, from string, to string) ([]*model.Block, error)
+	BlocksByTimeRange(ctx context.Context, from string, to string) ([]*model.Block, error)
 	TransactionsByBlockHash(ctx context.Context, hash string) ([]*model.Transaction, error)
 	TransactionsByBlockNumber(ctx context.Context, number string) ([]*model.Transaction, error)
 	Transaction(ctx context.Context, hash string) (*model.Transaction, error)
@@ -212,17 +214,29 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.BlockByNumber(childComplexity, args["number"].(string)), true
 
-	case "Query.blockByNumberRange":
-		if e.complexity.Query.BlockByNumberRange == nil {
+	case "Query.blocksByNumberRange":
+		if e.complexity.Query.BlocksByNumberRange == nil {
 			break
 		}
 
-		args, err := ec.field_Query_blockByNumberRange_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_blocksByNumberRange_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.BlockByNumberRange(childComplexity, args["from"].(string), args["to"].(string)), true
+		return e.complexity.Query.BlocksByNumberRange(childComplexity, args["from"].(string), args["to"].(string)), true
+
+	case "Query.blocksByTimeRange":
+		if e.complexity.Query.BlocksByTimeRange == nil {
+			break
+		}
+
+		args, err := ec.field_Query_blocksByTimeRange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BlocksByTimeRange(childComplexity, args["from"].(string), args["to"].(string)), true
 
 	case "Query.transaction":
 		if e.complexity.Query.Transaction == nil {
@@ -411,7 +425,8 @@ type Transaction {
 type Query {
   blockByHash(hash: String!): Block!
   blockByNumber(number: String!): Block!
-  blockByNumberRange(from: String!, to: String!): [Block!]!
+  blocksByNumberRange(from: String!, to: String!): [Block!]!
+  blocksByTimeRange(from: String!, to: String!): [Block!]!
   transactionsByBlockHash(hash: String!): [Transaction!]!
   transactionsByBlockNumber(number: String!): [Transaction!]!
   transaction(hash: String!): Transaction!
@@ -454,7 +469,22 @@ func (ec *executionContext) field_Query_blockByHash_args(ctx context.Context, ra
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_blockByNumberRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_blockByNumber_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["number"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("number"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["number"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_blocksByNumberRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -478,18 +508,27 @@ func (ec *executionContext) field_Query_blockByNumberRange_args(ctx context.Cont
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_blockByNumber_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_blocksByTimeRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["number"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("number"))
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
 		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["number"] = arg0
+	args["from"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg1
 	return args, nil
 }
 
@@ -1080,7 +1119,7 @@ func (ec *executionContext) _Query_blockByNumber(ctx context.Context, field grap
 	return ec.marshalNBlock2ᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐBlock(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_blockByNumberRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_blocksByNumberRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1097,7 +1136,7 @@ func (ec *executionContext) _Query_blockByNumberRange(ctx context.Context, field
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_blockByNumberRange_args(ctx, rawArgs)
+	args, err := ec.field_Query_blocksByNumberRange_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1105,7 +1144,49 @@ func (ec *executionContext) _Query_blockByNumberRange(ctx context.Context, field
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().BlockByNumberRange(rctx, args["from"].(string), args["to"].(string))
+		return ec.resolvers.Query().BlocksByNumberRange(rctx, args["from"].(string), args["to"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Block)
+	fc.Result = res
+	return ec.marshalNBlock2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐBlockᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_blocksByTimeRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_blocksByTimeRange_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().BlocksByTimeRange(rctx, args["from"].(string), args["to"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2889,7 +2970,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "blockByNumberRange":
+		case "blocksByNumberRange":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -2897,7 +2978,21 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_blockByNumberRange(ctx, field)
+				res = ec._Query_blocksByNumberRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "blocksByTimeRange":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_blocksByTimeRange(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
