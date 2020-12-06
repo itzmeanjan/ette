@@ -95,6 +95,24 @@ func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Tr
 	return getGraphQLCompatibleTransaction(_db.GetTransactionByHash(db, common.HexToHash(hash)))
 }
 
+func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
+	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
+		return nil, errors.New("Bad Account Address")
+	}
+
+	_from, _to, err := rangeChecker(from, to, 100)
+	if err != nil {
+		return nil, errors.New("Bad Block Number Range")
+	}
+
+	_tmp := _db.GetTransactionsFromAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to)
+	if _tmp == nil {
+		return nil, errors.New("Found nothing")
+	}
+
+	return getGraphQLCompatibleTransactions(_tmp.Transactions)
+}
+
 func (r *queryResolver) TransactionsFromAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
 	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
 		return nil, errors.New("Bad Account Address")
