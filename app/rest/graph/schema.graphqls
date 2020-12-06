@@ -36,4 +36,5 @@ type Query {
   transaction(hash: String!): Transaction!
   transactionsFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
   transactionsFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+  transactionsToAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
 }
