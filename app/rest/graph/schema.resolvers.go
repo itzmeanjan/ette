@@ -38,12 +38,7 @@ func (r *queryResolver) BlocksByNumberRange(ctx context.Context, from string, to
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	_tmp := _db.GetBlocksByNumberRange(db, _from, _to)
-	if _tmp == nil {
-		return nil, errors.New("Found nothing")
-	}
-
-	return getGraphQLCompatibleBlocks(_tmp.Blocks)
+	return getGraphQLCompatibleBlocks(_db.GetBlocksByNumberRange(db, _from, _to))
 }
 
 func (r *queryResolver) BlocksByTimeRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
@@ -52,12 +47,7 @@ func (r *queryResolver) BlocksByTimeRange(ctx context.Context, from string, to s
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	_tmp := _db.GetBlocksByTimeRange(db, _from, _to)
-	if _tmp == nil {
-		return nil, errors.New("Found nothing")
-	}
-
-	return getGraphQLCompatibleBlocks(_tmp.Blocks)
+	return getGraphQLCompatibleBlocks(_db.GetBlocksByTimeRange(db, _from, _to))
 }
 
 func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string) ([]*model.Transaction, error) {
@@ -65,12 +55,7 @@ func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string
 		return nil, errors.New("Bad Block Hash")
 	}
 
-	_tmp := _db.GetTransactionsByBlockHash(db, common.HexToHash(hash))
-	if _tmp == nil {
-		return nil, errors.New("Found nothing")
-	}
-
-	return getGraphQLCompatibleTransactions(_tmp.Transactions)
+	return getGraphQLCompatibleTransactions(_db.GetTransactionsByBlockHash(db, common.HexToHash(hash)))
 }
 
 func (r *queryResolver) TransactionsByBlockNumber(ctx context.Context, number string) ([]*model.Transaction, error) {
@@ -79,12 +64,7 @@ func (r *queryResolver) TransactionsByBlockNumber(ctx context.Context, number st
 		return nil, errors.New("Bad Block Number")
 	}
 
-	_tmp := _db.GetTransactionsByBlockNumber(db, _number)
-	if _tmp == nil {
-		return nil, errors.New("Found nothing")
-	}
-
-	return getGraphQLCompatibleTransactions(_tmp.Transactions)
+	return getGraphQLCompatibleTransactions(_db.GetTransactionsByBlockNumber(db, _number))
 }
 
 func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Transaction, error) {
@@ -105,12 +85,7 @@ func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	_tmp := _db.GetTransactionsFromAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to)
-	if _tmp == nil {
-		return nil, errors.New("Found nothing")
-	}
-
-	return getGraphQLCompatibleTransactions(_tmp.Transactions)
+	return getGraphQLCompatibleTransactions(_db.GetTransactionsFromAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
 }
 
 func (r *queryResolver) TransactionsFromAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -123,12 +98,7 @@ func (r *queryResolver) TransactionsFromAccountByTimeRange(ctx context.Context, 
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	_tmp := _db.GetTransactionsFromAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to)
-	if _tmp == nil {
-		return nil, errors.New("Found nothing")
-	}
-
-	return getGraphQLCompatibleTransactions(_tmp.Transactions)
+	return getGraphQLCompatibleTransactions(_db.GetTransactionsFromAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
 }
 
 func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -141,12 +111,7 @@ func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, 
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	_tmp := _db.GetTransactionsToAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to)
-	if _tmp == nil {
-		return nil, errors.New("Found nothing")
-	}
-
-	return getGraphQLCompatibleTransactions(_tmp.Transactions)
+	return getGraphQLCompatibleTransactions(_db.GetTransactionsToAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
 }
 
 func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -159,12 +124,7 @@ func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, ac
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	_tmp := _db.GetTransactionsToAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to)
-	if _tmp == nil {
-		return nil, errors.New("Found nothing")
-	}
-
-	return getGraphQLCompatibleTransactions(_tmp.Transactions)
+	return getGraphQLCompatibleTransactions(_db.GetTransactionsToAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
 }
 
 func (r *queryResolver) TransactionsBetweenAccountsByNumberRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error) {
@@ -181,12 +141,7 @@ func (r *queryResolver) TransactionsBetweenAccountsByNumberRange(ctx context.Con
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	_tmp := _db.GetTransactionsBetweenAccountsByBlockNumberRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to)
-	if _tmp == nil {
-		return nil, errors.New("Found nothing")
-	}
-
-	return getGraphQLCompatibleTransactions(_tmp.Transactions)
+	return getGraphQLCompatibleTransactions(_db.GetTransactionsBetweenAccountsByBlockNumberRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to))
 }
 
 func (r *queryResolver) TransactionsBetweenAccountsByTimeRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error) {
@@ -203,12 +158,7 @@ func (r *queryResolver) TransactionsBetweenAccountsByTimeRange(ctx context.Conte
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	_tmp := _db.GetTransactionsBetweenAccountsByBlockTimeRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to)
-	if _tmp == nil {
-		return nil, errors.New("Found nothing")
-	}
-
-	return getGraphQLCompatibleTransactions(_tmp.Transactions)
+	return getGraphQLCompatibleTransactions(_db.GetTransactionsBetweenAccountsByBlockTimeRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to))
 }
 
 // Query returns generated.QueryResolver implementation.

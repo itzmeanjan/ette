@@ -41,14 +41,14 @@ func getGraphQLCompatibleBlock(block *data.Block) (*model.Block, error) {
 }
 
 // Converting block array to graphQL compatible data structure
-func getGraphQLCompatibleBlocks(blocks []*data.Block) ([]*model.Block, error) {
+func getGraphQLCompatibleBlocks(blocks *data.Blocks) ([]*model.Block, error) {
 	if blocks == nil {
 		return nil, errors.New("Found nothing")
 	}
 
-	_blocks := make([]*model.Block, len(blocks))
+	_blocks := make([]*model.Block, len(blocks.Blocks))
 
-	for k, v := range blocks {
+	for k, v := range blocks.Blocks {
 		_v, _ := getGraphQLCompatibleBlock(v)
 		_blocks[k] = _v
 	}
@@ -77,14 +77,14 @@ func getGraphQLCompatibleTransaction(tx *data.Transaction) (*model.Transaction, 
 }
 
 // Converting transaction array to graphQL compatible data structure
-func getGraphQLCompatibleTransactions(tx []*data.Transaction) ([]*model.Transaction, error) {
+func getGraphQLCompatibleTransactions(tx *data.Transactions) ([]*model.Transaction, error) {
 	if tx == nil {
 		return nil, errors.New("Found nothing")
 	}
 
-	_tx := make([]*model.Transaction, len(tx))
+	_tx := make([]*model.Transaction, len(tx.Transactions))
 
-	for k, v := range tx {
+	for k, v := range tx.Transactions {
 		_v, _ := getGraphQLCompatibleTransaction(v)
 		_tx[k] = _v
 	}
