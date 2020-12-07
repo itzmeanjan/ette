@@ -63,6 +63,7 @@ type ComplexityRoot struct {
 		BlocksByNumberRange                      func(childComplexity int, from string, to string) int
 		BlocksByTimeRange                        func(childComplexity int, from string, to string) int
 		ContractsCreatedFromAccountByNumberRange func(childComplexity int, account string, from string, to string) int
+		ContractsCreatedFromAccountByTimeRange   func(childComplexity int, account string, from string, to string) int
 		Transaction                              func(childComplexity int, hash string) int
 		TransactionsBetweenAccountsByNumberRange func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
 		TransactionsBetweenAccountsByTimeRange   func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
@@ -103,6 +104,7 @@ type QueryResolver interface {
 	TransactionsBetweenAccountsByNumberRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error)
 	TransactionsBetweenAccountsByTimeRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error)
 	ContractsCreatedFromAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error)
+	ContractsCreatedFromAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error)
 }
 
 type executableSchema struct {
@@ -263,6 +265,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.ContractsCreatedFromAccountByNumberRange(childComplexity, args["account"].(string), args["from"].(string), args["to"].(string)), true
+
+	case "Query.contractsCreatedFromAccountByTimeRange":
+		if e.complexity.Query.ContractsCreatedFromAccountByTimeRange == nil {
+			break
+		}
+
+		args, err := ec.field_Query_contractsCreatedFromAccountByTimeRange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ContractsCreatedFromAccountByTimeRange(childComplexity, args["account"].(string), args["from"].(string), args["to"].(string)), true
 
 	case "Query.transaction":
 		if e.complexity.Query.Transaction == nil {
@@ -535,6 +549,7 @@ type Query {
   transactionsBetweenAccountsByNumberRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
   transactionsBetweenAccountsByTimeRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
   contractsCreatedFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+  contractsCreatedFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
 }
 `, BuiltIn: false},
 }
@@ -638,6 +653,39 @@ func (ec *executionContext) field_Query_blocksByTimeRange_args(ctx context.Conte
 }
 
 func (ec *executionContext) field_Query_contractsCreatedFromAccountByNumberRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["account"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("account"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["account"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["from"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_contractsCreatedFromAccountByTimeRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -1961,6 +2009,48 @@ func (ec *executionContext) _Query_contractsCreatedFromAccountByNumberRange(ctx 
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().ContractsCreatedFromAccountByNumberRange(rctx, args["account"].(string), args["from"].(string), args["to"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Transaction)
+	fc.Result = res
+	return ec.marshalNTransaction2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐTransactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_contractsCreatedFromAccountByTimeRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_contractsCreatedFromAccountByTimeRange_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ContractsCreatedFromAccountByTimeRange(rctx, args["account"].(string), args["from"].(string), args["to"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3781,6 +3871,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_contractsCreatedFromAccountByNumberRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "contractsCreatedFromAccountByTimeRange":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_contractsCreatedFromAccountByTimeRange(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

@@ -174,6 +174,19 @@ func (r *queryResolver) ContractsCreatedFromAccountByNumberRange(ctx context.Con
 	return getGraphQLCompatibleTransactions(_db.GetContractCreationTransactionsFromAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
 }
 
+func (r *queryResolver) ContractsCreatedFromAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
+	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
+		return nil, errors.New("Bad Account Address")
+	}
+
+	_from, _to, err := rangeChecker(from, to, 600)
+	if err != nil {
+		return nil, errors.New("Bad Block Timestamp Range")
+	}
+
+	return getGraphQLCompatibleTransactions(_db.GetContractCreationTransactionsFromAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
