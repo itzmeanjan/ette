@@ -187,6 +187,19 @@ func (r *queryResolver) ContractsCreatedFromAccountByTimeRange(ctx context.Conte
 	return getGraphQLCompatibleTransactions(_db.GetContractCreationTransactionsFromAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
 }
 
+func (r *queryResolver) TransactionFromAccountWithNonce(ctx context.Context, account string, nonce string) (*model.Transaction, error) {
+	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
+		return nil, errors.New("Bad Account Address")
+	}
+
+	_nonce, err := strconv.ParseUint(nonce, 10, 64)
+	if err != nil {
+		return nil, errors.New("Bad Account Nonce")
+	}
+
+	return getGraphQLCompatibleTransaction(_db.GetTransactionFromAccountWithNonce(db, common.HexToAddress(account), _nonce))
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
