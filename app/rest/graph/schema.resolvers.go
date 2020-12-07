@@ -242,6 +242,18 @@ func (r *queryResolver) EventsByTxHash(ctx context.Context, hash string) ([]*mod
 	return getGraphQLCompatibleEvents(_db.GetEventsByTransactionHash(db, common.HexToHash(hash)))
 }
 
+func (r *queryResolver) LastXEventsFromContract(ctx context.Context, contract string, x int) ([]*model.Event, error) {
+	if !(strings.HasPrefix(contract, "0x") && len(contract) == 42) {
+		return nil, errors.New("Bad Contract Address")
+	}
+
+	if !(x <= 50) {
+		return nil, errors.New("Too Many Events Requested")
+	}
+
+	return getGraphQLCompatibleEvents(_db.GetLastXEventsFromContract(db, common.HexToAddress(contract), x))
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 

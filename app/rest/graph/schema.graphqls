@@ -58,4 +58,5 @@ type Query {
   eventsFromContractByTimeRange(contract: String!, from: String!, to: String!): [Event!]!
   eventsByBlockHash(hash: String!): [Event!]!
   eventsByTxHash(hash: String!): [Event!]!
+  lastXEventsFromContract(contract: String!, x: Int!): [Event!]!
 }

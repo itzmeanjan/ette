@@ -77,6 +77,7 @@ type ComplexityRoot struct {
 		EventsByTxHash                           func(childComplexity int, hash string) int
 		EventsFromContractByNumberRange          func(childComplexity int, contract string, from string, to string) int
 		EventsFromContractByTimeRange            func(childComplexity int, contract string, from string, to string) int
+		LastXEventsFromContract                  func(childComplexity int, contract string, x int) int
 		Transaction                              func(childComplexity int, hash string) int
 		TransactionFromAccountWithNonce          func(childComplexity int, account string, nonce string) int
 		TransactionsBetweenAccountsByNumberRange func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
@@ -124,6 +125,7 @@ type QueryResolver interface {
 	EventsFromContractByTimeRange(ctx context.Context, contract string, from string, to string) ([]*model.Event, error)
 	EventsByBlockHash(ctx context.Context, hash string) ([]*model.Event, error)
 	EventsByTxHash(ctx context.Context, hash string) ([]*model.Event, error)
+	LastXEventsFromContract(ctx context.Context, contract string, x int) ([]*model.Event, error)
 }
 
 type executableSchema struct {
@@ -386,6 +388,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.EventsFromContractByTimeRange(childComplexity, args["contract"].(string), args["from"].(string), args["to"].(string)), true
+
+	case "Query.lastXEventsFromContract":
+		if e.complexity.Query.LastXEventsFromContract == nil {
+			break
+		}
+
+		args, err := ec.field_Query_lastXEventsFromContract_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.LastXEventsFromContract(childComplexity, args["contract"].(string), args["x"].(int)), true
 
 	case "Query.transaction":
 		if e.complexity.Query.Transaction == nil {
@@ -687,6 +701,7 @@ type Query {
   eventsFromContractByTimeRange(contract: String!, from: String!, to: String!): [Event!]!
   eventsByBlockHash(hash: String!): [Event!]!
   eventsByTxHash(hash: String!): [Event!]!
+  lastXEventsFromContract(contract: String!, x: Int!): [Event!]!
 }
 `, BuiltIn: false},
 }
@@ -948,6 +963,30 @@ func (ec *executionContext) field_Query_eventsFromContractByTimeRange_args(ctx c
 		}
 	}
 	args["to"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_lastXEventsFromContract_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["contract"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contract"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["contract"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["x"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("x"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["x"] = arg1
 	return args, nil
 }
 
@@ -2728,6 +2767,48 @@ func (ec *executionContext) _Query_eventsByTxHash(ctx context.Context, field gra
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().EventsByTxHash(rctx, args["hash"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Event)
+	fc.Result = res
+	return ec.marshalNEvent2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐEventᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_lastXEventsFromContract(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_lastXEventsFromContract_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().LastXEventsFromContract(rctx, args["contract"].(string), args["x"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4689,6 +4770,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "lastXEventsFromContract":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_lastXEventsFromContract(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
@@ -5141,6 +5236,21 @@ func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v inter
 
 func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
 	res := graphql.MarshalFloat(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
