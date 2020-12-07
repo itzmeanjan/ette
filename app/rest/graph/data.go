@@ -1,9 +1,11 @@
 package graph
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/rest/graph/model"
@@ -25,18 +27,18 @@ func getGraphQLCompatibleBlock(block *data.Block) (*model.Block, error) {
 	}
 
 	return &model.Block{
-		Hash:                block.Hash,
-		Number:              fmt.Sprintf("%d", block.Number),
-		Time:                fmt.Sprintf("%d", block.Time),
-		ParentHash:          block.ParentHash,
-		Difficulty:          block.Difficulty,
-		GasUsed:             fmt.Sprintf("%d", block.GasUsed),
-		GasLimit:            fmt.Sprintf("%d", block.GasLimit),
-		Nonce:               fmt.Sprintf("%d", block.Nonce),
-		Miner:               block.Miner,
-		Size:                block.Size,
-		TransactionRootHash: block.TransactionRootHash,
-		ReceiptRootHash:     block.ReceiptRootHash,
+		Hash:            block.Hash,
+		Number:          fmt.Sprintf("%d", block.Number),
+		Time:            fmt.Sprintf("%d", block.Time),
+		ParentHash:      block.ParentHash,
+		Difficulty:      block.Difficulty,
+		GasUsed:         fmt.Sprintf("%d", block.GasUsed),
+		GasLimit:        fmt.Sprintf("%d", block.GasLimit),
+		Nonce:           fmt.Sprintf("%d", block.Nonce),
+		Miner:           block.Miner,
+		Size:            block.Size,
+		TxRootHash:      block.TransactionRootHash,
+		ReceiptRootHash: block.ReceiptRootHash,
 	}, nil
 }
 
@@ -90,6 +92,43 @@ func getGraphQLCompatibleTransactions(tx *data.Transactions) ([]*model.Transacti
 	}
 
 	return _tx, nil
+}
+
+// Converting event data to graphQL compatible data structure
+func getGraphQLCompatibleEvent(event *data.Event) (*model.Event, error) {
+	if event == nil {
+		return nil, errors.New("Found nothing")
+	}
+
+	data := ""
+	if _h := hex.EncodeToString(event.Data); _h != "" && _h != strings.Repeat("0", 64) {
+		data = fmt.Sprintf("0x%s", _h)
+	}
+
+	return &model.Event{
+		Origin:    event.Origin,
+		Index:     fmt.Sprintf("%d", event.Index),
+		Topics:    strings.Fields(fmt.Sprintf("%q", event.Topics)),
+		Data:      data,
+		TxHash:    event.TransactionHash,
+		BlockHash: event.BlockHash,
+	}, nil
+}
+
+// Converting event array to graphQL compatible data structure
+func getGraphQLCompatibleEvents(events *data.Events) ([]*model.Event, error) {
+	if events == nil {
+		return nil, errors.New("Found nothing")
+	}
+
+	_events := make([]*model.Event, len(events.Events))
+
+	for k, v := range events.Events {
+		_v, _ := getGraphQLCompatibleEvent(v)
+		_events[k] = _v
+	}
+
+	return _events, nil
 }
 
 // Extracted from, to field of range based block query ( using block numbers/ time stamps )

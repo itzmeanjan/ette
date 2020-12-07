@@ -9,7 +9,7 @@ type Block {
   nonce: String!
   miner: String!
   size: Float!
-  transactionRootHash: String!
+  txRootHash: String!
   receiptRootHash: String!
 }
 
@@ -26,11 +26,21 @@ type Transaction {
   blockHash: String!
 }
 
+type Event {
+  origin: String!
+  index: String!
+  topics: [String!]!
+  data: String!
+  txHash: String!
+  blockHash: String!
+}
+
 type Query {
   blockByHash(hash: String!): Block!
   blockByNumber(number: String!): Block!
   blocksByNumberRange(from: String!, to: String!): [Block!]!
   blocksByTimeRange(from: String!, to: String!): [Block!]!
+  
   transactionsByBlockHash(hash: String!): [Transaction!]!
   transactionsByBlockNumber(number: String!): [Transaction!]!
   transaction(hash: String!): Transaction!
@@ -43,4 +53,6 @@ type Query {
   contractsCreatedFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
   contractsCreatedFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
   transactionFromAccountWithNonce(account: String!, nonce: String!): Transaction!
+
+  eventsFromContractByNumberRange(contract: String!, from: String!, to: String!): [Event!]!
 }

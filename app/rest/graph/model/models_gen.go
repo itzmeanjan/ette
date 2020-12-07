@@ -3,18 +3,27 @@
 package model
 
 type Block struct {
-	Hash                string  `json:"hash"`
-	Number              string  `json:"number"`
-	Time                string  `json:"time"`
-	ParentHash          string  `json:"parentHash"`
-	Difficulty          string  `json:"difficulty"`
-	GasUsed             string  `json:"gasUsed"`
-	GasLimit            string  `json:"gasLimit"`
-	Nonce               string  `json:"nonce"`
-	Miner               string  `json:"miner"`
-	Size                float64 `json:"size"`
-	TransactionRootHash string  `json:"transactionRootHash"`
-	ReceiptRootHash     string  `json:"receiptRootHash"`
+	Hash            string  `json:"hash"`
+	Number          string  `json:"number"`
+	Time            string  `json:"time"`
+	ParentHash      string  `json:"parentHash"`
+	Difficulty      string  `json:"difficulty"`
+	GasUsed         string  `json:"gasUsed"`
+	GasLimit        string  `json:"gasLimit"`
+	Nonce           string  `json:"nonce"`
+	Miner           string  `json:"miner"`
+	Size            float64 `json:"size"`
+	TxRootHash      string  `json:"txRootHash"`
+	ReceiptRootHash string  `json:"receiptRootHash"`
+}
+
+type Event struct {
+	Origin    string   `json:"origin"`
+	Index     string   `json:"index"`
+	Topics    []string `json:"topics"`
+	Data      string   `json:"data"`
+	TxHash    string   `json:"txHash"`
+	BlockHash string   `json:"blockHash"`
 }
 
 type Transaction struct {
