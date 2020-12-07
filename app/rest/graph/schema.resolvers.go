@@ -226,6 +226,22 @@ func (r *queryResolver) EventsFromContractByTimeRange(ctx context.Context, contr
 	return getGraphQLCompatibleEvents(_db.GetEventsFromContractByBlockTimeRange(db, common.HexToAddress(contract), _from, _to))
 }
 
+func (r *queryResolver) EventsByBlockHash(ctx context.Context, hash string) ([]*model.Event, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return nil, errors.New("Bad Block Hash")
+	}
+
+	return getGraphQLCompatibleEvents(_db.GetEventsByBlockHash(db, common.HexToHash(hash)))
+}
+
+func (r *queryResolver) EventsByTxHash(ctx context.Context, hash string) ([]*model.Event, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return nil, errors.New("Bad Transaction Hash")
+	}
+
+	return getGraphQLCompatibleEvents(_db.GetEventsByTransactionHash(db, common.HexToHash(hash)))
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
