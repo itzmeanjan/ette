@@ -40,4 +40,5 @@ type Query {
   transactionsToAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
   transactionsBetweenAccountsByNumberRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
   transactionsBetweenAccountsByTimeRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
+  contractsCreatedFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
 }
