@@ -55,4 +55,5 @@ type Query {
   transactionFromAccountWithNonce(account: String!, nonce: String!): Transaction!
 
   eventsFromContractByNumberRange(contract: String!, from: String!, to: String!): [Event!]!
+  eventsFromContractByTimeRange(contract: String!, from: String!, to: String!): [Event!]!
 }

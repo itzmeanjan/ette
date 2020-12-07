@@ -213,6 +213,19 @@ func (r *queryResolver) EventsFromContractByNumberRange(ctx context.Context, con
 	return getGraphQLCompatibleEvents(_db.GetEventsFromContractByBlockNumberRange(db, common.HexToAddress(contract), _from, _to))
 }
 
+func (r *queryResolver) EventsFromContractByTimeRange(ctx context.Context, contract string, from string, to string) ([]*model.Event, error) {
+	if !(strings.HasPrefix(contract, "0x") && len(contract) == 42) {
+		return nil, errors.New("Bad Contract Address")
+	}
+
+	_from, _to, err := rangeChecker(from, to, 60)
+	if err != nil {
+		return nil, errors.New("Bad Block Timestamp Range")
+	}
+
+	return getGraphQLCompatibleEvents(_db.GetEventsFromContractByBlockTimeRange(db, common.HexToAddress(contract), _from, _to))
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
