@@ -166,10 +166,10 @@ func getTopics(topics ...string) []common.Hash {
 }
 
 func getTopicSignaturesAsStringSlice(topics pq.StringArray) []string {
-	_tmp := make([]string, 0)
+	_tmp := make([]string, len(topics))
 
-	for _, v := range topics {
-		_tmp = append(_tmp, v)
+	for k, v := range topics {
+		_tmp[k] = v
 	}
 
 	return _tmp
