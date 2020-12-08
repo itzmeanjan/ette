@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/rest/graph/model"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -117,7 +118,7 @@ func getGraphQLCompatibleEvent(event *data.Event) (*model.Event, error) {
 	return &model.Event{
 		Origin:    event.Origin,
 		Index:     fmt.Sprintf("%d", event.Index),
-		Topics:    strings.Fields(fmt.Sprintf("%q", event.Topics)),
+		Topics:    getTopicSignaturesAsStringArray(event.Topics),
 		Data:      data,
 		TxHash:    event.TransactionHash,
 		BlockHash: event.BlockHash,
@@ -162,6 +163,16 @@ func getTopics(topics ...string) []common.Hash {
 	}
 
 	return nil
+}
+
+func getTopicSignaturesAsStringArray(topics pq.StringArray) []string {
+	_tmp := make([]string, 0)
+
+	for _, v := range topics {
+		_tmp = append(_tmp, v)
+	}
+
+	return _tmp
 }
 
 // Extracted from, to field of range based block query ( using block numbers/ time stamps )
