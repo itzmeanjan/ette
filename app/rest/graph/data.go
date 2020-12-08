@@ -49,6 +49,10 @@ func getGraphQLCompatibleBlocks(blocks *data.Blocks) ([]*model.Block, error) {
 		return nil, errors.New("Found nothing")
 	}
 
+	if !(len(blocks.Blocks) > 0) {
+		return nil, errors.New("Found nothing")
+	}
+
 	_blocks := make([]*model.Block, len(blocks.Blocks))
 
 	for k, v := range blocks.Blocks {
@@ -82,6 +86,10 @@ func getGraphQLCompatibleTransaction(tx *data.Transaction) (*model.Transaction, 
 // Converting transaction array to graphQL compatible data structure
 func getGraphQLCompatibleTransactions(tx *data.Transactions) ([]*model.Transaction, error) {
 	if tx == nil {
+		return nil, errors.New("Found nothing")
+	}
+
+	if !(len(tx.Transactions) > 0) {
 		return nil, errors.New("Found nothing")
 	}
 
@@ -119,6 +127,10 @@ func getGraphQLCompatibleEvent(event *data.Event) (*model.Event, error) {
 // Converting event array to graphQL compatible data structure
 func getGraphQLCompatibleEvents(events *data.Events) ([]*model.Event, error) {
 	if events == nil {
+		return nil, errors.New("Found nothing")
+	}
+
+	if !(len(events.Events) > 0) {
 		return nil, errors.New("Found nothing")
 	}
 
