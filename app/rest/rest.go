@@ -1164,7 +1164,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		}
 	})
 
-	router.POST("/v1/graphql", func(c *gin.Context) {
+	router.POST("/v1/graphql", validateAPIKey, func(c *gin.Context) {
 
 		gql := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 			Resolvers: &graph.Resolver{},
