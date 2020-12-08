@@ -118,7 +118,7 @@ func getGraphQLCompatibleEvent(event *data.Event) (*model.Event, error) {
 	return &model.Event{
 		Origin:    event.Origin,
 		Index:     fmt.Sprintf("%d", event.Index),
-		Topics:    getTopicSignaturesAsStringArray(event.Topics),
+		Topics:    getTopicSignaturesAsStringSlice(event.Topics),
 		Data:      data,
 		TxHash:    event.TransactionHash,
 		BlockHash: event.BlockHash,
@@ -165,7 +165,7 @@ func getTopics(topics ...string) []common.Hash {
 	return nil
 }
 
-func getTopicSignaturesAsStringArray(topics pq.StringArray) []string {
+func getTopicSignaturesAsStringSlice(topics pq.StringArray) []string {
 	_tmp := make([]string, 0)
 
 	for _, v := range topics {
