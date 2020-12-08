@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/rest/graph/model"
 	"gorm.io/gorm"
@@ -129,6 +130,26 @@ func getGraphQLCompatibleEvents(events *data.Events) ([]*model.Event, error) {
 	}
 
 	return _events, nil
+}
+
+func getTopics(topics ...string) []common.Hash {
+	if topics[0] != "" && topics[1] != "" && topics[2] != "" && topics[3] != "" {
+		return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2]), common.HexToHash(topics[3])}
+	}
+
+	if topics[0] != "" && topics[1] != "" && topics[2] != "" {
+		return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2])}
+	}
+
+	if topics[0] != "" && topics[1] != "" {
+		return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1])}
+	}
+
+	if topics[0] != "" {
+		return []common.Hash{common.HexToHash(topics[0])}
+	}
+
+	return nil
 }
 
 // Extracted from, to field of range based block query ( using block numbers/ time stamps )

@@ -67,27 +67,29 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		BlockByHash                              func(childComplexity int, hash string) int
-		BlockByNumber                            func(childComplexity int, number string) int
-		BlocksByNumberRange                      func(childComplexity int, from string, to string) int
-		BlocksByTimeRange                        func(childComplexity int, from string, to string) int
-		ContractsCreatedFromAccountByNumberRange func(childComplexity int, account string, from string, to string) int
-		ContractsCreatedFromAccountByTimeRange   func(childComplexity int, account string, from string, to string) int
-		EventsByBlockHash                        func(childComplexity int, hash string) int
-		EventsByTxHash                           func(childComplexity int, hash string) int
-		EventsFromContractByNumberRange          func(childComplexity int, contract string, from string, to string) int
-		EventsFromContractByTimeRange            func(childComplexity int, contract string, from string, to string) int
-		LastXEventsFromContract                  func(childComplexity int, contract string, x int) int
-		Transaction                              func(childComplexity int, hash string) int
-		TransactionFromAccountWithNonce          func(childComplexity int, account string, nonce string) int
-		TransactionsBetweenAccountsByNumberRange func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
-		TransactionsBetweenAccountsByTimeRange   func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
-		TransactionsByBlockHash                  func(childComplexity int, hash string) int
-		TransactionsByBlockNumber                func(childComplexity int, number string) int
-		TransactionsFromAccountByNumberRange     func(childComplexity int, account string, from string, to string) int
-		TransactionsFromAccountByTimeRange       func(childComplexity int, account string, from string, to string) int
-		TransactionsToAccountByNumberRange       func(childComplexity int, account string, from string, to string) int
-		TransactionsToAccountByTimeRange         func(childComplexity int, account string, from string, to string) int
+		BlockByHash                               func(childComplexity int, hash string) int
+		BlockByNumber                             func(childComplexity int, number string) int
+		BlocksByNumberRange                       func(childComplexity int, from string, to string) int
+		BlocksByTimeRange                         func(childComplexity int, from string, to string) int
+		ContractsCreatedFromAccountByNumberRange  func(childComplexity int, account string, from string, to string) int
+		ContractsCreatedFromAccountByTimeRange    func(childComplexity int, account string, from string, to string) int
+		EventsByBlockHash                         func(childComplexity int, hash string) int
+		EventsByTxHash                            func(childComplexity int, hash string) int
+		EventsFromContractByNumberRange           func(childComplexity int, contract string, from string, to string) int
+		EventsFromContractByTimeRange             func(childComplexity int, contract string, from string, to string) int
+		EventsFromContractWithTopicsByNumberRange func(childComplexity int, contract string, from string, to string, topics []string) int
+		EventsFromContractWithTopicsByTimeRange   func(childComplexity int, contract string, from string, to string, topics []string) int
+		LastXEventsFromContract                   func(childComplexity int, contract string, x int) int
+		Transaction                               func(childComplexity int, hash string) int
+		TransactionFromAccountWithNonce           func(childComplexity int, account string, nonce string) int
+		TransactionsBetweenAccountsByNumberRange  func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
+		TransactionsBetweenAccountsByTimeRange    func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
+		TransactionsByBlockHash                   func(childComplexity int, hash string) int
+		TransactionsByBlockNumber                 func(childComplexity int, number string) int
+		TransactionsFromAccountByNumberRange      func(childComplexity int, account string, from string, to string) int
+		TransactionsFromAccountByTimeRange        func(childComplexity int, account string, from string, to string) int
+		TransactionsToAccountByNumberRange        func(childComplexity int, account string, from string, to string) int
+		TransactionsToAccountByTimeRange          func(childComplexity int, account string, from string, to string) int
 	}
 
 	Transaction struct {
@@ -125,6 +127,8 @@ type QueryResolver interface {
 	EventsFromContractByTimeRange(ctx context.Context, contract string, from string, to string) ([]*model.Event, error)
 	EventsByBlockHash(ctx context.Context, hash string) ([]*model.Event, error)
 	EventsByTxHash(ctx context.Context, hash string) ([]*model.Event, error)
+	EventsFromContractWithTopicsByNumberRange(ctx context.Context, contract string, from string, to string, topics []string) ([]*model.Event, error)
+	EventsFromContractWithTopicsByTimeRange(ctx context.Context, contract string, from string, to string, topics []string) ([]*model.Event, error)
 	LastXEventsFromContract(ctx context.Context, contract string, x int) ([]*model.Event, error)
 }
 
@@ -388,6 +392,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.EventsFromContractByTimeRange(childComplexity, args["contract"].(string), args["from"].(string), args["to"].(string)), true
+
+	case "Query.eventsFromContractWithTopicsByNumberRange":
+		if e.complexity.Query.EventsFromContractWithTopicsByNumberRange == nil {
+			break
+		}
+
+		args, err := ec.field_Query_eventsFromContractWithTopicsByNumberRange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.EventsFromContractWithTopicsByNumberRange(childComplexity, args["contract"].(string), args["from"].(string), args["to"].(string), args["topics"].([]string)), true
+
+	case "Query.eventsFromContractWithTopicsByTimeRange":
+		if e.complexity.Query.EventsFromContractWithTopicsByTimeRange == nil {
+			break
+		}
+
+		args, err := ec.field_Query_eventsFromContractWithTopicsByTimeRange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.EventsFromContractWithTopicsByTimeRange(childComplexity, args["contract"].(string), args["from"].(string), args["to"].(string), args["topics"].([]string)), true
 
 	case "Query.lastXEventsFromContract":
 		if e.complexity.Query.LastXEventsFromContract == nil {
@@ -701,6 +729,8 @@ type Query {
   eventsFromContractByTimeRange(contract: String!, from: String!, to: String!): [Event!]!
   eventsByBlockHash(hash: String!): [Event!]!
   eventsByTxHash(hash: String!): [Event!]!
+  eventsFromContractWithTopicsByNumberRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
+  eventsFromContractWithTopicsByTimeRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
   lastXEventsFromContract(contract: String!, x: Int!): [Event!]!
 }
 `, BuiltIn: false},
@@ -963,6 +993,90 @@ func (ec *executionContext) field_Query_eventsFromContractByTimeRange_args(ctx c
 		}
 	}
 	args["to"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_eventsFromContractWithTopicsByNumberRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["contract"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contract"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["contract"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["from"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg2
+	var arg3 []string
+	if tmp, ok := rawArgs["topics"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("topics"))
+		arg3, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["topics"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_eventsFromContractWithTopicsByTimeRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["contract"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contract"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["contract"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["from"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg2
+	var arg3 []string
+	if tmp, ok := rawArgs["topics"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("topics"))
+		arg3, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["topics"] = arg3
 	return args, nil
 }
 
@@ -2767,6 +2881,90 @@ func (ec *executionContext) _Query_eventsByTxHash(ctx context.Context, field gra
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().EventsByTxHash(rctx, args["hash"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Event)
+	fc.Result = res
+	return ec.marshalNEvent2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐEventᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_eventsFromContractWithTopicsByNumberRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_eventsFromContractWithTopicsByNumberRange_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().EventsFromContractWithTopicsByNumberRange(rctx, args["contract"].(string), args["from"].(string), args["to"].(string), args["topics"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Event)
+	fc.Result = res
+	return ec.marshalNEvent2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐEventᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_eventsFromContractWithTopicsByTimeRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_eventsFromContractWithTopicsByTimeRange_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().EventsFromContractWithTopicsByTimeRange(rctx, args["contract"].(string), args["from"].(string), args["to"].(string), args["topics"].([]string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4765,6 +4963,34 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_eventsByTxHash(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "eventsFromContractWithTopicsByNumberRange":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_eventsFromContractWithTopicsByNumberRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "eventsFromContractWithTopicsByTimeRange":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_eventsFromContractWithTopicsByTimeRange(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

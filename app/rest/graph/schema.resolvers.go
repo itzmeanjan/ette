@@ -242,6 +242,32 @@ func (r *queryResolver) EventsByTxHash(ctx context.Context, hash string) ([]*mod
 	return getGraphQLCompatibleEvents(_db.GetEventsByTransactionHash(db, common.HexToHash(hash)))
 }
 
+func (r *queryResolver) EventsFromContractWithTopicsByNumberRange(ctx context.Context, contract string, from string, to string, topics []string) ([]*model.Event, error) {
+	if !(strings.HasPrefix(contract, "0x") && len(contract) == 42) {
+		return nil, errors.New("Bad Contract Address")
+	}
+
+	_from, _to, err := rangeChecker(from, to, 10)
+	if err != nil {
+		return nil, errors.New("Bad Block Number Range")
+	}
+
+	return getGraphQLCompatibleEvents(_db.GetEventsFromContractWithTopicsByBlockNumberRange(db, common.HexToAddress(contract), _from, _to, getTopics(topics...)...))
+}
+
+func (r *queryResolver) EventsFromContractWithTopicsByTimeRange(ctx context.Context, contract string, from string, to string, topics []string) ([]*model.Event, error) {
+	if !(strings.HasPrefix(contract, "0x") && len(contract) == 42) {
+		return nil, errors.New("Bad Contract Address")
+	}
+
+	_from, _to, err := rangeChecker(from, to, 60)
+	if err != nil {
+		return nil, errors.New("Bad Block Timestamp Range")
+	}
+
+	return getGraphQLCompatibleEvents(_db.GetEventsFromContractWithTopicsByBlockTimeRange(db, common.HexToAddress(contract), _from, _to, getTopics(topics...)...))
+}
+
 func (r *queryResolver) LastXEventsFromContract(ctx context.Context, contract string, x int) ([]*model.Event, error) {
 	if !(strings.HasPrefix(contract, "0x") && len(contract) == 42) {
 		return nil, errors.New("Bad Contract Address")
