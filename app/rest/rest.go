@@ -1183,7 +1183,7 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 	router.GET("/v1/graphql-playground", func(c *gin.Context) {
 
-		if strings.ToLower(cfg.Get("EtteGraphQLPlayground")) != "yes" {
+		if strings.ToLower(cfg.Get("EtteGraphQLPlayGround")) != "yes" {
 
 			c.JSON(http.StatusOK, gin.H{
 				"msg": "GraphQL Playground disabled",
