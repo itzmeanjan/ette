@@ -28,6 +28,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/itzmeanjan/ette/app/rest/graph"
 )
 
@@ -1163,12 +1164,36 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		}
 	})
 
-	gql := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
-		Resolvers: &graph.Resolver{},
-	}))
-
 	router.POST("/v1/graphql", func(c *gin.Context) {
+
+		gql := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+			Resolvers: &graph.Resolver{},
+		}))
+
+		if gql == nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"msg": "Failed to handle graphQL query",
+			})
+			return
+		}
+
 		gql.ServeHTTP(c.Writer, c.Request)
+
+	})
+
+	router.GET("/v1/graphql-playground", func(c *gin.Context) {
+
+		gpg := playground.Handler("ette", "/v1/graphql")
+
+		if gpg == nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"msg": "Failed to create graphQL playground",
+			})
+			return
+		}
+
+		gpg.ServeHTTP(c.Writer, c.Request)
+
 	})
 
 	router.Run(fmt.Sprintf(":%s", cfg.Get("PORT")))
