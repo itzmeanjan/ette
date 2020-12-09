@@ -19,7 +19,7 @@ EVM-based Blockchain Indexer, with historical data query & real-time notificatio
             - [Query historical block data](#historical-block-data--rest-api--)
             - [Query historical transaction data](#historical-transaction-data--rest-api--)
             - [Query historical event data](#historical-event-data--rest-api--)
-        - GraphQL
+        - GraphQL ( **Recommended** )
             - [Query historical block data](#historical-block-data--graphql-api--)
             - [Query historical transaction data](#historical-transaction-data--graphql-api--)
             - [Query historical event data](#historical-event-data--graphql-api--)
@@ -411,7 +411,9 @@ type Event {
 }
 ```
 
-> Browser based GraphQL Playground : **/v1/graphql-playground**
+> Browser based GraphQL Playground : **/v1/graphql-playground** 👇🤩
+
+![graphql_playground](./sc/graphQL_playground.png)
 
 ---
 
