@@ -16,10 +16,13 @@ EVM-based Blockchain Indexer, with historical data query & real-time notificatio
 - [How to use it ?](#usage-)
     - Historical Data
         - Custom REST
-            - [Query historical block data](#historical-block-data-)
-            - [Query historical transaction data](#historical-transaction-data-)
-            - [Query historical event data](#historical-event-data-)
+            - [Query historical block data](#historical-block-data--rest-api--)
+            - [Query historical transaction data](#historical-transaction-data--rest-api--)
+            - [Query historical event data](#historical-event-data--rest-api--)
         - GraphQL
+            - [Query historical block data](#historical-block-data--graphql-api--)
+            - [Query historical transaction data](#historical-transaction-data--graphql-api--)
+            - [Query historical event data](#historical-event-data--graphql-api--)
     - Real-time Data
         - [Real-time block mining notification](#real-time-notification-for-mined-blocks-)
         - [Real-time transaction notification ( 🤩 Filters Added ) ](#real-time-notification-for-transactions-%EF%B8%8F)
@@ -301,6 +304,10 @@ Query Params | Method | Description
 
 You can query block data using GraphQL API.
 
+**Path: `/v1/graphql`**
+
+**Method: `POST`**
+
 ```graphql
 type Query {
     blockByHash(hash: String!): Block!
@@ -332,6 +339,10 @@ type Block {
 ### Historical Transaction Data ( GraphQL API ) 🤩
 
 You can query transaction data from `ette`, using following GraphQL methods.
+
+**Path: `/v1/graphql`**
+
+**Method: `POST`**
 
 ```graphql
 type Query {
@@ -371,6 +382,10 @@ type Transaction {
 
 You can ask `ette` for event data using GraphQL API.
 
+**Path: `/v1/graphql`**
+
+**Method: `POST`**
+
 ```graphql
 type Query {
     eventsFromContractByNumberRange(contract: String!, from: String!, to: String!): [Event!]!
@@ -397,8 +412,6 @@ type Event {
 ```
 
 > Browser based GraphQL Playground : **/v1/graphql-playground**
-
-> All GraphQL queries can be sent to **/v1/graphql** as HTTP POST request, along with `APIKey` as HTTP header
 
 ---
 
