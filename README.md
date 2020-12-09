@@ -14,10 +14,15 @@ EVM-based Blockchain Indexer, with historical data query & real-time notificatio
 - [What are possible use cases of `ette` ?](#use-cases-)
 - [How do I generate `APIKey`(s) ?](#management-using-webui-)
 - [How to use it ?](#usage-)
-    - Historical Data 
-        - [Query historical block data](#historical-block-data-)
-        - [Query historical transaction data](#historical-transaction-data-)
-        - [Query historical event data](#historical-event-data-)
+    - Historical Data
+        - Custom REST
+            - [Query historical block data](#historical-block-data--rest-api--)
+            - [Query historical transaction data](#historical-transaction-data--rest-api--)
+            - [Query historical event data](#historical-event-data--rest-api--)
+        - GraphQL ( **Recommended** )
+            - [Query historical block data](#historical-block-data--graphql-api--)
+            - [Query historical transaction data](#historical-transaction-data--graphql-api--)
+            - [Query historical event data](#historical-event-data--graphql-api--)
     - Real-time Data
         - [Real-time block mining notification](#real-time-notification-for-mined-blocks-)
         - [Real-time transaction notification ( 🤩 Filters Added ) ](#real-time-notification-for-transactions-%EF%B8%8F)
@@ -25,14 +30,14 @@ EVM-based Blockchain Indexer, with historical data query & real-time notificatio
 
 ## Inspiration 🤔
 
-I was looking for one tool which will be able to keep itself in sync with latest happenings on EVM based blockchain i.e. index blockchain data, while exposing REST API for querying blockchain data with various filters. That tool will also expose real time notification functionalities over websocket, when subscribed to topics.
+I was looking for one tool which will be able to keep itself in sync with latest happenings on EVM based blockchain i.e. index blockchain data, while exposing REST & GraphQL API for querying blockchain data with various filters. That tool will also expose real time notification functionalities over websocket, when subscribed to topics.
 
 It's not that I was unable find any solution, but wasn't fully satisfied with those, so I decided to write `ette`, which will do following
 
 - Sync upto latest state of blockchain
 - Listen for all happenings on EVM based blockchain
 - Persist all happenings in local database
-- Expose REST API for querying 👇, while also setting block range/ time range for filtering results. Allow querying latest **X** entries for events emitted by contracts.
+- Expose REST & GraphQL API for querying 👇, while also setting block range/ time range for filtering results. Allow querying latest **X** entries for events emitted by contracts.
     - Block data
     - Transaction data
     - Event data
@@ -86,6 +91,8 @@ cd ette
     }
     ```
 
+    - For testing historical data query using browser based GraphQL Playground in `ette`, you can set `EtteGraphQLPlayGround` to `yes` in config file
+
 ```
 RPC=wss://<websocket-endpoint>
 PORT=7000
@@ -100,7 +107,8 @@ RedisPassword=password
 Admin=e19b9EB3Bf05F1C8100C9b6E8a3D8A14F6384BFb
 Domain=localhost
 Production=yes
-EtteMode=2
+EtteMode=3
+EtteGraphQLPlayGround=yes
 ```
 
 - Create another file in same directory, named `.plans.json`, whose content will look like 👇.
@@ -228,11 +236,11 @@ Read further for usage examples.
 
 ## Usage 🦾
 
-`ette` exposes REST API for querying historical block, transaction & event related data. It can also play role of real time notification engine, when subscribed to supported topics.
+`ette` exposes REST & GraphQL API for querying historical block, transaction & event related data. It can also play role of real time notification engine, when subscribed to supported topics.
 
 > **_All historical data query requests need to be strictly accompanied with valid `APIKey` as request header param_** 🤖
 
-### Historical Block Data 🤩
+### Historical Block Data ( REST API ) 🤩
 
 You can query historical block data with various combination of query string params. 👇 is a comprehensive guide for consuming block data.
 
@@ -249,7 +257,7 @@ Query Params | Method | Description
 `fromBlock=1&toBlock=10` | GET | Fetch blocks by block number range _( max 10 at a time )_
 `fromTime=1604975929&toTime=1604975988` | GET | Fetch blocks by unix timestamp range _( max 60 seconds timespan )_
 
-### Historical Transaction Data 😎
+### Historical Transaction Data ( REST API ) 😎
 
 It's possible to query historical transactions data with various combination of query string params, where URL path is 👇
 
@@ -270,7 +278,7 @@ Query Params | Method | Description
 `fromBlock=1&toBlock=100&toAccount=0x...` | GET | Given block number range _( max 100 at a time )_ & an account, can find out all tx where target was this address
 `fromTime=1604975929&toTime=1604975988&toAccount=0x...` | GET | Given time stamp range _( max 600 seconds of span )_ & an account, can find out all tx where target was this address
 
-### Historical Event Data 🧐
+### Historical Event Data ( REST API ) 🧐
 
 `ette` lets you query historical event data, emitted by smart contracts, by combination of query string params.
 
@@ -291,6 +299,123 @@ Query Params | Method | Description
 `fromTime=1604975929&toTime=1604975988&contract=0x...&topic0=0x...&topic1=0x...` | GET | Finding event(s) emitted from contract within given time stamp range & also matching topic signatures _{0, 1}_
 `fromTime=1604975929&toTime=1604975988&contract=0x...&topic0=0x...` | GET | Finding event(s) emitted from contract within given time stamp range & also matching topic signatures _{0}_
 `fromTime=1604975929&toTime=1604975988&contract=0x...` | GET | Finding event(s) emitted from contract within given time stamp range
+
+### Historical Block Data ( GraphQL API ) 🤩
+
+You can query block data using GraphQL API.
+
+**Path: `/v1/graphql`**
+
+**Method: `POST`**
+
+```graphql
+type Query {
+    blockByHash(hash: String!): Block!
+    blockByNumber(number: String!): Block!
+    blocksByNumberRange(from: String!, to: String!): [Block!]!
+    blocksByTimeRange(from: String!, to: String!): [Block!]!
+}
+```
+
+Response will be of type 👇
+
+```graphql
+type Block {
+  hash: String!
+  number: String!
+  time: String!
+  parentHash: String!
+  difficulty: String!
+  gasUsed: String!
+  gasLimit: String!
+  nonce: String!
+  miner: String!
+  size: Float!
+  txRootHash: String!
+  receiptRootHash: String!
+}
+```
+
+### Historical Transaction Data ( GraphQL API ) 🤩
+
+You can query transaction data from `ette`, using following GraphQL methods.
+
+**Path: `/v1/graphql`**
+
+**Method: `POST`**
+
+```graphql
+type Query {
+    transactionsByBlockHash(hash: String!): [Transaction!]!
+    transactionsByBlockNumber(number: String!): [Transaction!]!
+    transaction(hash: String!): Transaction!
+    transactionsFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+    transactionsFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+    transactionsToAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+    transactionsToAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+    transactionsBetweenAccountsByNumberRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
+    transactionsBetweenAccountsByTimeRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
+    contractsCreatedFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+    contractsCreatedFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+    transactionFromAccountWithNonce(account: String!, nonce: String!): Transaction!
+}
+```
+
+Response will be of type 👇
+
+```graphql
+type Transaction {
+  hash: String!
+  from: String!
+  to: String!
+  contract: String!
+  gas: String!
+  gasPrice: String!
+  cost: String!
+  nonce: String!
+  state: String!
+  blockHash: String!
+}
+```
+
+### Historical Event Data ( GraphQL API ) 🤩
+
+You can ask `ette` for event data using GraphQL API.
+
+**Path: `/v1/graphql`**
+
+**Method: `POST`**
+
+```graphql
+type Query {
+    eventsFromContractByNumberRange(contract: String!, from: String!, to: String!): [Event!]!
+    eventsFromContractByTimeRange(contract: String!, from: String!, to: String!): [Event!]!
+    eventsByBlockHash(hash: String!): [Event!]!
+    eventsByTxHash(hash: String!): [Event!]!
+    eventsFromContractWithTopicsByNumberRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
+    eventsFromContractWithTopicsByTimeRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
+    lastXEventsFromContract(contract: String!, x: Int!): [Event!]!
+}
+```
+
+Response will be of type 👇
+
+```graphql
+type Event {
+  origin: String!
+  index: String!
+  topics: [String!]!
+  data: String!
+  txHash: String!
+  blockHash: String!
+}
+```
+
+> Browser based GraphQL Playground : **/v1/graphql-playground** 👇🤩
+
+![graphql_playground](./sc/graphQL_playground.png)
+
+---
 
 ### Real time notification for mined blocks ⛏
 

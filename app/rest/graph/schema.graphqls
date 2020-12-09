@@ -1,0 +1,64 @@
+type Block {
+  hash: String!
+  number: String!
+  time: String!
+  parentHash: String!
+  difficulty: String!
+  gasUsed: String!
+  gasLimit: String!
+  nonce: String!
+  miner: String!
+  size: Float!
+  txRootHash: String!
+  receiptRootHash: String!
+}
+
+type Transaction {
+  hash: String!
+  from: String!
+  to: String!
+  contract: String!
+  gas: String!
+  gasPrice: String!
+  cost: String!
+  nonce: String!
+  state: String!
+  blockHash: String!
+}
+
+type Event {
+  origin: String!
+  index: String!
+  topics: [String!]!
+  data: String!
+  txHash: String!
+  blockHash: String!
+}
+
+type Query {
+  blockByHash(hash: String!): Block!
+  blockByNumber(number: String!): Block!
+  blocksByNumberRange(from: String!, to: String!): [Block!]!
+  blocksByTimeRange(from: String!, to: String!): [Block!]!
+  
+  transactionsByBlockHash(hash: String!): [Transaction!]!
+  transactionsByBlockNumber(number: String!): [Transaction!]!
+  transaction(hash: String!): Transaction!
+  transactionsFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+  transactionsFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+  transactionsToAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+  transactionsToAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+  transactionsBetweenAccountsByNumberRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
+  transactionsBetweenAccountsByTimeRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
+  contractsCreatedFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+  contractsCreatedFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+  transactionFromAccountWithNonce(account: String!, nonce: String!): Transaction!
+
+  eventsFromContractByNumberRange(contract: String!, from: String!, to: String!): [Event!]!
+  eventsFromContractByTimeRange(contract: String!, from: String!, to: String!): [Event!]!
+  eventsByBlockHash(hash: String!): [Event!]!
+  eventsByTxHash(hash: String!): [Event!]!
+  eventsFromContractWithTopicsByNumberRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
+  eventsFromContractWithTopicsByTimeRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
+  lastXEventsFromContract(contract: String!, x: Int!): [Event!]!
+}

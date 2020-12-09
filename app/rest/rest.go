@@ -24,7 +24,12 @@ import (
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	ps "github.com/itzmeanjan/ette/app/pubsub"
+	"github.com/itzmeanjan/ette/app/rest/graph/generated"
 	"gorm.io/gorm"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/itzmeanjan/ette/app/rest/graph"
 )
 
 // RunHTTPServer - Holds definition for all REST API(s) to be exposed
@@ -1157,6 +1162,47 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 				topics[req.Name] = nil
 			}
 		}
+	})
+
+	router.POST("/v1/graphql", validateAPIKey, func(c *gin.Context) {
+
+		gql := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+			Resolvers: &graph.Resolver{},
+		}))
+
+		if gql == nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"msg": "Failed to handle graphQL query",
+			})
+			return
+		}
+
+		gql.ServeHTTP(c.Writer, c.Request)
+
+	})
+
+	router.GET("/v1/graphql-playground", func(c *gin.Context) {
+
+		if strings.ToLower(cfg.Get("EtteGraphQLPlayGround")) != "yes" {
+
+			c.JSON(http.StatusOK, gin.H{
+				"msg": "GraphQL Playground disabled",
+			})
+			return
+
+		}
+
+		gpg := playground.Handler("ette", "/v1/graphql")
+
+		if gpg == nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"msg": "Failed to create graphQL playground",
+			})
+			return
+		}
+
+		gpg.ServeHTTP(c.Writer, c.Request)
+
 	})
 
 	router.Run(fmt.Sprintf(":%s", cfg.Get("PORT")))
