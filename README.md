@@ -299,37 +299,108 @@ Query Params | Method | Description
 
 ### Historical Block Data ( GraphQL API ) 🤩
 
-Querying historical block data using GraphQL API is demonstrated below.
+You can query block data using GraphQL API.
 
-Method | Header | Query
---- | --- | ---
-POST | `APIKey: 0x...` | `query { blockByHash(hash: "0x...") { number } }`
-POST | `APIKey: 0x...` | `query { blockByNumber(number: "1") { size } }`
-POST | `APIKey: 0x...` | `query { blocksByNumberRange(from: "0", to: "9") { time } }`
-POST | `APIKey: 0x...` | `query { blocksByTimeRange(from: "1604975988", to: "1604975998") { difficulty } }`
+```graphql
+type Query {
+    blockByHash(hash: String!): Block!
+    blockByNumber(number: String!): Block!
+    blocksByNumberRange(from: String!, to: String!): [Block!]!
+    blocksByTimeRange(from: String!, to: String!): [Block!]!
+}
+```
 
-### Historical Transaction Data ( GraphQL API ) 😎
+Response will be of type 👇
 
-Historical transaction data query using GraphQL API is demonstrated below.
+```graphql
+type Block {
+  hash: String!
+  number: String!
+  time: String!
+  parentHash: String!
+  difficulty: String!
+  gasUsed: String!
+  gasLimit: String!
+  nonce: String!
+  miner: String!
+  size: Float!
+  txRootHash: String!
+  receiptRootHash: String!
+}
+```
 
-Method | Header | Query
---- | --- | ---
-POST | `APIKey: 0x...` | `query { transactionsByBlockHash(hash: "0x...") { from, to } }`
-POST | `APIKey: 0x...` | `query { transactionsByBlockNumber(number: "0") { from, to } }`
-POST | `APIKey: 0x...` | `query { transaction(hash: "0x...") { from, to } }`
-POST | `APIKey: 0x...` | `query { transactionsFromAccountByNumberRange(account: "0x...", from: "0", to: "9") { from, to } }`
-POST | `APIKey: 0x...` | `query { transactionsFromAccountByTimeRange(account: "0x...", from: "1604975988", to: "1604975998") { from, to } }`
-POST | `APIKey: 0x...` | `query { transactionsToAccountByNumberRange(account: "0x...", from: "0", to: "9") { from, to } }`
-POST | `APIKey: 0x...` | `query { transactionsToAccountByTimeRange(account: "0x...", from: "1604975988", to: "1604975998") { from, to } }`
-POST | `APIKey: 0x...` | `query { transactionsBetweenAccountsByNumberRange(fromAccount: "0x...", toAccount: "0x...", from: "0", to: "9") { from, to } }`
-POST | `APIKey: 0x...` | `query { transactionsBetweenAccountsByTimeRange(fromAccount: "0x...", toAccount: "0x...", from: "1604975988", to: "1604975998") { from, to } }`
-POST | `APIKey: 0x...` | `query { contractsCreatedFromAccountByNumberRange(account: "0x...", from: "0", to: "9") { from, to } }`
-POST | `APIKey: 0x...` | `query { contractsCreatedFromAccountByTimeRange(account: "0x...", from: "1604975988", to: "1604975998") { from, to } }`
-POST | `APIKey: 0x...` | `query { transactionFromAccountWithNonce(account: "0x...", nonce: "1") { from, to } }`
+### Historical Transaction Data ( GraphQL API ) 🤩
 
-> In-Browser GraphQL Playground : **/v1/graphql-playground**
+You can query transaction data from `ette`, using following GraphQL methods.
+
+```graphql
+type Query {
+    transactionsByBlockHash(hash: String!): [Transaction!]!
+    transactionsByBlockNumber(number: String!): [Transaction!]!
+    transaction(hash: String!): Transaction!
+    transactionsFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+    transactionsFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+    transactionsToAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+    transactionsToAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+    transactionsBetweenAccountsByNumberRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
+    transactionsBetweenAccountsByTimeRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
+    contractsCreatedFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+    contractsCreatedFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+    transactionFromAccountWithNonce(account: String!, nonce: String!): Transaction!
+}
+```
+
+Response will be of type 👇
+
+```graphql
+type Transaction {
+  hash: String!
+  from: String!
+  to: String!
+  contract: String!
+  gas: String!
+  gasPrice: String!
+  cost: String!
+  nonce: String!
+  state: String!
+  blockHash: String!
+}
+```
+
+### Historical Event Data ( GraphQL API ) 🤩
+
+You can ask `ette` for event data using GraphQL API.
+
+```graphql
+type Query {
+    eventsFromContractByNumberRange(contract: String!, from: String!, to: String!): [Event!]!
+    eventsFromContractByTimeRange(contract: String!, from: String!, to: String!): [Event!]!
+    eventsByBlockHash(hash: String!): [Event!]!
+    eventsByTxHash(hash: String!): [Event!]!
+    eventsFromContractWithTopicsByNumberRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
+    eventsFromContractWithTopicsByTimeRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
+    lastXEventsFromContract(contract: String!, x: Int!): [Event!]!
+}
+```
+
+Response will be of type 👇
+
+```graphql
+type Event {
+  origin: String!
+  index: String!
+  topics: [String!]!
+  data: String!
+  txHash: String!
+  blockHash: String!
+}
+```
+
+> Browser based GraphQL Playground : **/v1/graphql-playground**
 
 > All GraphQL queries can be sent to **/v1/graphql** as HTTP POST request, along with `APIKey` as HTTP header
+
+---
 
 ### Real time notification for mined blocks ⛏
 
