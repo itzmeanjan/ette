@@ -36,7 +36,7 @@ func (Blocks) TableName() string {
 	return "blocks"
 }
 
-// AreSimilar - Checking whether two block structures are exactly similar or not
+// AreSimilar - Checking whether two blocks are exactly similar or not
 func (b *Blocks) AreSimilar(block *Blocks) bool {
 	return b.Hash == block.Hash &&
 		b.Number == block.Number &&
@@ -70,6 +70,20 @@ type Transactions struct {
 // TableName - Overriding default table name
 func (Transactions) TableName() string {
 	return "transactions"
+}
+
+// AreSimilar - Checking similarity between values of two transaction structures
+func (t *Transactions) AreSimilar(tx *Transactions) bool {
+	return t.Hash == tx.Hash &&
+		t.From == tx.From &&
+		t.To == tx.To &&
+		t.Contract == tx.Contract &&
+		t.Gas == tx.Gas &&
+		t.GasPrice == tx.GasPrice &&
+		t.Cost == tx.Cost &&
+		t.Nonce == tx.Nonce &&
+		t.State == tx.State &&
+		t.BlockHash == tx.BlockHash
 }
 
 // Events - Events emitted from smart contracts to be held in this table
