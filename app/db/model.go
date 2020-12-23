@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/lib/pq"
 )
 
@@ -37,20 +38,20 @@ func (Blocks) TableName() string {
 	return "blocks"
 }
 
-// AreSimilar - Checking whether two blocks are exactly similar or not
-func (b *Blocks) AreSimilar(block *Blocks) bool {
-	return b.Hash == block.Hash &&
-		b.Number == block.Number &&
-		b.Time == block.Time &&
-		b.ParentHash == block.ParentHash &&
-		b.Difficulty == block.Difficulty &&
-		b.GasUsed == block.GasUsed &&
-		b.GasLimit == block.GasLimit &&
-		b.Nonce == block.Nonce &&
-		b.Miner == block.Miner &&
-		b.Size == block.Size &&
-		b.TransactionRootHash == block.TransactionRootHash &&
-		b.ReceiptRootHash == block.ReceiptRootHash
+// SimilarTo - Checking whether two blocks are exactly similar or not
+func (b *Blocks) SimilarTo(block *types.Block) bool {
+	return b.Hash == block.Hash().Hex() &&
+		b.Number == block.NumberU64() &&
+		b.Time == block.Time() &&
+		b.ParentHash == block.ParentHash().Hex() &&
+		b.Difficulty == block.Difficulty().String() &&
+		b.GasUsed == block.GasUsed() &&
+		b.GasLimit == block.GasLimit() &&
+		b.Nonce == block.Nonce() &&
+		b.Miner == block.Coinbase().Hex() &&
+		b.Size == float64(block.Size()) &&
+		b.TransactionRootHash == block.TxHash().Hex() &&
+		b.ReceiptRootHash == block.ReceiptHash().Hex()
 }
 
 // Transactions - Blockchain transaction holder table model
