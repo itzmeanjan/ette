@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/lib/pq"
 )
@@ -74,18 +75,29 @@ func (Transactions) TableName() string {
 	return "transactions"
 }
 
-// AreSimilar - Checking similarity between values of two transaction structures
-func (t *Transactions) AreSimilar(tx *Transactions) bool {
-	return t.Hash == tx.Hash &&
-		t.From == tx.From &&
-		t.To == tx.To &&
-		t.Contract == tx.Contract &&
-		t.Gas == tx.Gas &&
-		t.GasPrice == tx.GasPrice &&
-		t.Cost == tx.Cost &&
-		t.Nonce == tx.Nonce &&
-		t.State == tx.State &&
-		t.BlockHash == tx.BlockHash
+// SimilarTo - Checking equality of two transactions
+func (t *Transactions) SimilarTo(tx *types.Transaction, txReceipt *types.Receipt, sender common.Address) bool {
+	if tx.To() == nil {
+		return t.Hash == tx.Hash().Hex() &&
+			t.From == sender.Hex() &&
+			t.Contract == txReceipt.ContractAddress.Hex() &&
+			t.Gas == tx.Gas() &&
+			t.GasPrice == tx.GasPrice().String() &&
+			t.Cost == tx.Cost().String() &&
+			t.Nonce == tx.Nonce() &&
+			t.State == txReceipt.Status &&
+			t.BlockHash == txReceipt.BlockHash.Hex()
+	}
+
+	return t.Hash == tx.Hash().Hex() &&
+		t.From == sender.Hex() &&
+		t.To == tx.To().Hex() &&
+		t.Gas == tx.Gas() &&
+		t.GasPrice == tx.GasPrice().String() &&
+		t.Cost == tx.Cost().String() &&
+		t.Nonce == tx.Nonce() &&
+		t.State == txReceipt.Status &&
+		t.BlockHash == txReceipt.BlockHash.Hex()
 }
 
 // Events - Events emitted from smart contracts to be held in this table
