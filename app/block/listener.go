@@ -38,6 +38,11 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 	_synced.StartedAt = time.Now().UTC()
 	_lock.Unlock()
 
+	// Starting go routine for fetching blocks `ette` failed to process in previous attempt
+	//
+	// Uses Redis backed queue for fetching pending block hash & retries
+	go retryBlockFetching(client, _db, redisClient, redisKey, _lock, _synced)
+
 	for {
 		select {
 		case err := <-subs.Err():
