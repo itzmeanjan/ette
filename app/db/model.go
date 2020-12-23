@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"time"
@@ -99,6 +100,39 @@ type Events struct {
 // TableName - Overriding default table name
 func (Events) TableName() string {
 	return "events"
+}
+
+// AreSimilar - Checking equality of two events
+func (e *Events) AreSimilar(event *Events) bool {
+
+	// Given two string arrays, it'll match it's elements by index & if all of them are same
+	// returns boolean result
+	compareStringArrays := func(arrayOne pq.StringArray, arrayTwo pq.StringArray) bool {
+		matched := true
+
+		for k, v := range arrayOne {
+
+			if v != arrayTwo[k] {
+				matched = false
+				break
+			}
+
+		}
+
+		return matched
+	}
+
+	// Given two byte slices, checks their equality
+	compareByteSlices := func(sliceOne []byte, sliceTwo []byte) bool {
+		return bytes.Compare(e.Data, event.Data) == 0
+	}
+
+	return e.Origin == event.Origin &&
+		e.Index == event.Index &&
+		compareStringArrays(e.Topics, event.Topics) &&
+		compareByteSlices(e.Data, event.Data) &&
+		e.TransactionHash == event.TransactionHash &&
+		e.BlockHash == event.BlockHash
 }
 
 // Users - User address & created api key related info, holder table
