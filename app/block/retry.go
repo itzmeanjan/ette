@@ -3,10 +3,10 @@ package block
 import (
 	"context"
 	"log"
+	"strconv"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
 	d "github.com/itzmeanjan/ette/app/data"
@@ -25,20 +25,27 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 
 	for {
 
-		blockHash, err := redisClient.LPop(context.Background(), redisKey).Result()
-		if !(err == nil && len(blockHash) == 66) {
+		// Popping oldest element from Redis queue
+		blockNumber, err := redisClient.LPop(context.Background(), redisKey).Result()
+		if err != nil {
 			sleep()
 		}
 
-		log.Printf("[~] Retrying block : %s\n", blockHash)
-		go fetchBlockByHash(client, common.HexToHash(blockHash), _db, redisClient, redisKey, _lock, _synced)
+		// Parsing string blockNumber to uint64
+		parsedBlockNumber, err := strconv.ParseUint(blockNumber, 10, 64)
+		if err != nil {
+			sleep()
+		}
+
+		log.Printf("[~] Retrying block : %d\n", parsedBlockNumber)
+		go fetchBlockByNumber(client, parsedBlockNumber, _db, redisClient, redisKey, _lock, _synced)
 		sleep()
 	}
 }
 
 // Pushes failed to fetch block hash at end of Redis queue
-func pushBlockHashIntoRedisQueue(redisClient *redis.Client, redisKey string, blockHash common.Hash) {
-	if err := redisClient.RPush(context.Background(), redisKey, blockHash.Hex()).Err(); err != nil {
-		log.Printf("[!] Failed to push block : %s\n", blockHash.Hex())
+func pushBlockHashIntoRedisQueue(redisClient *redis.Client, redisKey string, blockNumber string) {
+	if err := redisClient.RPush(context.Background(), redisKey, blockNumber).Err(); err != nil {
+		log.Printf("[!] Failed to push block %s : %s\n", blockNumber, err.Error())
 	}
 }
