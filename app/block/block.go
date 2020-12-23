@@ -17,9 +17,12 @@ import (
 )
 
 // Fetching block content using blockHash
-func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, redisClient *redis.Client, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
 	block, err := client.BlockByHash(context.Background(), hash)
 	if err != nil {
+		// Pushing block hash into Redis queue for retrying later
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, hash)
+
 		log.Printf("[!] Failed to fetch block by hash : %s\n", err.Error())
 		return
 	}
@@ -60,12 +63,15 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, 
 }
 
 // Fetching block content using block number
-func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
 	_num := big.NewInt(0)
 	_num = _num.SetUint64(number)
 
 	block, err := client.BlockByNumber(context.Background(), _num)
 	if err != nil {
+		// Pushing block hash into Redis queue for retrying later
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Hash())
+
 		log.Printf("[!] Failed to fetch block by number : %s\n", err)
 		return
 	}
