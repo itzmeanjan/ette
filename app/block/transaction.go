@@ -16,9 +16,12 @@ import (
 )
 
 // Fetching specific transaction related data & persisting in database
-func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) {
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
+		// Pushing block number into Redis queue for retrying later
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
+
 		log.Printf("[!] Failed to fetch tx receipt : %s\n", err.Error())
 		return
 	}
@@ -30,6 +33,9 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 
 	sender, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
 	if err != nil {
+		// Pushing block number into Redis queue for retrying later
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
+
 		log.Printf("[!] Failed to fetch tx sender : %s\n", err.Error())
 		return
 	}
@@ -39,23 +45,10 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 		db.PutEvent(_db, receipt)
 	}
 
-	log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
-
-	// --- Safely updating sync state holder
-	_lock.Lock()
-
-	_synced.Done++
-	if block.NumberU64() >= _synced.Target {
-		_synced.Target = block.NumberU64() + 1
-	}
-
-	_lock.Unlock()
-	// ---
-
 	// This is not a case when real time data is received, rather this is probably
 	// a sync attempt to latest state of blockchain
 	// So, in this case, we don't need to publish any data on channel
-	if redisClient == nil {
+	if !publishable {
 		return
 	}
 

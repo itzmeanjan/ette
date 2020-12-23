@@ -17,9 +17,12 @@ import (
 )
 
 // Fetching block content using blockHash
-func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, redisClient *redis.Client, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
 	block, err := client.BlockByHash(context.Background(), hash)
 	if err != nil {
+		// Pushing block number into Redis queue for retrying later
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
+
 		log.Printf("[!] Failed to fetch block by hash : %s\n", err.Error())
 		return
 	}
@@ -56,16 +59,19 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, 
 		publishBlock()
 	}
 
-	fetchBlockContent(client, block, _db, redisClient, _lock, _synced)
+	fetchBlockContent(client, block, _db, redisClient, redisKey, true, _lock, _synced)
 }
 
 // Fetching block content using block number
-func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
 	_num := big.NewInt(0)
 	_num = _num.SetUint64(number)
 
 	block, err := client.BlockByNumber(context.Background(), _num)
 	if err != nil {
+		// Pushing block number into Redis queue for retrying later
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
+
 		log.Printf("[!] Failed to fetch block by number : %s\n", err)
 		return
 	}
@@ -74,11 +80,11 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, _
 		db.PutBlock(_db, block)
 	}
 
-	fetchBlockContent(client, block, _db, nil, _lock, _synced)
+	fetchBlockContent(client, block, _db, redisClient, redisKey, false, _lock, _synced)
 }
 
 // Fetching all transactions in this block, along with their receipt
-func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redisClient *redis.Client, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) {
 	if block.Transactions().Len() == 0 {
 		log.Printf("[!] Empty Block : %d\n", block.NumberU64())
 
@@ -96,6 +102,19 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	}
 
 	for _, v := range block.Transactions() {
-		fetchTransactionByHash(client, block, v, _db, redisClient, _lock, _synced)
+		fetchTransactionByHash(client, block, v, _db, redisClient, redisKey, publishable, _lock, _synced)
 	}
+
+	log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
+
+	// --- Safely updating sync state holder
+	_lock.Lock()
+
+	_synced.Done++
+	if block.NumberU64() >= _synced.Target {
+		_synced.Target = block.NumberU64() + 1
+	}
+
+	_lock.Unlock()
+	// ---
 }
