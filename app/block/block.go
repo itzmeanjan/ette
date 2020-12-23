@@ -27,6 +27,12 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, 
 		return
 	}
 
+	if block.NumberU64()%10 == 0 {
+		// Testing purpose
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
+		return
+	}
+
 	// Publishes block data to all listening parties
 	// on `block` channel
 	publishBlock := func() {
@@ -73,6 +79,12 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
 
 		log.Printf("[!] Failed to fetch block by number : %s\n", err)
+		return
+	}
+
+	if block.NumberU64()%10 == 0 {
+		// Testing purpose
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
 		return
 	}
 

@@ -64,6 +64,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 
 			}
 
+			log.Printf("Got notified about block : %s\n", header.Number.String())
 			go fetchBlockByHash(client, header.Hash(), _db, redisClient, redisKey, _lock, _synced)
 		}
 	}

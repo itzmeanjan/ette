@@ -24,22 +24,22 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 	}
 
 	for {
+		sleep()
 
 		// Popping oldest element from Redis queue
 		blockNumber, err := redisClient.LPop(context.Background(), redisKey).Result()
 		if err != nil {
-			sleep()
+			continue
 		}
 
 		// Parsing string blockNumber to uint64
 		parsedBlockNumber, err := strconv.ParseUint(blockNumber, 10, 64)
 		if err != nil {
-			sleep()
+			continue
 		}
 
 		log.Printf("[~] Retrying block : %d\n", parsedBlockNumber)
 		go fetchBlockByNumber(client, parsedBlockNumber, _db, redisClient, redisKey, _lock, _synced)
-		sleep()
 	}
 }
 
