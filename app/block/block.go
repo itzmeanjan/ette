@@ -51,11 +51,11 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, 
 	// Controlling behaviour of ette depending upon value of `EtteMode`
 	switch cfg.Get("EtteMode") {
 	case "1":
-		db.PutBlock(_db, block)
+		db.StoreBlock(_db, block)
 	case "2":
 		publishBlock()
 	case "3":
-		db.PutBlock(_db, block)
+		db.StoreBlock(_db, block)
 		publishBlock()
 	}
 
@@ -76,9 +76,8 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 		return
 	}
 
-	if res := db.GetBlock(_db, number); res == nil {
-		db.PutBlock(_db, block)
-	}
+	// Either creates new entry or updates existing one
+	db.StoreBlock(_db, block)
 
 	fetchBlockContent(client, block, _db, redisClient, redisKey, false, _lock, _synced)
 }
