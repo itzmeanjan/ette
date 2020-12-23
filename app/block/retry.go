@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// Pop oldest block hash from redis queue & try to fetch it in different go routine
+// Pop oldest block hash from Redis queue & try to fetch it in different go routine
 //
 // Sleeps for 500 milliseconds
 //
@@ -33,5 +33,12 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 		log.Printf("[~] Retrying block : %s\n", blockHash)
 		go fetchBlockByHash(client, common.HexToHash(blockHash), _db, redisClient, _lock, _synced)
 		sleep()
+	}
+}
+
+// Pushes failed to fetch block hash at end of Redis queue
+func pushBlockHashIntoRedisQueue(redisClient *redis.Client, redisKeyName string, blockHash common.Hash) {
+	if err := redisClient.RPush(context.Background(), redisKeyName, blockHash.Hex()).Err(); err != nil {
+		log.Printf("[!] Failed to push block : %s\n", blockHash.Hex())
 	}
 }
