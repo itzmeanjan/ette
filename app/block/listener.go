@@ -17,7 +17,7 @@ import (
 // SubscribeToNewBlocks - Listen for event when new block header is
 // available, then fetch block content ( including all transactions )
 // in different worker
-func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, redisClient *redis.Client) {
+func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, redisClient *redis.Client, redisKey string) {
 	headerChan := make(chan *types.Header)
 
 	subs, err := client.SubscribeNewHead(context.Background(), headerChan)
@@ -51,7 +51,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 				if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
 					// Starting syncer in another thread, where it'll keep fetching
 					// blocks starting from genesis to this block
-					go SyncToLatestBlock(client, _db, 0, header.Number.Uint64(), _lock, _synced)
+					go SyncToLatestBlock(client, _db, redisClient, redisKey, 0, header.Number.Uint64(), _lock, _synced)
 					// Making sure on when next latest block header is received, it'll not
 					// start another syncer
 					first = false
@@ -59,7 +59,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 
 			}
 
-			go fetchBlockByHash(client, header.Hash(), _db, redisClient, _lock, _synced)
+			go fetchBlockByHash(client, header.Hash(), _db, redisClient, redisKey, _lock, _synced)
 		}
 	}
 }

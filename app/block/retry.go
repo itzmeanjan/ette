@@ -18,27 +18,27 @@ import (
 // Sleeps for 500 milliseconds
 //
 // Keeps repeating
-func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKeyName string, _lock *sync.Mutex, _synced *d.SyncState) {
+func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
 	sleep := func() {
 		time.Sleep(time.Duration(500) * time.Millisecond)
 	}
 
 	for {
 
-		blockHash, err := redisClient.LPop(context.Background(), redisKeyName).Result()
+		blockHash, err := redisClient.LPop(context.Background(), redisKey).Result()
 		if !(err == nil && len(blockHash) == 66) {
 			sleep()
 		}
 
 		log.Printf("[~] Retrying block : %s\n", blockHash)
-		go fetchBlockByHash(client, common.HexToHash(blockHash), _db, redisClient, _lock, _synced)
+		go fetchBlockByHash(client, common.HexToHash(blockHash), _db, redisClient, redisKey, _lock, _synced)
 		sleep()
 	}
 }
 
 // Pushes failed to fetch block hash at end of Redis queue
-func pushBlockHashIntoRedisQueue(redisClient *redis.Client, redisKeyName string, blockHash common.Hash) {
-	if err := redisClient.RPush(context.Background(), redisKeyName, blockHash.Hex()).Err(); err != nil {
+func pushBlockHashIntoRedisQueue(redisClient *redis.Client, redisKey string, blockHash common.Hash) {
+	if err := redisClient.RPush(context.Background(), redisKey, blockHash.Hex()).Err(); err != nil {
 		log.Printf("[!] Failed to push block : %s\n", blockHash.Hex())
 	}
 }
