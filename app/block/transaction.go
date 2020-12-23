@@ -26,11 +26,6 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 		return
 	}
 
-	// If DB entry already exists for this tx & all events from tx receipt also present
-	if res := db.GetTransaction(_db, block.Hash(), tx.Hash()); res != nil && db.CheckPersistanceStatusOfEvents(_db, receipt) {
-		return
-	}
-
 	sender, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
 	if err != nil {
 		// Pushing block number into Redis queue for retrying later
@@ -41,8 +36,8 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 	}
 
 	if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
-		db.PutTransaction(_db, tx, receipt, sender)
-		db.PutEvent(_db, receipt)
+		db.StoreTransaction(_db, tx, receipt, sender)
+		db.StoreEvents(_db, receipt)
 	}
 
 	// This is not a case when real time data is received, rather this is probably

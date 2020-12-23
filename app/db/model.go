@@ -1,10 +1,13 @@
 package db
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/lib/pq"
 )
 
@@ -36,6 +39,22 @@ func (Blocks) TableName() string {
 	return "blocks"
 }
 
+// SimilarTo - Checking whether two blocks are exactly similar or not
+func (b *Blocks) SimilarTo(block *types.Block) bool {
+	return b.Hash == block.Hash().Hex() &&
+		b.Number == block.NumberU64() &&
+		b.Time == block.Time() &&
+		b.ParentHash == block.ParentHash().Hex() &&
+		b.Difficulty == block.Difficulty().String() &&
+		b.GasUsed == block.GasUsed() &&
+		b.GasLimit == block.GasLimit() &&
+		b.Nonce == block.Nonce() &&
+		b.Miner == block.Coinbase().Hex() &&
+		b.Size == float64(block.Size()) &&
+		b.TransactionRootHash == block.TxHash().Hex() &&
+		b.ReceiptRootHash == block.ReceiptHash().Hex()
+}
+
 // Transactions - Blockchain transaction holder table model
 type Transactions struct {
 	Hash      string `gorm:"column:hash;type:char(66);primaryKey"`
@@ -56,6 +75,31 @@ func (Transactions) TableName() string {
 	return "transactions"
 }
 
+// SimilarTo - Checking equality of two transactions
+func (t *Transactions) SimilarTo(tx *types.Transaction, txReceipt *types.Receipt, sender common.Address) bool {
+	if tx.To() == nil {
+		return t.Hash == tx.Hash().Hex() &&
+			t.From == sender.Hex() &&
+			t.Contract == txReceipt.ContractAddress.Hex() &&
+			t.Gas == tx.Gas() &&
+			t.GasPrice == tx.GasPrice().String() &&
+			t.Cost == tx.Cost().String() &&
+			t.Nonce == tx.Nonce() &&
+			t.State == txReceipt.Status &&
+			t.BlockHash == txReceipt.BlockHash.Hex()
+	}
+
+	return t.Hash == tx.Hash().Hex() &&
+		t.From == sender.Hex() &&
+		t.To == tx.To().Hex() &&
+		t.Gas == tx.Gas() &&
+		t.GasPrice == tx.GasPrice().String() &&
+		t.Cost == tx.Cost().String() &&
+		t.Nonce == tx.Nonce() &&
+		t.State == txReceipt.Status &&
+		t.BlockHash == txReceipt.BlockHash.Hex()
+}
+
 // Events - Events emitted from smart contracts to be held in this table
 type Events struct {
 	Origin          string         `gorm:"column:origin;type:char(42);not null"`
@@ -69,6 +113,39 @@ type Events struct {
 // TableName - Overriding default table name
 func (Events) TableName() string {
 	return "events"
+}
+
+// SimilarTo - Checking equality of two events
+func (e *Events) SimilarTo(event *Events) bool {
+
+	// Given two string arrays, it'll match it's elements by index & if all of them are same
+	// returns boolean result
+	compareStringArrays := func(arrayOne pq.StringArray, arrayTwo pq.StringArray) bool {
+		matched := true
+
+		for k, v := range arrayOne {
+
+			if v != arrayTwo[k] {
+				matched = false
+				break
+			}
+
+		}
+
+		return matched
+	}
+
+	// Given two byte slices, checks their equality
+	compareByteSlices := func(sliceOne []byte, sliceTwo []byte) bool {
+		return bytes.Compare(e.Data, event.Data) == 0
+	}
+
+	return e.Origin == event.Origin &&
+		e.Index == event.Index &&
+		compareStringArrays(e.Topics, event.Topics) &&
+		compareByteSlices(e.Data, event.Data) &&
+		e.TransactionHash == event.TransactionHash &&
+		e.BlockHash == event.BlockHash
 }
 
 // Users - User address & created api key related info, holder table

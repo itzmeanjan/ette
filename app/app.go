@@ -55,7 +55,7 @@ func Run(configFile, subscriptionPlansFile string) {
 	_client, _redisClient, _db, _lock, _synced := bootstrap(configFile, subscriptionPlansFile)
 
 	// Pushing block header propagation listener to another thread of execution
-	go blk.SubscribeToNewBlocks(_client, _db, _lock, _synced, _redisClient, cfg.Get("RedisQueue"))
+	go blk.SubscribeToNewBlocks(_client, _db, _lock, _synced, _redisClient, "blocks")
 
 	// Starting http server on main thread
 	rest.RunHTTPServer(_db, _lock, _synced, _redisClient)
