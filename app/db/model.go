@@ -36,6 +36,22 @@ func (Blocks) TableName() string {
 	return "blocks"
 }
 
+// AreSimilar - Checking whether two block structures are exactly similar or not
+func (b *Blocks) AreSimilar(block *Blocks) bool {
+	return b.Hash == block.Hash &&
+		b.Number == block.Number &&
+		b.Time == block.Time &&
+		b.ParentHash == block.ParentHash &&
+		b.Difficulty == block.Difficulty &&
+		b.GasUsed == block.GasUsed &&
+		b.GasLimit == block.GasLimit &&
+		b.Nonce == block.Nonce &&
+		b.Miner == block.Miner &&
+		b.Size == block.Size &&
+		b.TransactionRootHash == block.TransactionRootHash &&
+		b.ReceiptRootHash == block.ReceiptRootHash
+}
+
 // Transactions - Blockchain transaction holder table model
 type Transactions struct {
 	Hash      string `gorm:"column:hash;type:char(66);primaryKey"`
