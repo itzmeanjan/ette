@@ -17,6 +17,7 @@ func StoreBlock(_db *gorm.DB, _block *types.Block) {
 	persistedBlock := GetBlock(_db, _block.NumberU64())
 	if persistedBlock == nil {
 		PutBlock(_db, _block)
+		return
 	}
 
 	if !persistedBlock.SimilarTo(_block) {

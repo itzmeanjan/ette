@@ -36,6 +36,7 @@ func StoreEvents(_db *gorm.DB, _txReceipt *types.Receipt) {
 		persistedEvent := GetEvent(_db, v.Index, v.BlockHash)
 		if persistedEvent == nil {
 			PutEvent(_db, newEvent)
+			continue
 		}
 
 		if !persistedEvent.SimilarTo(newEvent) {

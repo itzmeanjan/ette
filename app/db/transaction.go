@@ -17,6 +17,7 @@ func StoreTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Re
 	persistedTx := GetTransaction(_db, _txReceipt.BlockHash, _tx.Hash())
 	if persistedTx == nil {
 		PutTransaction(_db, _tx, _txReceipt, _sender)
+		return
 	}
 
 	if !persistedTx.SimilarTo(_tx, _txReceipt, _sender) {
