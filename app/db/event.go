@@ -3,6 +3,7 @@ package db
 import (
 	"log"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	com "github.com/itzmeanjan/ette/app/common"
 	"gorm.io/gorm"
@@ -22,6 +23,18 @@ func CheckPersistanceStatusOfEvents(_db *gorm.DB, _txReceipt *types.Receipt) boo
 	}
 
 	return count == len(_txReceipt.Logs)
+}
+
+// GetEvent - Given event index in block & block hash, returns event which is
+// matching from database
+func GetEvent(_db *gorm.DB, index uint, blockHash common.Hash) *Events {
+	var event Events
+
+	if err := _db.Where("index = ? and blockhash = ?", index, blockHash.Hex()).First(&event).Error; err != nil {
+		return nil
+	}
+
+	return &event
 }
 
 // PutEvent - Entering new log events emitted as result of execution of EVM transaction
