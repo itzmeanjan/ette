@@ -45,19 +45,6 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 		db.PutEvent(_db, receipt)
 	}
 
-	log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
-
-	// --- Safely updating sync state holder
-	_lock.Lock()
-
-	_synced.Done++
-	if block.NumberU64() >= _synced.Target {
-		_synced.Target = block.NumberU64() + 1
-	}
-
-	_lock.Unlock()
-	// ---
-
 	// This is not a case when real time data is received, rather this is probably
 	// a sync attempt to latest state of blockchain
 	// So, in this case, we don't need to publish any data on channel

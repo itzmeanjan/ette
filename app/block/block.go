@@ -27,12 +27,6 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, _db *gorm.DB, 
 		return
 	}
 
-	if block.NumberU64()%10 == 0 {
-		// Testing purpose
-		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
-		return
-	}
-
 	// Publishes block data to all listening parties
 	// on `block` channel
 	publishBlock := func() {
@@ -82,12 +76,6 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 		return
 	}
 
-	if block.NumberU64()%10 == 0 {
-		// Testing purpose
-		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
-		return
-	}
-
 	if res := db.GetBlock(_db, number); res == nil {
 		db.PutBlock(_db, block)
 	}
@@ -116,4 +104,17 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	for _, v := range block.Transactions() {
 		fetchTransactionByHash(client, block, v, _db, redisClient, redisKey, publishable, _lock, _synced)
 	}
+
+	log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
+
+	// --- Safely updating sync state holder
+	_lock.Lock()
+
+	_synced.Done++
+	if block.NumberU64() >= _synced.Target {
+		_synced.Target = block.NumberU64() + 1
+	}
+
+	_lock.Unlock()
+	// ---
 }
