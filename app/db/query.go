@@ -1,6 +1,8 @@
 package db
 
 import (
+	"log"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
@@ -11,7 +13,8 @@ import (
 func GetCurrentBlockNumber(db *gorm.DB) uint64 {
 	var number uint64
 
-	if err := db.Model(&Blocks{}).Select("max(number)").First(&number).Error; err != nil {
+	if err := db.Raw("select max(number) from blocks").Scan(&number).Error; err != nil {
+		log.Println(err)
 		return 0
 	}
 
