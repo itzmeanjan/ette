@@ -1,10 +1,36 @@
 package db
 
 import (
+	"log"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
 )
+
+// GetCurrentBlockNumber - Returns highest block number, which got processed
+// by `ette`
+func GetCurrentBlockNumber(db *gorm.DB) uint64 {
+	var number uint64
+
+	if err := db.Raw("select max(number) from blocks").Scan(&number).Error; err != nil {
+		log.Println(err)
+		return 0
+	}
+
+	return number
+}
+
+// GetBlockCount - Returns how many blocks currently present in database
+func GetBlockCount(db *gorm.DB) uint64 {
+	var number int64
+
+	if err := db.Model(&Blocks{}).Count(&number).Error; err != nil {
+		return 0
+	}
+
+	return uint64(number)
+}
 
 // GetBlockByHash - Given blockhash finds out block related information
 //

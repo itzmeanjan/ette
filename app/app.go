@@ -5,7 +5,6 @@ import (
 	"log"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
 	blk "github.com/itzmeanjan/ette/app/block"
 	cfg "github.com/itzmeanjan/ette/app/config"
@@ -17,7 +16,7 @@ import (
 )
 
 // Setting ground up
-func bootstrap(configFile, subscriptionPlansFile string) (*ethclient.Client, *redis.Client, *gorm.DB, *sync.Mutex, *d.SyncState) {
+func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConnection, *redis.Client, *gorm.DB, *sync.Mutex, *d.SyncState) {
 	err := cfg.Read(configFile)
 	if err != nil {
 		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
@@ -27,7 +26,12 @@ func bootstrap(configFile, subscriptionPlansFile string) (*ethclient.Client, *re
 		log.Fatalf("[!] Failed to find `EtteMode` in configuration file\n")
 	}
 
-	_client := getClient()
+	// Maintaining both HTTP & Websocket based connection to blockchain
+	_connection := &d.BlockChainNodeConnection{
+		RPC:       getClient(true),
+		Websocket: getClient(false),
+	}
+
 	_redisClient := getPubSubClient()
 
 	if err := _redisClient.FlushAll(context.Background()).Err(); err != nil {
@@ -45,17 +49,17 @@ func bootstrap(configFile, subscriptionPlansFile string) (*ethclient.Client, *re
 	graph.GetDatabaseConnection(_db)
 
 	_lock := &sync.Mutex{}
-	_synced := &d.SyncState{Target: 0, Done: 0}
+	_synced := &d.SyncState{Done: 0}
 
-	return _client, _redisClient, _db, _lock, _synced
+	return _connection, _redisClient, _db, _lock, _synced
 }
 
 // Run - Application to be invoked from main runner using this function
 func Run(configFile, subscriptionPlansFile string) {
-	_client, _redisClient, _db, _lock, _synced := bootstrap(configFile, subscriptionPlansFile)
+	_connection, _redisClient, _db, _lock, _synced := bootstrap(configFile, subscriptionPlansFile)
 
 	// Pushing block header propagation listener to another thread of execution
-	go blk.SubscribeToNewBlocks(_client, _db, _lock, _synced, _redisClient, "blocks")
+	go blk.SubscribeToNewBlocks(_connection, _db, _lock, _synced, _redisClient, "blocks")
 
 	// Starting http server on main thread
 	rest.RunHTTPServer(_db, _lock, _synced, _redisClient)
