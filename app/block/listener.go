@@ -63,7 +63,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 			}
 
-			go fetchBlockByHash(connection.RPC, header.Hash(), _db, redisClient, redisKey, _lock, _synced)
+			go fetchBlockByHash(connection.RPC, header.Hash(), header.Number.String(), _db, redisClient, redisKey, _lock, _synced)
 		}
 	}
 }
