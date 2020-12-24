@@ -56,10 +56,10 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 
 // Run - Application to be invoked from main runner using this function
 func Run(configFile, subscriptionPlansFile string) {
-	_client, _redisClient, _db, _lock, _synced := bootstrap(configFile, subscriptionPlansFile)
+	_connection, _redisClient, _db, _lock, _synced := bootstrap(configFile, subscriptionPlansFile)
 
 	// Pushing block header propagation listener to another thread of execution
-	go blk.SubscribeToNewBlocks(_client, _db, _lock, _synced, _redisClient, "blocks")
+	go blk.SubscribeToNewBlocks(_connection, _db, _lock, _synced, _redisClient, "blocks")
 
 	// Starting http server on main thread
 	rest.RunHTTPServer(_db, _lock, _synced, _redisClient)

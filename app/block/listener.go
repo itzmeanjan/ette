@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
@@ -17,10 +16,10 @@ import (
 // SubscribeToNewBlocks - Listen for event when new block header is
 // available, then fetch block content ( including all transactions )
 // in different worker
-func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, redisClient *redis.Client, redisKey string) {
+func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, redisClient *redis.Client, redisKey string) {
 	headerChan := make(chan *types.Header)
 
-	subs, err := client.SubscribeNewHead(context.Background(), headerChan)
+	subs, err := connection.Websocket.SubscribeNewHead(context.Background(), headerChan)
 	if err != nil {
 		log.Fatalf("[!] Failed to subscribe to block headers : %s\n", err.Error())
 	}
@@ -41,7 +40,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 	// Starting go routine for fetching blocks `ette` failed to process in previous attempt
 	//
 	// Uses Redis backed queue for fetching pending block hash & retries
-	go retryBlockFetching(client, _db, redisClient, redisKey, _lock, _synced)
+	go retryBlockFetching(connection.RPC, _db, redisClient, redisKey, _lock, _synced)
 
 	for {
 		select {
@@ -56,7 +55,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 				if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
 					// Starting syncer in another thread, where it'll keep fetching
 					// blocks starting from genesis to this block
-					go SyncToLatestBlock(client, _db, redisClient, redisKey, 0, header.Number.Uint64(), _lock, _synced)
+					go SyncToLatestBlock(connection.RPC, _db, redisClient, redisKey, 0, header.Number.Uint64(), _lock, _synced)
 					// Making sure on when next latest block header is received, it'll not
 					// start another syncer
 					first = false
@@ -64,7 +63,7 @@ func SubscribeToNewBlocks(client *ethclient.Client, _db *gorm.DB, _lock *sync.Mu
 
 			}
 
-			go fetchBlockByHash(client, header.Hash(), _db, redisClient, redisKey, _lock, _synced)
+			go fetchBlockByHash(connection.RPC, header.Hash(), _db, redisClient, redisKey, _lock, _synced)
 		}
 	}
 }
