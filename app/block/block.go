@@ -91,10 +91,8 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 		_lock.Lock()
 		defer _lock.Unlock()
 
-		_synced.Done++
-		if block.NumberU64() >= _synced.Target {
-			_synced.Target = block.NumberU64() + 1
-		}
+		_synced.Done = db.GetBlockCount(_db)
+		_synced.Target = db.GetCurrentBlockNumber(_db) + 1
 		// ---
 
 		return
@@ -109,10 +107,8 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	// --- Safely updating sync state holder
 	_lock.Lock()
 
-	_synced.Done++
-	if block.NumberU64() >= _synced.Target {
-		_synced.Target = block.NumberU64() + 1
-	}
+	_synced.Done = db.GetBlockCount(_db)
+	_synced.Target = db.GetCurrentBlockNumber(_db) + 1
 
 	_lock.Unlock()
 	// ---
