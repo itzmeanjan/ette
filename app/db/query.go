@@ -11,11 +11,22 @@ import (
 func GetCurrentBlockNumber(db *gorm.DB) uint64 {
 	var number uint64
 
-	if err := db.Model(&Blocks{}).Select("max(number)").Find(&number).Error; err != nil {
+	if err := db.Model(&Blocks{}).Select("max(number)").First(&number).Error; err != nil {
 		return 0
 	}
 
 	return number
+}
+
+// GetBlockCount - Returns how many blocks currently present in database
+func GetBlockCount(db *gorm.DB) uint64 {
+	var number int64
+
+	if err := db.Model(&Blocks{}).Count(&number).Error; err != nil {
+		return 0
+	}
+
+	return uint64(number)
 }
 
 // GetBlockByHash - Given blockhash finds out block related information
