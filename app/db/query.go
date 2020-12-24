@@ -1,12 +1,22 @@
 package db
 
 import (
-	"log"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
 )
+
+// GetCurrentOldestBlockNumber - Fetches what's lowest block number present in database,
+// which denotes if it's not 0, from here we can start syncing again, until we reach 0
+func GetCurrentOldestBlockNumber(db *gorm.DB) uint64 {
+	var number uint64
+
+	if err := db.Raw("select min(number) from blocks").Scan(&number).Error; err != nil {
+		return 0
+	}
+
+	return number
+}
 
 // GetCurrentBlockNumber - Returns highest block number, which got processed
 // by `ette`
@@ -14,7 +24,6 @@ func GetCurrentBlockNumber(db *gorm.DB) uint64 {
 	var number uint64
 
 	if err := db.Raw("select max(number) from blocks").Scan(&number).Error; err != nil {
-		log.Println(err)
 		return 0
 	}
 
