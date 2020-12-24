@@ -24,7 +24,6 @@ type BlockChainNodeConnection struct {
 // SyncState - Whether `ette` is synced with blockchain or not
 type SyncState struct {
 	Done      uint64
-	Target    uint64
 	StartedAt time.Time
 }
 

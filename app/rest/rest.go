@@ -469,8 +469,12 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 
 		})
 
-		// For checking whether `ette` has synced upto blockchain latest state or not
+		// For checking `ette`'s syncing status
 		grp.GET("/synced", func(c *gin.Context) {
+
+			currentBlockNumber := db.GetCurrentBlockNumber(_db)
+			blockCountInDB := db.GetBlockCount(_db)
+			remaining := (currentBlockNumber + 1) - blockCountInDB
 
 			_lock.Lock()
 			defer _lock.Unlock()
@@ -478,12 +482,10 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			elapsed := time.Now().UTC().Sub(_synced.StartedAt)
 
 			c.JSON(http.StatusOK, gin.H{
-				"synced":  fmt.Sprintf("%f %%", (float64(_synced.Done)/float64(_synced.Target))*100),
-				"done":    _synced.Done,
-				"target":  _synced.Target,
-				"elapsed": elapsed.String(),
-				"rate":    fmt.Sprintf("%f blocks/s", float64(_synced.Done)/elapsed.Seconds()),
-				"eta":     (time.Duration((elapsed.Seconds()/float64(_synced.Done))*float64(_synced.Target)) * time.Second).String(),
+				"synced":    fmt.Sprintf("%.2f %%", (float64(blockCountInDB)/float64(currentBlockNumber+1))*100),
+				"processed": _synced.Done,
+				"elapsed":   elapsed.String(),
+				"eta":       (time.Duration((elapsed.Seconds()/float64(_synced.Done))*float64(remaining)) * time.Second).String(),
 			})
 
 		})

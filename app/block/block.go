@@ -85,8 +85,8 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 // Fetching all transactions in this block, along with their receipt
 func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) {
 	// Registering sync state updation call here, to be invoked
-	// when exiting this function scope i.e. returning from this function
-	defer safeUpdationOfSyncState(_db, _lock, _synced)
+	// when exiting this function scope
+	defer safeUpdationOfSyncState(_lock, _synced)
 
 	if block.Transactions().Len() == 0 {
 		log.Printf("[!] Empty Block : %d\n", block.NumberU64())
@@ -102,10 +102,9 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 
 // Updating shared varible between worker go routines, denoting progress of
 // `ette`, in terms of data syncing
-func safeUpdationOfSyncState(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
+func safeUpdationOfSyncState(_lock *sync.Mutex, _synced *d.SyncState) {
 	_lock.Lock()
 	defer _lock.Unlock()
 
-	_synced.Done = db.GetBlockCount(_db)
-	_synced.Target = db.GetCurrentBlockNumber(_db) + 1
+	_synced.Done++
 }
