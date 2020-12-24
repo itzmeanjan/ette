@@ -71,7 +71,7 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 	block, err := client.BlockByNumber(context.Background(), _num)
 	if err != nil {
 		// Pushing block number into Redis queue for retrying later
-		pushBlockHashIntoRedisQueue(redisClient, redisKey, fmt.Sprintf("%s", number))
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, fmt.Sprintf("%d", number))
 
 		log.Printf("[!] Failed to fetch block by number : %s\n", err)
 		return

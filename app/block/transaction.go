@@ -22,7 +22,7 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 		// Pushing block number into Redis queue for retrying later
 		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
 
-		log.Printf("[!] Failed to fetch tx receipt : %s\n", err.Error())
+		log.Printf("[!] Failed to fetch tx receipt [ block : %d ] : %s\n", block.NumberU64(), err.Error())
 		return
 	}
 
@@ -31,7 +31,7 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 		// Pushing block number into Redis queue for retrying later
 		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
 
-		log.Printf("[!] Failed to fetch tx sender : %s\n", err.Error())
+		log.Printf("[!] Failed to fetch tx sender [ block : %d ] : %s\n", block.NumberU64(), err.Error())
 		return
 	}
 
