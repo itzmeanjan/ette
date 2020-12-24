@@ -8,8 +8,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/lib/pq"
 )
+
+// BlockChainNodeConnection - Holds network connection object for blockchain nodes
+//
+// Use `RPC` i.e. HTTP based connection, for querying blockchain for data
+// Use `Websocket` for real-time listening of events in blockchain
+type BlockChainNodeConnection struct {
+	RPC       *ethclient.Client
+	Websocket *ethclient.Client
+}
 
 // SyncState - Whether `ette` is synced with blockchain or not
 type SyncState struct {
