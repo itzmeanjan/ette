@@ -78,19 +78,20 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 	}
 
 	// Either creates new entry or updates existing one
-	db.StoreBlock(_db, block)
+	if !db.StoreBlock(_db, block) {
+		// Pushing block number into Redis queue for retrying later
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, fmt.Sprintf("%d", number))
+		return
+	}
 
 	fetchBlockContent(client, block, _db, redisClient, redisKey, false, _lock, _synced)
 }
 
 // Fetching all transactions in this block, along with their receipt
 func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) {
-	// Registering sync state updation call here, to be invoked
-	// when exiting this function scope
-	defer safeUpdationOfSyncState(_lock, _synced)
-
 	if block.Transactions().Len() == 0 {
 		log.Printf("[!] Empty Block : %d\n", block.NumberU64())
+		safeUpdationOfSyncState(_lock, _synced)
 		return
 	}
 
@@ -103,6 +104,8 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 
 	if count == len(block.Transactions()) {
 		log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
+		safeUpdationOfSyncState(_lock, _synced)
+		return
 	}
 }
 

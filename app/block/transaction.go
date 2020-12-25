@@ -35,16 +35,22 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 		return false
 	}
 
+	status := true
 	if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
-		db.StoreTransaction(_db, tx, receipt, sender)
-		db.StoreEvents(_db, receipt)
+		status = db.StoreTransaction(_db, tx, receipt, sender) && status
+		status = db.StoreEvents(_db, receipt) && status
+	}
+
+	if !status {
+		// Pushing block number into Redis queue for retrying later
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
 	}
 
 	// This is not a case when real time data is received, rather this is probably
 	// a sync attempt to latest state of blockchain
 	// So, in this case, we don't need to publish any data on channel
 	if !publishable {
-		return true
+		return status
 	}
 
 	if cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3" {
@@ -103,5 +109,5 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 
 	}
 
-	return true
+	return status
 }
