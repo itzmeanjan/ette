@@ -3,6 +3,7 @@ package block
 import (
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gammazero/workerpool"
@@ -51,14 +52,42 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redi
 		if lowestBlockNumber != 0 {
 			go SyncBlocksByRange(client, _db, redisClient, redisKey, lowestBlockNumber, 0, _lock, _synced)
 		} else {
+			go SyncMissingBlocksInDB(client, _db, redisClient, redisKey, _lock, _synced)
+		}
 
-			currentBlockNumber := db.GetCurrentBlockNumber(_db)
-			blockCount := db.GetBlockCount(_db)
-			if currentBlockNumber-lowestBlockNumber+1 == blockCount {
-				return
+	}
+}
+
+// SyncMissingBlocksInDB - Checks with database for what blocks are present & what are not, fetches missing
+// blocks & related data iteratively
+func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
+
+	// Sleep for 1 minute & then again check whether we need to fetch missing blocks or not
+	sleep := func() {
+		time.Sleep(time.Duration(1) * time.Minute)
+	}
+
+	for {
+		currentBlockNumber := db.GetCurrentBlockNumber(_db)
+		blockCount := db.GetBlockCount(_db)
+		// If all blocks present in between 0 to latest block in network
+		// `ette` sleeps for 1 minute & again get to work
+		if currentBlockNumber+1 == blockCount {
+			sleep()
+			continue
+		}
+
+		var i uint64
+		for ; i <= currentBlockNumber; i++ {
+
+			block := db.GetBlockByNumber(_db, i)
+			if block == nil {
+				fetchBlockByNumber(client, i, _db, redisClient, redisKey, _lock, _synced)
 			}
 
 		}
 
+		sleep()
 	}
+
 }
