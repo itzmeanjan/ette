@@ -163,19 +163,17 @@ go build
 - Syncing `ette` with latest state of blockchain takes time. Current sync state can be queried
 
 ```bash
-curl -s http://localhost:7000/v1/synced | jq
+curl -s localhost:7000/v1/synced | jq
 ```
 
 - You'll receive response of form 👇
 
 ```json
 {
-  "done": 4242,
   "elapsed": "3m2.487237s",
   "eta": "87h51m38s",
-  "rate": "23.245461 blocks/s",
-  "synced": "0.057695 %",
-  "target": 7352494
+  "processed": 4242,
+  "synced": "0.35 %"
 }
 ```
 
