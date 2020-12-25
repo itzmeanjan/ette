@@ -77,15 +77,26 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 			continue
 		}
 
+		// Starting worker pool to leverage multi core architecture of machine
+		wp := workerpool.New(runtime.NumCPU())
+
 		var i uint64
 		for ; i <= currentBlockNumber; i++ {
 
-			block := db.GetBlockByNumber(_db, i)
-			if block == nil {
-				fetchBlockByNumber(client, i, _db, redisClient, redisKey, _lock, _synced)
-			}
+			func(num uint64) {
+
+				block := db.GetBlockByNumber(_db, num)
+				if block == nil {
+					wp.Submit(func() {
+						fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+					})
+				}
+
+			}(i)
 
 		}
+
+		wp.StopWait()
 
 		sleep()
 	}
