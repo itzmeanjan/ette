@@ -14,7 +14,9 @@ import (
 //
 // Otherwise, it'll match with existing entry and decide
 // whether updation is required or not
-func StoreEvents(_db *gorm.DB, _txReceipt *types.Receipt) {
+func StoreEvents(_db *gorm.DB, _txReceipt *types.Receipt) bool {
+	count := 0
+
 	for _, v := range _txReceipt.Logs {
 
 		// Event which we're trying to persist
@@ -35,15 +37,23 @@ func StoreEvents(_db *gorm.DB, _txReceipt *types.Receipt) {
 
 		persistedEvent := GetEvent(_db, v.Index, v.BlockHash)
 		if persistedEvent == nil {
-			PutEvent(_db, newEvent)
+			if PutEvent(_db, newEvent) {
+				count++
+			}
 			continue
 		}
 
 		if !persistedEvent.SimilarTo(newEvent) {
-			UpdateEvent(_db, newEvent)
+			if UpdateEvent(_db, newEvent) {
+				count++
+			}
+			continue
 		}
 
+		count++
 	}
+
+	return count == len(_txReceipt.Logs)
 }
 
 // GetEvent - Given event index in block & block hash, returns event which is
@@ -59,20 +69,26 @@ func GetEvent(_db *gorm.DB, index uint, blockHash common.Hash) *Events {
 }
 
 // PutEvent - Persists event log into database
-func PutEvent(_db *gorm.DB, event *Events) {
+func PutEvent(_db *gorm.DB, event *Events) bool {
+	status := true
 
 	if err := _db.Create(event).Error; err != nil {
+		status = false
 		log.Printf("[!] Failed to persist tx log : %s\n", err.Error())
 	}
 
+	return status
 }
 
 // UpdateEvent - Updating event, already persisted in database,
 // with latest info received
-func UpdateEvent(_db *gorm.DB, event *Events) {
+func UpdateEvent(_db *gorm.DB, event *Events) bool {
+	status := true
 
 	if err := _db.Where("index = ? and blockhash = ?", event.Index, event.BlockHash).Updates(event).Error; err != nil {
+		status = false
 		log.Printf("[!] Failed to update tx log : %s\n", err.Error())
 	}
 
+	return status
 }
