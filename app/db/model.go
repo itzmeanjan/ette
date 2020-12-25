@@ -19,8 +19,8 @@ type Tabler interface {
 // Blocks - Mined block info holder table model
 type Blocks struct {
 	Hash                string       `gorm:"column:hash;type:char(66);primaryKey"`
-	Number              uint64       `gorm:"column:number;type:bigint;not null"`
-	Time                uint64       `gorm:"column:time;type:bigint;not null"`
+	Number              uint64       `gorm:"column:number;type:bigint;not null;index:,sort:asc"`
+	Time                uint64       `gorm:"column:time;type:bigint;not null;index:,sort:asc"`
 	ParentHash          string       `gorm:"column:parenthash;type:char(66);not null"`
 	Difficulty          string       `gorm:"column:difficulty;type:varchar;not null"`
 	GasUsed             uint64       `gorm:"column:gasused;type:bigint;not null"`
@@ -150,7 +150,7 @@ func (e *Events) SimilarTo(event *Events) bool {
 
 // Users - User address & created api key related info, holder table
 type Users struct {
-	Address   string    `gorm:"column:address;type:char(42);not null" json:"address"`
+	Address   string    `gorm:"column:address;type:char(42);not null;index" json:"address"`
 	APIKey    string    `gorm:"column:apikey;type:char(66);primaryKey" json:"apiKey"`
 	TimeStamp time.Time `gorm:"column:ts;type:timestamp;not null" json:"timeStamp"`
 	Enabled   bool      `gorm:"column:enabled;type:boolean;default:true" json:"enabled"`
@@ -179,7 +179,7 @@ func (u *Users) ToJSON() []byte {
 // to resources they're requesting
 type DeliveryHistory struct {
 	ID         uint64    `gorm:"column:id;type:bigserial;primaryKey"`
-	Client     string    `gorm:"column:client;type:char(42);not null"`
+	Client     string    `gorm:"column:client;type:char(42);not null;index"`
 	TimeStamp  time.Time `gorm:"column:ts;type:timestamp;not null"`
 	EndPoint   string    `gorm:"column:endpoint;type:varchar(100);not null"`
 	DataLength uint64    `gorm:"column:datalength;type:bigint;not null"`
