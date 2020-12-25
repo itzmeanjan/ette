@@ -24,7 +24,7 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 		// Pushing block number into Redis queue for retrying later
 		pushBlockHashIntoRedisQueue(redisClient, redisKey, number)
 
-		log.Printf("[!] Failed to fetch block by hash : %s\n", err.Error())
+		log.Printf("[!] Failed to fetch block by hash [ block : %s] : %s\n", number, err.Error())
 		return
 	}
 
@@ -73,32 +73,43 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 		// Pushing block number into Redis queue for retrying later
 		pushBlockHashIntoRedisQueue(redisClient, redisKey, fmt.Sprintf("%d", number))
 
-		log.Printf("[!] Failed to fetch block by number : %s\n", err)
+		log.Printf("[!] Failed to fetch block by number [ block : %d ] : %s\n", number, err)
 		return
 	}
 
 	// Either creates new entry or updates existing one
-	db.StoreBlock(_db, block)
+	if !db.StoreBlock(_db, block) {
+		// Pushing block number into Redis queue for retrying later
+		pushBlockHashIntoRedisQueue(redisClient, redisKey, fmt.Sprintf("%d", number))
+		return
+	}
 
 	fetchBlockContent(client, block, _db, redisClient, redisKey, false, _lock, _synced)
 }
 
 // Fetching all transactions in this block, along with their receipt
 func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) {
-	// Registering sync state updation call here, to be invoked
-	// when exiting this function scope
-	defer safeUpdationOfSyncState(_lock, _synced)
-
 	if block.Transactions().Len() == 0 {
 		log.Printf("[!] Empty Block : %d\n", block.NumberU64())
+		safeUpdationOfSyncState(_lock, _synced)
 		return
 	}
 
+	count := 0
 	for _, v := range block.Transactions() {
-		fetchTransactionByHash(client, block, v, _db, redisClient, redisKey, publishable, _lock, _synced)
+		if fetchTransactionByHash(client, block, v, _db, redisClient, redisKey, publishable, _lock, _synced) {
+			count++
+		}
 	}
 
-	log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
+	if count == len(block.Transactions()) {
+		log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
+		safeUpdationOfSyncState(_lock, _synced)
+		return
+	}
+
+	// Pushing block number into Redis queue for retrying later
+	pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
 }
 
 // Updating shared varible between worker go routines, denoting progress of

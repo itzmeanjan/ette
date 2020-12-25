@@ -12,17 +12,18 @@ import (
 // if not present already
 //
 // But if present, first checks equality & then updates if required
-func StoreTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) {
+func StoreTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) bool {
 
 	persistedTx := GetTransaction(_db, _txReceipt.BlockHash, _tx.Hash())
 	if persistedTx == nil {
-		PutTransaction(_db, _tx, _txReceipt, _sender)
-		return
+		return PutTransaction(_db, _tx, _txReceipt, _sender)
 	}
 
 	if !persistedTx.SimilarTo(_tx, _txReceipt, _sender) {
-		UpdateTransaction(_db, _tx, _txReceipt, _sender)
+		return UpdateTransaction(_db, _tx, _txReceipt, _sender)
 	}
+
+	return true
 }
 
 // GetTransaction - Fetches tx entry from database, given txhash & containing block hash
@@ -37,8 +38,9 @@ func GetTransaction(_db *gorm.DB, blkHash common.Hash, txHash common.Hash) *Tran
 }
 
 // PutTransaction - Persisting transactions present in a block in database
-func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) {
+func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) bool {
 	var _pTx *Transactions
+	status := true
 
 	// If tx creates contract, then we hold created contract address
 	if _tx.To() == nil {
@@ -69,14 +71,18 @@ func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Rece
 	}
 
 	if err := _db.Create(_pTx).Error; err != nil {
+		status = false
 		log.Printf("[!] Failed to persist tx [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error())
 	}
+
+	return status
 }
 
 // UpdateTransaction - Updating already persisted transaction in database with
 // new data
-func UpdateTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) {
+func UpdateTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) bool {
 	var _pTx *Transactions
+	status := true
 
 	// If tx creates contract, then we hold created contract address
 	if _tx.To() == nil {
@@ -107,6 +113,9 @@ func UpdateTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.R
 	}
 
 	if err := _db.Where("hash = ? and blockhash = ?", _tx.Hash().Hex(), _txReceipt.BlockHash.Hex()).Updates(_pTx).Error; err != nil {
+		status = false
 		log.Printf("[!] Failed to update tx [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error())
 	}
+
+	return status
 }
