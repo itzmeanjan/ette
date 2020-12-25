@@ -50,6 +50,14 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redi
 		lowestBlockNumber := db.GetCurrentOldestBlockNumber(_db)
 		if lowestBlockNumber != 0 {
 			go SyncBlocksByRange(client, _db, redisClient, redisKey, lowestBlockNumber, 0, _lock, _synced)
+		} else {
+
+			currentBlockNumber := db.GetCurrentBlockNumber(_db)
+			blockCount := db.GetBlockCount(_db)
+			if currentBlockNumber-lowestBlockNumber+1 == blockCount {
+				return
+			}
+
 		}
 
 	}
