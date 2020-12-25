@@ -24,7 +24,7 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 		// Pushing block number into Redis queue for retrying later
 		pushBlockHashIntoRedisQueue(redisClient, redisKey, number)
 
-		log.Printf("[!] Failed to fetch block by hash : %s\n", err.Error())
+		log.Printf("[!] Failed to fetch block by hash [ block : %s] : %s\n", number, err.Error())
 		return
 	}
 
@@ -73,7 +73,7 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 		// Pushing block number into Redis queue for retrying later
 		pushBlockHashIntoRedisQueue(redisClient, redisKey, fmt.Sprintf("%d", number))
 
-		log.Printf("[!] Failed to fetch block by number : %s\n", err)
+		log.Printf("[!] Failed to fetch block by number [ block : %d ] : %s\n", number, err)
 		return
 	}
 
