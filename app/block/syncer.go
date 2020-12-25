@@ -1,7 +1,6 @@
 package block
 
 import (
-	"log"
 	"runtime"
 	"sync"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/gammazero/workerpool"
 	"github.com/go-redis/redis/v8"
 	d "github.com/itzmeanjan/ette/app/data"
+	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
 
@@ -43,5 +43,14 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redi
 
 	wp.StopWait()
 
-	log.Printf("[+] Historical Data Syncing Completed\n")
+	// If traversing in backward direction, then try checking lowest block number present in DB
+	// and try to reprocess upto 0, if not reached 0 yet
+	if fromBlock > toBlock {
+
+		lowestBlockNumber := db.GetCurrentOldestBlockNumber(_db)
+		if lowestBlockNumber != 0 {
+			go SyncBlocksByRange(client, _db, redisClient, redisKey, lowestBlockNumber, 0, _lock, _synced)
+		}
+
+	}
 }
