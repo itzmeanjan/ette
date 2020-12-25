@@ -10,6 +10,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
+	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
 
@@ -41,6 +42,8 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	//
 	// Uses Redis backed queue for fetching pending block hash & retries
 	go retryBlockFetching(connection.RPC, _db, redisClient, redisKey, _lock, _synced)
+	// Last time `ette` stopped syncing here
+	currentHighestBlockNumber := db.GetCurrentBlockNumber(_db)
 
 	for {
 		select {
@@ -54,8 +57,17 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 				// only then we need to sync to latest state of block chain
 				if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
 					// Starting syncer in another thread, where it'll keep fetching
-					// blocks starting from genesis to this block
-					go SyncToLatestBlock(connection.RPC, _db, redisClient, redisKey, 0, header.Number.Uint64(), _lock, _synced)
+					// blocks from highest block number it fetched last time to current network block number
+					// i.e. trying to fill up gap, which was caused when `ette` was offline
+					//
+					// But in reverse direction i.e. from 100 to 50, where `ette` fetched upto 50 last time & 100
+					// is latest block, got mined in network
+					//
+					// Yes it's going refetch 50, due to the fact, some portions of 50 might be missed in last try
+					// So, it'll check & decide whether persisting again is required or not
+					//
+					// This backward traversal mechanism gives us more recent blockchain happenings to cover
+					go SyncBlocksByRange(connection.RPC, _db, redisClient, redisKey, header.Number.Uint64(), currentHighestBlockNumber, _lock, _synced)
 					// Making sure on when next latest block header is received, it'll not
 					// start another syncer
 					first = false
