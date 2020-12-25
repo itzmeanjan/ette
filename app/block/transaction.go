@@ -19,18 +19,12 @@ import (
 func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) bool {
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
-		// Pushing block number into Redis queue for retrying later
-		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
-
 		log.Printf("[!] Failed to fetch tx receipt [ block : %d ] : %s\n", block.NumberU64(), err.Error())
 		return false
 	}
 
 	sender, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
 	if err != nil {
-		// Pushing block number into Redis queue for retrying later
-		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
-
 		log.Printf("[!] Failed to fetch tx sender [ block : %d ] : %s\n", block.NumberU64(), err.Error())
 		return false
 	}
@@ -39,11 +33,6 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 	if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
 		status = db.StoreTransaction(_db, tx, receipt, sender) && status
 		status = db.StoreEvents(_db, receipt) && status
-	}
-
-	if !status {
-		// Pushing block number into Redis queue for retrying later
-		pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
 	}
 
 	// This is not a case when real time data is received, rather this is probably

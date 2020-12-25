@@ -107,6 +107,9 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 		safeUpdationOfSyncState(_lock, _synced)
 		return
 	}
+
+	// Pushing block number into Redis queue for retrying later
+	pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
 }
 
 // Updating shared varible between worker go routines, denoting progress of
