@@ -46,7 +46,7 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redi
 
 	// If traversing in backward direction, then try checking lowest block number present in DB
 	// and try to reprocess upto 0, if not reached 0 yet
-	if fromBlock > toBlock {
+	if fromBlock >= toBlock {
 
 		lowestBlockNumber := db.GetCurrentOldestBlockNumber(_db)
 		if lowestBlockNumber != 0 {
