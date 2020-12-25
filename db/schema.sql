@@ -9,6 +9,9 @@ create table blocks (
     nonce bigint not null
 );
 
+create index on blocks(number asc);
+create index on blocks(time asc);
+
 create table transactions (
     hash char(66) primary key,
     from char(42) not null,
@@ -37,8 +40,11 @@ create table events (
 create table users (
     address char(42) not null,
     apikey char(66) primary key,
-    ts timestamp not null
+    ts timestamp not null,
+    enabled boolean default true
 );
+
+create index on users(address);
 
 create table delivery_history (
     id bigserial primary key,
@@ -47,6 +53,8 @@ create table delivery_history (
     endpoint varchar(100) not null,
     datalength bigint not null,
 );
+
+create index on delivery_history(client);
 
 create table subscription_plans (
     id serial primary key,

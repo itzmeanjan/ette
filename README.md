@@ -94,7 +94,8 @@ cd ette
     - For testing historical data query using browser based GraphQL Playground in `ette`, you can set `EtteGraphQLPlayGround` to `yes` in config file
 
 ```
-RPC=wss://<websocket-endpoint>
+RPCUrl=https://<domain-name>
+WebsocketUrl=wss://<domain-name>
 PORT=7000
 DB_USER=user
 DB_PASSWORD=password
