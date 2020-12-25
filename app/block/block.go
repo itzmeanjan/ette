@@ -94,11 +94,16 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 		return
 	}
 
+	count := 0
 	for _, v := range block.Transactions() {
-		fetchTransactionByHash(client, block, v, _db, redisClient, redisKey, publishable, _lock, _synced)
+		if fetchTransactionByHash(client, block, v, _db, redisClient, redisKey, publishable, _lock, _synced) {
+			count++
+		}
 	}
 
-	log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
+	if count == len(block.Transactions()) {
+		log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
+	}
 }
 
 // Updating shared varible between worker go routines, denoting progress of
