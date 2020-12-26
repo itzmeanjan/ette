@@ -6,11 +6,25 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/go-redis/redis/v8"
 	"github.com/lib/pq"
+	"gorm.io/gorm"
 )
+
+// Job - For running a block fetching job, these are all the information which are required
+type Job struct {
+	Client      *ethclient.Client
+	DB          *gorm.DB
+	RedisClient *redis.Client
+	RedisKey    string
+	Block       uint64
+	Lock        *sync.Mutex
+	Synced      *SyncState
+}
 
 // BlockChainNodeConnection - Holds network connection object for blockchain nodes
 //
