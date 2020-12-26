@@ -473,12 +473,12 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		grp.GET("/synced", func(c *gin.Context) {
 
 			currentBlockNumber := db.GetCurrentBlockNumber(_db)
-			blockCountInDB := db.GetApproximateBlockCount(_db)
-			remaining := (currentBlockNumber + 1) - blockCountInDB
 
 			_lock.Lock()
 			defer _lock.Unlock()
 
+			blockCountInDB := _synced.StartedWith + _synced.Done
+			remaining := (currentBlockNumber + 1) - blockCountInDB
 			elapsed := time.Now().UTC().Sub(_synced.StartedAt)
 
 			c.JSON(http.StatusOK, gin.H{
