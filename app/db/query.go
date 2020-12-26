@@ -41,6 +41,23 @@ func GetBlockCount(db *gorm.DB) uint64 {
 	return uint64(number)
 }
 
+// GetApproximateBlockCount - Due to performance issue faced while executing
+// `select count(*) from blocks;`, using approximate row count in table,
+// which might not be always correct because it's cached value & get
+// updated very frequently, due to multi threaded nature of database engine.
+//
+// But for serving queries we don't want user to wait for very long time,
+// so we're using it, instead of `select count(*) from blocks;`
+func GetApproximateBlockCount(db *gorm.DB) uint64 {
+	var number int64
+
+	if err := db.Raw("select reltuples::bigint from pg_class where relname = 'blocks'").Scan(&number); err != nil {
+		return 0
+	}
+
+	return uint64(number)
+}
+
 // GetBlockByHash - Given blockhash finds out block related information
 //
 // If not found, returns nil
