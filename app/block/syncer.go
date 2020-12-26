@@ -31,13 +31,43 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redi
 
 		}
 	} else {
-		for i := fromBlock; i >= toBlock; i-- {
+		i := fromBlock
+		j := toBlock
 
-			func(num uint64) {
-				wp.Submit(func() {
-					fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-				})
-			}(i)
+		// Trying to reach middle of range (fromBlock, toBlock)
+		//
+		// If starting block is 100 & ending is 1, in each iteration
+		// two workers to be started i.e. for fetching 100, 1 block numbers
+		//
+		// In next iteration, it'll start worker for fetching 99 & 2; 98 & 3 ...
+		// Will stop when reaches mid of range i.e. 50, 51
+		for i >= j {
+
+			// This condition to be arrived at when range has odd number of elements
+			//
+			// This will be very last state, i.e. when it's time to get out of loop
+			if i == j {
+				func(num uint64) {
+					wp.Submit(func() {
+						fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+					})
+				}(i)
+			} else {
+				func(num uint64) {
+					wp.Submit(func() {
+						fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+					})
+				}(i)
+
+				func(num uint64) {
+					wp.Submit(func() {
+						fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+					})
+				}(j)
+			}
+
+			i--
+			j++
 
 		}
 	}
@@ -85,18 +115,55 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 		wp := workerpool.New(runtime.NumCPU())
 
 		var i uint64
-		for ; i <= currentBlockNumber; i++ {
+		j := currentBlockNumber
 
-			func(num uint64) {
+		// Trying to process range faster by processing
+		// from both sides of range, one pointer moving from
+		// end of range; another one moving from start of range
+		// while both of them trying to reach center of range
+		//
+		// And iteration stops as soon as we reach center of range
+		for i <= j {
 
-				block := db.GetBlockByNumber(_db, num)
-				if block == nil {
-					wp.Submit(func() {
-						fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-					})
-				}
+			if i == j {
 
-			}(i)
+				func(num uint64) {
+
+					block := db.GetBlockByNumber(_db, num)
+					if block == nil {
+						wp.Submit(func() {
+							fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+						})
+					}
+
+				}(i)
+
+			} else {
+				func(num uint64) {
+
+					block := db.GetBlockByNumber(_db, num)
+					if block == nil {
+						wp.Submit(func() {
+							fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+						})
+					}
+
+				}(i)
+
+				func(num uint64) {
+
+					block := db.GetBlockByNumber(_db, num)
+					if block == nil {
+						wp.Submit(func() {
+							fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+						})
+					}
+
+				}(j)
+			}
+
+			i++
+			j--
 
 		}
 
