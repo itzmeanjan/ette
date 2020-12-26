@@ -14,6 +14,72 @@ import (
 	"gorm.io/gorm"
 )
 
+// ForwardSyncer - Given ascending block number range i.e. fromBlock <= toBlock
+// fetches blocks in order {fromBlock, toBlock, fromBlock + 1, toBlock - 1, fromBlock + 2, toBlock - 2 ...}
+// while running n workers concurrently, where n = number of cores this machine has
+//
+// Waits for all of them to complete
+func ForwardSyncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState) {
+	if !(fromBlock <= toBlock) {
+		log.Printf("[!] Bad block range for forward syncer")
+		return
+	}
+
+	log.Printf("[*] Starting forward block syncer")
+	wp := workerpool.New(runtime.NumCPU())
+	i := fromBlock
+	j := toBlock
+
+	// Trying to reach middle of range (fromBlock, toBlock)
+	//
+	// If starting block is 1 & ending is 100, in each iteration
+	// two workers to be started i.e. for fetching 1, 100 block numbers
+	//
+	// In next iteration, it'll start worker for fetching 2 & 99; 3 & 98 ...( keeps going on )...
+	// Will stop when reaches mid of range i.e. 50, 51
+	for i <= j {
+
+		// This condition to be arrived at when range has odd number of elements
+		if i == j {
+			func(num uint64) {
+				wp.Submit(func() {
+					fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+				})
+			}(i)
+		} else {
+			func(num uint64) {
+				wp.Submit(func() {
+					fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+				})
+			}(i)
+
+			func(num uint64) {
+				wp.Submit(func() {
+					fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+				})
+			}(j)
+		}
+
+		i++
+		j--
+
+	}
+
+	wp.StopWait()
+	log.Printf("[+] Stopping forward block syncer")
+}
+
+// Syncer - ...
+func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState) {
+
+	if fromBlock < toBlock {
+
+	} else {
+
+	}
+
+}
+
 // SyncBlocksByRange - Fetch & persist all blocks in range(fromBlock, toBlock), both inclusive
 //
 // This function can be called for syncing either in forward/ backward direction, depending upon
