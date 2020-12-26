@@ -19,13 +19,12 @@ import (
 // while running n workers concurrently, where n = number of cores this machine has
 //
 // Waits for all of them to complete
-func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState) {
+func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState, jd func(*workerpool.WorkerPool, *d.Job)) {
 	if !(fromBlock <= toBlock) {
 		log.Printf("[!] Bad block range for syncer")
 		return
 	}
 
-	log.Printf("[*] Starting block syncer")
 	wp := workerpool.New(runtime.NumCPU())
 	i := fromBlock
 	j := toBlock
@@ -33,8 +32,14 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, r
 	// Jobs need to be submitted using this interface, while
 	// just mentioning which block needs to be fetched
 	job := func(num uint64) {
-		wp.Submit(func() {
-			fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+		jd(wp, &d.Job{
+			Client:      client,
+			DB:          _db,
+			RedisClient: redisClient,
+			RedisKey:    redisKey,
+			Block:       num,
+			Lock:        _lock,
+			Synced:      _synced,
 		})
 	}
 
@@ -52,7 +57,6 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, r
 	}
 
 	wp.StopWait()
-	log.Printf("[+] Stopping block syncer")
 }
 
 // SyncBlocksByRange - Fetch & persist all blocks in range(fromBlock, toBlock), both inclusive
@@ -60,11 +64,27 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, r
 // Range can be either ascending or descending, depending upon that proper arguments to be
 // passed to `Syncer` function during invokation
 func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState) {
-	if fromBlock < toBlock {
-		Syncer(client, _db, redisClient, redisKey, fromBlock, toBlock, _lock, _synced)
-	} else {
-		Syncer(client, _db, redisClient, redisKey, toBlock, fromBlock, _lock, _synced)
+
+	// Job to be submitted and executed by each worker
+	//
+	// Job specification is provided in `Job` struct
+	job := func(wp *workerpool.WorkerPool, j *d.Job) {
+		wp.Submit(func() {
+
+			fetchBlockByNumber(j.Client, j.Block, j.DB, j.RedisClient, j.RedisKey, j.Lock, j.Synced)
+
+		})
 	}
+
+	log.Printf("[*] Starting block syncer")
+
+	if fromBlock < toBlock {
+		Syncer(client, _db, redisClient, redisKey, fromBlock, toBlock, _lock, _synced, job)
+	} else {
+		Syncer(client, _db, redisClient, redisKey, toBlock, fromBlock, _lock, _synced, job)
+	}
+
+	log.Printf("[+] Stopping block syncer")
 
 	// Once completed first iteration of processing blocks upto last time where it left
 	// off, we're going to start worker to look at DB & decide which blocks are missing
@@ -95,69 +115,28 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 		// If all blocks present in between 0 to latest block in network
 		// `ette` sleeps for 1 minute & again get to work
 		if currentBlockNumber+1 == blockCount {
+			log.Printf("[+] No missing blocks found")
 			sleep()
 			continue
 		}
 
-		// Starting worker pool to leverage multi core architecture of machine
-		wp := workerpool.New(runtime.NumCPU())
-
-		var i uint64
-		j := currentBlockNumber
-
-		// Trying to process range faster by processing
-		// from both sides of range, one pointer moving from
-		// end of range; another one moving from start of range
-		// while both of them trying to reach center of range
+		// Job to be submitted and executed by each worker
 		//
-		// And iteration stops as soon as we reach center of range
-		for i <= j {
+		// Job specification is provided in `Job` struct
+		job := func(wp *workerpool.WorkerPool, j *d.Job) {
+			block := db.GetBlockByNumber(j.DB, j.Block)
+			if block == nil {
 
-			if i == j {
+				wp.Submit(func() {
+					fetchBlockByNumber(j.Client, j.Block, j.DB, j.RedisClient, j.RedisKey, j.Lock, j.Synced)
+				})
 
-				func(num uint64) {
-
-					block := db.GetBlockByNumber(_db, num)
-					if block == nil {
-						wp.Submit(func() {
-							fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-						})
-					}
-
-				}(i)
-
-			} else {
-				func(num uint64) {
-
-					block := db.GetBlockByNumber(_db, num)
-					if block == nil {
-						wp.Submit(func() {
-							fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-						})
-					}
-
-				}(i)
-
-				func(num uint64) {
-
-					block := db.GetBlockByNumber(_db, num)
-					if block == nil {
-						wp.Submit(func() {
-							fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-						})
-					}
-
-				}(j)
 			}
-
-			i++
-			j--
-
 		}
 
-		wp.StopWait()
-		log.Printf("[+] Stopping missing block finder")
+		Syncer(client, _db, redisClient, redisKey, 0, currentBlockNumber, _lock, _synced, job)
 
+		log.Printf("[+] Stopping missing block finder")
 		sleep()
 	}
 
