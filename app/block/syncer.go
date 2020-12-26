@@ -14,134 +14,57 @@ import (
 	"gorm.io/gorm"
 )
 
-// ForwardSyncer - Given ascending block number range i.e. fromBlock <= toBlock
+// Syncer - Given ascending block number range i.e. fromBlock <= toBlock
 // fetches blocks in order {fromBlock, toBlock, fromBlock + 1, toBlock - 1, fromBlock + 2, toBlock - 2 ...}
 // while running n workers concurrently, where n = number of cores this machine has
 //
 // Waits for all of them to complete
-func ForwardSyncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState) {
+func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState) {
 	if !(fromBlock <= toBlock) {
-		log.Printf("[!] Bad block range for forward syncer")
+		log.Printf("[!] Bad block range for syncer")
 		return
 	}
 
-	log.Printf("[*] Starting forward block syncer")
+	log.Printf("[*] Starting block syncer")
 	wp := workerpool.New(runtime.NumCPU())
 	i := fromBlock
 	j := toBlock
 
-	// Trying to reach middle of range (fromBlock, toBlock)
-	//
-	// If starting block is 1 & ending is 100, in each iteration
-	// two workers to be started i.e. for fetching 1, 100 block numbers
-	//
-	// In next iteration, it'll start worker for fetching 2 & 99; 3 & 98 ...( keeps going on )...
-	// Will stop when reaches mid of range i.e. 50, 51
-	for i <= j {
+	// Jobs need to be submitted using this interface, while
+	// just mentioning which block needs to be fetched
+	job := func(num uint64) {
+		wp.Submit(func() {
+			fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
+		})
+	}
 
+	for i <= j {
 		// This condition to be arrived at when range has odd number of elements
 		if i == j {
-			func(num uint64) {
-				wp.Submit(func() {
-					fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-				})
-			}(i)
+			job(i)
 		} else {
-			func(num uint64) {
-				wp.Submit(func() {
-					fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-				})
-			}(i)
-
-			func(num uint64) {
-				wp.Submit(func() {
-					fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-				})
-			}(j)
+			job(i)
+			job(j)
 		}
 
 		i++
 		j--
-
 	}
 
 	wp.StopWait()
-	log.Printf("[+] Stopping forward block syncer")
-}
-
-// Syncer - ...
-func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState) {
-
-	if fromBlock < toBlock {
-
-	} else {
-
-	}
-
+	log.Printf("[+] Stopping block syncer")
 }
 
 // SyncBlocksByRange - Fetch & persist all blocks in range(fromBlock, toBlock), both inclusive
 //
-// This function can be called for syncing either in forward/ backward direction, depending upon
-// parameter passed in for `fromBlock` & `toBlock` field
+// Range can be either ascending or descending, depending upon that proper arguments to be
+// passed to `Syncer` function during invokation
 func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState) {
-	log.Printf("[*] Starting backward syncing\n")
-	wp := workerpool.New(runtime.NumCPU())
-
 	if fromBlock < toBlock {
-		for i := fromBlock; i <= toBlock; i++ {
-
-			func(num uint64) {
-				wp.Submit(func() {
-					fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-				})
-			}(i)
-
-		}
+		Syncer(client, _db, redisClient, redisKey, fromBlock, toBlock, _lock, _synced)
 	} else {
-		i := fromBlock
-		j := toBlock
-
-		// Trying to reach middle of range (fromBlock, toBlock)
-		//
-		// If starting block is 100 & ending is 1, in each iteration
-		// two workers to be started i.e. for fetching 100, 1 block numbers
-		//
-		// In next iteration, it'll start worker for fetching 99 & 2; 98 & 3 ...
-		// Will stop when reaches mid of range i.e. 50, 51
-		for i >= j {
-
-			// This condition to be arrived at when range has odd number of elements
-			//
-			// This will be very last state, i.e. when it's time to get out of loop
-			if i == j {
-				func(num uint64) {
-					wp.Submit(func() {
-						fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-					})
-				}(i)
-			} else {
-				func(num uint64) {
-					wp.Submit(func() {
-						fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-					})
-				}(i)
-
-				func(num uint64) {
-					wp.Submit(func() {
-						fetchBlockByNumber(client, num, _db, redisClient, redisKey, _lock, _synced)
-					})
-				}(j)
-			}
-
-			i--
-			j++
-
-		}
+		Syncer(client, _db, redisClient, redisKey, toBlock, fromBlock, _lock, _synced)
 	}
-
-	wp.StopWait()
-	log.Printf("[+] Completed backward syncing\n")
 
 	// Once completed first iteration of processing blocks upto last time where it left
 	// off, we're going to start worker to look at DB & decide which blocks are missing
