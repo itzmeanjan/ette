@@ -51,7 +51,7 @@ func GetBlockCount(db *gorm.DB) uint64 {
 func GetApproximateBlockCount(db *gorm.DB) uint64 {
 	var number int64
 
-	if err := db.Raw("select reltuples::bigint from pg_class where relname = 'blocks'").Scan(&number); err != nil {
+	if err := db.Raw("select reltuples::bigint from pg_class where relname = 'blocks'").Scan(&number).Error; err != nil {
 		return 0
 	}
 
