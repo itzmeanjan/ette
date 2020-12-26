@@ -69,7 +69,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 
 	for {
 		currentBlockNumber := db.GetCurrentBlockNumber(_db)
-		blockCount := db.GetBlockCount(_db)
+		blockCount := db.GetApproximateBlockCount(_db)
 		// If all blocks present in between 0 to latest block in network
 		// `ette` sleeps for 1 minute & again get to work
 		if currentBlockNumber+1 == blockCount {
