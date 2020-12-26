@@ -31,27 +31,20 @@ func GetCurrentBlockNumber(db *gorm.DB) uint64 {
 }
 
 // GetBlockCount - Returns how many blocks currently present in database
+//
+// Caution : As we're dealing with very large tables
+// ( with row count  ~ 10M & increasing 1 row every 2 seconds )
+// this function needs to be least frequently, otherwise due to full table
+// scan it'll cost us a lot
+//
+// Currently only using during application start up
+//
+// All other block count calculation requirements can be fulfilled by
+// using in-memory program state holder
 func GetBlockCount(db *gorm.DB) uint64 {
 	var number int64
 
 	if err := db.Model(&Blocks{}).Count(&number).Error; err != nil {
-		return 0
-	}
-
-	return uint64(number)
-}
-
-// GetApproximateBlockCount - Due to performance issue faced while executing
-// `select count(*) from blocks;`, using approximate row count in table,
-// which might not be always correct because it's cached value & get
-// updated very frequently, due to multi threaded nature of database engine.
-//
-// But for serving queries we don't want user to wait for very long time,
-// so we're using it, instead of `select count(*) from blocks;`
-func GetApproximateBlockCount(db *gorm.DB) uint64 {
-	var number int64
-
-	if err := db.Raw("select reltuples::bigint from pg_class where relname = 'blocks'").Scan(&number).Error; err != nil {
 		return 0
 	}
 

@@ -49,7 +49,7 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 	graph.GetDatabaseConnection(_db)
 
 	_lock := &sync.Mutex{}
-	_synced := &d.SyncState{Done: 0}
+	_synced := &d.SyncState{Done: 0, StartedWith: db.GetBlockCount(_db)}
 
 	return _connection, _redisClient, _db, _lock, _synced
 }
