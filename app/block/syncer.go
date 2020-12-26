@@ -1,6 +1,7 @@
 package block
 
 import (
+	"log"
 	"runtime"
 	"sync"
 	"time"
@@ -18,6 +19,7 @@ import (
 // This function can be called for syncing either in forward/ backward direction, depending upon
 // parameter passed in for `fromBlock` & `toBlock` field
 func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState) {
+	log.Printf("[*] Starting backward syncing\n")
 	wp := workerpool.New(runtime.NumCPU())
 
 	if fromBlock < toBlock {
@@ -73,19 +75,15 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redi
 	}
 
 	wp.StopWait()
+	log.Printf("[+] Completed backward syncing\n")
 
-	// If traversing in backward direction, then try checking lowest block number present in DB
-	// and try to reprocess upto 0, if not reached 0 yet
-	if fromBlock >= toBlock {
-
-		lowestBlockNumber := db.GetCurrentOldestBlockNumber(_db)
-		if lowestBlockNumber != 0 {
-			go SyncBlocksByRange(client, _db, redisClient, redisKey, lowestBlockNumber, 0, _lock, _synced)
-		} else {
-			go SyncMissingBlocksInDB(client, _db, redisClient, redisKey, _lock, _synced)
-		}
-
-	}
+	// Once completed first iteration of processing blocks upto last time where it left
+	// off, we're going to start worker to look at DB & decide which blocks are missing
+	// i.e. need to be fetched again
+	//
+	// And this will itself run as a infinite job, completes one iteration &
+	// takes break for 1 min, then repeats
+	go SyncMissingBlocksInDB(client, _db, redisClient, redisKey, _lock, _synced)
 }
 
 // SyncMissingBlocksInDB - Checks with database for what blocks are present & what are not, fetches missing
@@ -98,6 +96,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 	}
 
 	for {
+		log.Printf("[*] Starting missing block finder")
 		currentBlockNumber := db.GetCurrentBlockNumber(_db)
 
 		_lock.Lock()
@@ -168,6 +167,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 		}
 
 		wp.StopWait()
+		log.Printf("[+] Stopping missing block finder")
 
 		sleep()
 	}
