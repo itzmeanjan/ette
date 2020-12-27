@@ -48,7 +48,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	for {
 		select {
 		case err := <-subs.Err():
-			log.Printf("[!] Block header subscription failed in mid : %s\n", err.Error())
+			log.Fatalf("[!] Listener stopped : %s\n", err.Error())
 			break
 		case header := <-headerChan:
 			if first {
