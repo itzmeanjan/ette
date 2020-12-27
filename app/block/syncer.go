@@ -1,17 +1,12 @@
 package block
 
 import (
-	"context"
 	"log"
-	"math/big"
 	"runtime"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/gammazero/workerpool"
 	"github.com/go-redis/redis/v8"
 	d "github.com/itzmeanjan/ette/app/data"
@@ -137,16 +132,6 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 				})
 
 			}
-
-			_fetchedBlock, err := j.Client.BlockByHash(context.Background(), common.HexToHash(block.Hash))
-			if err != nil {
-				log.Printf("[!] Failed to fetch block by hash : %s\n", err.Error())
-				return
-			}
-
-			_derivedTxRootHash := types.DeriveSha(_fetchedBlock.Transactions(), trie.NewStackTrie(nil))
-			if _derivedTxRootHash == common.HexToHash(block.TransactionRootHash) {
-			}
 		}
 
 		Syncer(client, _db, redisClient, redisKey, 0, currentBlockNumber, _lock, _synced, job)
@@ -155,26 +140,4 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 		sleep()
 	}
 
-}
-
-// BuildTransactionListFromLocalDB - ...
-func BuildTransactionListFromLocalDB(_db *gorm.DB, block *db.Blocks) types.Transactions {
-	txList := make([]*types.Transaction, 0)
-
-	tx := db.GetTransactionsByBlockHash(_db, common.HexToHash(block.Hash))
-	if tx == nil {
-		return txList
-	}
-
-	for _, v := range tx.Transactions {
-		if v == nil {
-			continue
-		}
-
-		amount := big.NewInt(0)
-		amount.SetString("", 10)
-
-	}
-
-	return txList
 }
