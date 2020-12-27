@@ -138,15 +138,6 @@ func (t *Transaction) MarshalJSON() ([]byte, error) {
 
 // ToJSON - JSON encoder, to be invoked before delivering tx query data to client
 func (t *Transaction) ToJSON() []byte {
-	// When tx doesn't create contract i.e. normal tx
-	if !strings.HasPrefix(t.Contract, "0x") {
-		t.Contract = ""
-	}
-
-	// When tx creates contract
-	if !strings.HasPrefix(t.To, "0x") {
-		t.To = ""
-	}
 
 	data, err := json.Marshal(t)
 	if err != nil {
@@ -155,6 +146,7 @@ func (t *Transaction) ToJSON() []byte {
 	}
 
 	return data
+
 }
 
 // Transactions - Multiple transactions holder struct
@@ -165,29 +157,14 @@ type Transactions struct {
 // ToJSON - Encoding into JSON, to be invoked when delivering to client
 func (t *Transactions) ToJSON() []byte {
 
-	// Replacing contract address/ to address of tx
-	// using empty string, if tx is normal tx/ creates contract
-	// respectively
-	//
-	// We'll save some data transfer burden
-	for _, v := range t.Transactions {
-		if !strings.HasPrefix(v.Contract, "0x") {
-			v.Contract = ""
-		}
-
-		// When tx creates contract
-		if !strings.HasPrefix(v.To, "0x") {
-			v.To = ""
-		}
-	}
-
 	data, err := json.Marshal(t)
 	if err != nil {
-		log.Printf("[!] Failed to encode transaction data to JSON : %s\n", err.Error())
+		log.Printf("[!] Failed to encode transactions data to JSON : %s\n", err.Error())
 		return nil
 	}
 
 	return data
+
 }
 
 // Event - Single event entity holder, extracted from db
