@@ -61,6 +61,8 @@ type Transactions struct {
 	From      string `gorm:"column:from;type:char(42);not null"`
 	To        string `gorm:"column:to;type:char(42)"`
 	Contract  string `gorm:"column:contract;type:char(42)"`
+	Value     string `gorm:"column:value;type:varchar"`
+	Data      []byte `gorm:"column:data;type:bytea"`
 	Gas       uint64 `gorm:"column:gas;type:bigint;not null"`
 	GasPrice  string `gorm:"column:gasprice;type:varchar;not null"`
 	Cost      string `gorm:"column:cost;type:varchar;not null"`
@@ -81,6 +83,8 @@ func (t *Transactions) SimilarTo(tx *types.Transaction, txReceipt *types.Receipt
 		return t.Hash == tx.Hash().Hex() &&
 			t.From == sender.Hex() &&
 			t.Contract == txReceipt.ContractAddress.Hex() &&
+			t.Value == tx.Value().String() &&
+			bytes.Compare(t.Data, tx.Data()) == 0 &&
 			t.Gas == tx.Gas() &&
 			t.GasPrice == tx.GasPrice().String() &&
 			t.Cost == tx.Cost().String() &&
@@ -92,6 +96,8 @@ func (t *Transactions) SimilarTo(tx *types.Transaction, txReceipt *types.Receipt
 	return t.Hash == tx.Hash().Hex() &&
 		t.From == sender.Hex() &&
 		t.To == tx.To().Hex() &&
+		t.Value == tx.Value().String() &&
+		bytes.Compare(t.Data, tx.Data()) == 0 &&
 		t.Gas == tx.Gas() &&
 		t.GasPrice == tx.GasPrice().String() &&
 		t.Cost == tx.Cost().String() &&
