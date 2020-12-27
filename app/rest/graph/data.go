@@ -75,10 +75,27 @@ func getGraphQLCompatibleTransaction(tx *data.Transaction) (*model.Transaction, 
 		data = fmt.Sprintf("0x%s", _h)
 	}
 
+	if !strings.HasPrefix(tx.Contract, "0x") {
+		return &model.Transaction{
+			Hash:      tx.Hash,
+			From:      tx.From,
+			To:        tx.To,
+			Contract:  "",
+			Value:     tx.Value,
+			Data:      data,
+			Gas:       fmt.Sprintf("%d", tx.Gas),
+			GasPrice:  tx.GasPrice,
+			Cost:      tx.Cost,
+			Nonce:     fmt.Sprintf("%d", tx.Nonce),
+			State:     fmt.Sprintf("%d", tx.State),
+			BlockHash: tx.BlockHash,
+		}, nil
+	}
+
 	return &model.Transaction{
 		Hash:      tx.Hash,
 		From:      tx.From,
-		To:        tx.To,
+		To:        "",
 		Contract:  tx.Contract,
 		Value:     tx.Value,
 		Data:      data,
