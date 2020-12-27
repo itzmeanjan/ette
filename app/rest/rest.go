@@ -482,12 +482,13 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			elapsed := time.Now().UTC().Sub(_synced.StartedAt)
 
 			eta := "0s"
-			if !(blockCountInDB == currentBlockNumber+1) {
+			status := fmt.Sprintf("%.2f %%", (float64(blockCountInDB)/float64(currentBlockNumber+1))*100)
+			if !(status == "100.00 %") {
 				eta = (time.Duration((elapsed.Seconds()/float64(_synced.Done))*float64(remaining)) * time.Second).String()
 			}
 
 			c.JSON(http.StatusOK, gin.H{
-				"synced":    fmt.Sprintf("%.2f %%", (float64(blockCountInDB)/float64(currentBlockNumber+1))*100),
+				"synced":    status,
 				"processed": _synced.Done,
 				"elapsed":   elapsed.String(),
 				"eta":       eta,
