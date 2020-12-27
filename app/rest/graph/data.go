@@ -70,11 +70,18 @@ func getGraphQLCompatibleTransaction(tx *data.Transaction) (*model.Transaction, 
 		return nil, errors.New("Found nothing")
 	}
 
+	data := ""
+	if _h := hex.EncodeToString(tx.Data); _h != "" {
+		data = fmt.Sprintf("0x%s", _h)
+	}
+
 	return &model.Transaction{
 		Hash:      tx.Hash,
 		From:      tx.From,
 		To:        tx.To,
 		Contract:  tx.Contract,
+		Value:     tx.Value,
+		Data:      data,
 		Gas:       fmt.Sprintf("%d", tx.Gas),
 		GasPrice:  tx.GasPrice,
 		Cost:      tx.Cost,

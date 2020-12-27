@@ -31,6 +31,8 @@ type Transaction struct {
 	From      string `json:"from"`
 	To        string `json:"to"`
 	Contract  string `json:"contract"`
+	Value     string `json:"value"`
+	Data      string `json:"data"`
 	Gas       string `json:"gas"`
 	GasPrice  string `json:"gasPrice"`
 	Cost      string `json:"cost"`
