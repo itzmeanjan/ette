@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -143,6 +144,12 @@ func (t *TransactionConsumer) Send(msg string) bool {
 
 	}
 
+	// Creating this temporary struct definition here, because
+	// while unmarshalling JSON it was failing in `{ Data: []byte }`
+	// part, because it was byte array
+	//
+	// Now as it's first decoded as string, then it'll converted to byte array
+	// if it's not a empty string
 	var transaction struct {
 		Hash      string `json:"hash"`
 		From      string `json:"from"`
@@ -168,6 +175,9 @@ func (t *TransactionConsumer) Send(msg string) bool {
 	data := make([]byte, 0)
 	var err error
 
+	// If `data` field is not empty, we'll try to decode
+	// part to tx data, after slicing out `0x` part prepended
+	// to it
 	if len(transaction.Data) != 0 {
 		data, err = hex.DecodeString(transaction.Data[2:])
 	}
@@ -177,21 +187,48 @@ func (t *TransactionConsumer) Send(msg string) bool {
 		return true
 	}
 
+	var tx d.Transaction
+
+	// If contract address in tx, is empty, then it's a
+	// normal tx, which doesn't involve any contract call
+	if !(strings.HasPrefix(transaction.Contract, "0x")) {
+
+		tx = d.Transaction{
+			Hash:      transaction.Hash,
+			From:      transaction.From,
+			To:        transaction.To,
+			Value:     transaction.Value,
+			Data:      data,
+			Gas:       transaction.Gas,
+			GasPrice:  transaction.GasPrice,
+			Cost:      transaction.Cost,
+			Nonce:     transaction.Nonce,
+			State:     transaction.State,
+			BlockHash: transaction.BlockHash,
+		}
+
+	} else {
+		// Here it's a contract call
+		// which is why `to` field is kept empty
+
+		tx = d.Transaction{
+			Hash:      transaction.Hash,
+			From:      transaction.From,
+			Contract:  transaction.Contract,
+			Value:     transaction.Value,
+			Data:      data,
+			Gas:       transaction.Gas,
+			GasPrice:  transaction.GasPrice,
+			Cost:      transaction.Cost,
+			Nonce:     transaction.Nonce,
+			State:     transaction.State,
+			BlockHash: transaction.BlockHash,
+		}
+
+	}
+
 	// If doesn't match, simply ignoring received data
-	if !t.Request.DoesMatchWithPublishedTransactionData(&d.Transaction{
-		Hash:      transaction.Hash,
-		From:      transaction.From,
-		To:        transaction.To,
-		Contract:  transaction.Contract,
-		Value:     transaction.Value,
-		Data:      data,
-		Gas:       transaction.Gas,
-		GasPrice:  transaction.GasPrice,
-		Cost:      transaction.Cost,
-		Nonce:     transaction.Nonce,
-		State:     transaction.State,
-		BlockHash: transaction.BlockHash,
-	}) {
+	if !t.Request.DoesMatchWithPublishedTransactionData(&tx) {
 		return true
 	}
 
