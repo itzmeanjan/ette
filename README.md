@@ -557,6 +557,8 @@ After that as long as your machine is reachable, `ette` will keep notifying you 
   "from": "0xc9D50e0a571aDd06C7D5f1452DcE2F523FB711a1",
   "to": "0x4774fEd3f2838f504006BE53155cA9cbDDEe9f0c",
   "contract": "",
+  "value": "",
+  "data": "0x35086d290000000000000000000000000000000000000000000000000000000000000360",
   "gas": 200000,
   "gasPrice": "1000000000",
   "cost": "200000000000000",
