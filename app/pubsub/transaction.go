@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"time"
@@ -9,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
-	"github.com/itzmeanjan/ette/app/data"
+	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
@@ -142,7 +143,26 @@ func (t *TransactionConsumer) Send(msg string) bool {
 
 	}
 
-	var transaction data.Transaction
+	// Creating this temporary struct definition here, because
+	// while unmarshalling JSON it was failing in `{ Data: []byte }`
+	// part, because it was byte array
+	//
+	// Now as it's first decoded as string, then it'll converted to byte array
+	// if it's not a empty string
+	var transaction struct {
+		Hash      string `json:"hash"`
+		From      string `json:"from"`
+		To        string `json:"to"`
+		Contract  string `json:"contract"`
+		Value     string `json:"value"`
+		Data      string `json:"data"`
+		Gas       uint64 `json:"gas"`
+		GasPrice  string `json:"gasPrice"`
+		Cost      string `json:"cost"`
+		Nonce     uint64 `json:"nonce"`
+		State     uint64 `json:"state"`
+		BlockHash string `json:"blockHash"`
+	}
 
 	_msg := []byte(msg)
 
@@ -151,8 +171,36 @@ func (t *TransactionConsumer) Send(msg string) bool {
 		return true
 	}
 
+	data := make([]byte, 0)
+	var err error
+
+	// If `data` field is not empty, we'll try to decode
+	// part to tx data, after slicing out `0x` part prepended
+	// to it
+	if len(transaction.Data) != 0 {
+		data, err = hex.DecodeString(transaction.Data[2:])
+	}
+
+	if err != nil {
+		log.Printf("[!] Failed to decode data field of transaction : %s\n", err.Error())
+		return true
+	}
+
 	// If doesn't match, simply ignoring received data
-	if !t.Request.DoesMatchWithPublishedTransactionData(&transaction) {
+	if !t.Request.DoesMatchWithPublishedTransactionData(&d.Transaction{
+		Hash:      transaction.Hash,
+		From:      transaction.From,
+		To:        transaction.To,
+		Contract:  transaction.Contract,
+		Value:     transaction.Value,
+		Data:      data,
+		Gas:       transaction.Gas,
+		GasPrice:  transaction.GasPrice,
+		Cost:      transaction.Cost,
+		Nonce:     transaction.Nonce,
+		State:     transaction.State,
+		BlockHash: transaction.BlockHash,
+	}) {
 		return true
 	}
 
