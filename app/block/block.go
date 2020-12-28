@@ -17,6 +17,22 @@ import (
 	"gorm.io/gorm"
 )
 
+// Running a different executor for keeping block count in memory, as fresh as we can keep
+func keepBlockCountInMemory(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
+
+	for {
+		count := db.GetBlockCount(_db)
+		if count == 0 {
+			continue
+		}
+
+		_lock.Lock()
+		_synced.BlockCountInDB = count
+		_lock.Unlock()
+	}
+
+}
+
 // Fetching block content using blockHash
 func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
 	block, err := client.BlockByHash(context.Background(), hash)
