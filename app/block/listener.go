@@ -42,6 +42,9 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	//
 	// Uses Redis backed queue for fetching pending block hash & retries
 	go retryBlockFetching(connection.RPC, _db, redisClient, redisKey, _lock, _synced)
+	// Keeping, as fresh as possible, block count in memory, which will be helpful
+	// in answersing queries faster
+	go keepBlockCountInMemory(_db, _lock, _synced)
 	// Last time `ette` stopped syncing here
 	currentHighestBlockNumber := db.GetCurrentBlockNumber(_db)
 
