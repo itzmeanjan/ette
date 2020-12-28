@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -21,6 +22,7 @@ import (
 func keepBlockCountInMemory(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
 
 	for {
+		time.Sleep(time.Duration(100) * time.Millisecond)
 		count := db.GetBlockCount(_db)
 		if count == 0 {
 			continue
@@ -29,6 +31,7 @@ func keepBlockCountInMemory(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncStat
 		_lock.Lock()
 		_synced.BlockCountInDB = count
 		_lock.Unlock()
+		log.Printf("[+] Obtained fresh block count in DB")
 	}
 
 }
