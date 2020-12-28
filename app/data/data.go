@@ -37,9 +37,9 @@ type BlockChainNodeConnection struct {
 
 // SyncState - Whether `ette` is synced with blockchain or not
 type SyncState struct {
-	Done        uint64
-	StartedWith uint64
-	StartedAt   time.Time
+	Done           uint64
+	StartedAt      time.Time
+	BlockCountInDB uint64
 }
 
 // Block - Block related info to be delivered to client in this format

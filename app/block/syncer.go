@@ -106,10 +106,12 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 
 	for {
 		log.Printf("[*] Starting missing block finder")
+
 		currentBlockNumber := db.GetCurrentBlockNumber(_db)
 
+		// Safely reading shared variable
 		_lock.Lock()
-		blockCount := _synced.StartedWith + _synced.Done
+		blockCount := _synced.BlockCountInDB
 		_lock.Unlock()
 
 		// If all blocks present in between 0 to latest block in network
