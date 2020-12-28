@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -187,48 +186,21 @@ func (t *TransactionConsumer) Send(msg string) bool {
 		return true
 	}
 
-	var tx d.Transaction
-
-	// If contract address in tx, is empty, then it's a
-	// normal tx, which doesn't involve any contract call
-	if !(strings.HasPrefix(transaction.Contract, "0x")) {
-
-		tx = d.Transaction{
-			Hash:      transaction.Hash,
-			From:      transaction.From,
-			To:        transaction.To,
-			Value:     transaction.Value,
-			Data:      data,
-			Gas:       transaction.Gas,
-			GasPrice:  transaction.GasPrice,
-			Cost:      transaction.Cost,
-			Nonce:     transaction.Nonce,
-			State:     transaction.State,
-			BlockHash: transaction.BlockHash,
-		}
-
-	} else {
-		// Here it's a contract call
-		// which is why `to` field is kept empty
-
-		tx = d.Transaction{
-			Hash:      transaction.Hash,
-			From:      transaction.From,
-			Contract:  transaction.Contract,
-			Value:     transaction.Value,
-			Data:      data,
-			Gas:       transaction.Gas,
-			GasPrice:  transaction.GasPrice,
-			Cost:      transaction.Cost,
-			Nonce:     transaction.Nonce,
-			State:     transaction.State,
-			BlockHash: transaction.BlockHash,
-		}
-
-	}
-
 	// If doesn't match, simply ignoring received data
-	if !t.Request.DoesMatchWithPublishedTransactionData(&tx) {
+	if !t.Request.DoesMatchWithPublishedTransactionData(&d.Transaction{
+		Hash:      transaction.Hash,
+		From:      transaction.From,
+		To:        transaction.To,
+		Contract:  transaction.Contract,
+		Value:     transaction.Value,
+		Data:      data,
+		Gas:       transaction.Gas,
+		GasPrice:  transaction.GasPrice,
+		Cost:      transaction.Cost,
+		Nonce:     transaction.Nonce,
+		State:     transaction.State,
+		BlockHash: transaction.BlockHash,
+	}) {
 		return true
 	}
 
