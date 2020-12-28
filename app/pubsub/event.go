@@ -157,14 +157,13 @@ func (e *EventConsumer) Send(msg string) bool {
 
 	_msg := []byte(msg)
 
-	err := json.Unmarshal(_msg, &event)
-	if err != nil {
+	if err := json.Unmarshal(_msg, &event); err != nil {
 		log.Printf("[!] Failed to decode published event data to JSON : %s\n", err.Error())
 		return true
 	}
 
 	data := make([]byte, 0)
-	err = nil
+	var err error
 
 	if len(event.Data) != 0 {
 		data, err = hex.DecodeString(event.Data[2:])
