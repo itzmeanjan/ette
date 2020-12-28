@@ -19,7 +19,7 @@ type Tabler interface {
 // Blocks - Mined block info holder table model
 type Blocks struct {
 	Hash                string       `gorm:"column:hash;type:char(66);primaryKey"`
-	Number              uint64       `gorm:"column:number;type:bigint;not null;index:,sort:asc"`
+	Number              uint64       `gorm:"column:number;type:bigint;not null;unique;index:,sort:asc"`
 	Time                uint64       `gorm:"column:time;type:bigint;not null;index:,sort:asc"`
 	ParentHash          string       `gorm:"column:parenthash;type:char(66);not null"`
 	Difficulty          string       `gorm:"column:difficulty;type:varchar;not null"`
