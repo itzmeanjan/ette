@@ -1,12 +1,20 @@
+-- Note : This file is never going to be used by `ette`
+--
+-- This is provided more sake of better human readability
+
 create table blocks (
     hash char(66) primary key,
-    number varchar not null,
+    number varchar not null unique,
     time bigint not null,
     parenthash char(66) not null,
     difficulty varchar not null,
     gasused bigint not null,
     gaslimit bigint not null,
-    nonce bigint not null
+    nonce bigint not null,
+    miner char(42) not null,
+    size float(8) not null,
+    txroothash char(66) not null,
+    receiptroothash char(66) not null,
 );
 
 create index on blocks(number asc);
@@ -15,7 +23,10 @@ create index on blocks(time asc);
 create table transactions (
     hash char(66) primary key,
     from char(42) not null,
-    to char(42) not null,
+    to char(42),
+    contract char(42),
+    value varchar,
+    data bytea,
     gas bigint not null,
     gasprice varchar not null,
     cost varchar not null,
@@ -29,7 +40,7 @@ create table events (
     origin char(42) not null,
     index integer not null,
     topics text[] not null,
-    data bytea not null,
+    data bytea,
     txhash char(66) not null,
     blockhash char(66) not null,
     primary key (blockhash, index),
