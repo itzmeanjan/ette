@@ -69,7 +69,6 @@ func UpdateBlock(_db *gorm.DB, _block *types.Block) bool {
 
 	if err := _db.Where("number = ?", _block.NumberU64()).Updates(&Blocks{
 		Hash:                _block.Hash().Hex(),
-		Number:              _block.NumberU64(),
 		Time:                _block.Time(),
 		ParentHash:          _block.ParentHash().Hex(),
 		Difficulty:          _block.Difficulty().String(),
