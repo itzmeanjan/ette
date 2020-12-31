@@ -91,32 +91,28 @@ func UpdateTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.R
 	// If tx creates contract, then we hold created contract address
 	if _tx.To() == nil {
 		_pTx = &Transactions{
-			Hash:      _tx.Hash().Hex(),
-			From:      _sender.Hex(),
-			Contract:  _txReceipt.ContractAddress.Hex(),
-			Value:     _tx.Value().String(),
-			Data:      _tx.Data(),
-			Gas:       _tx.Gas(),
-			GasPrice:  _tx.GasPrice().String(),
-			Cost:      _tx.Cost().String(),
-			Nonce:     _tx.Nonce(),
-			State:     _txReceipt.Status,
-			BlockHash: _txReceipt.BlockHash.Hex(),
+			From:     _sender.Hex(),
+			Contract: _txReceipt.ContractAddress.Hex(),
+			Value:    _tx.Value().String(),
+			Data:     _tx.Data(),
+			Gas:      _tx.Gas(),
+			GasPrice: _tx.GasPrice().String(),
+			Cost:     _tx.Cost().String(),
+			Nonce:    _tx.Nonce(),
+			State:    _txReceipt.Status,
 		}
 	} else {
 		// This is a normal tx, so we keep contract field empty
 		_pTx = &Transactions{
-			Hash:      _tx.Hash().Hex(),
-			From:      _sender.Hex(),
-			To:        _tx.To().Hex(),
-			Value:     _tx.Value().String(),
-			Data:      _tx.Data(),
-			Gas:       _tx.Gas(),
-			GasPrice:  _tx.GasPrice().String(),
-			Cost:      _tx.Cost().String(),
-			Nonce:     _tx.Nonce(),
-			State:     _txReceipt.Status,
-			BlockHash: _txReceipt.BlockHash.Hex(),
+			From:     _sender.Hex(),
+			To:       _tx.To().Hex(),
+			Value:    _tx.Value().String(),
+			Data:     _tx.Data(),
+			Gas:      _tx.Gas(),
+			GasPrice: _tx.GasPrice().String(),
+			Cost:     _tx.Cost().String(),
+			Nonce:    _tx.Nonce(),
+			State:    _txReceipt.Status,
 		}
 	}
 
