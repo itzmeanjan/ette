@@ -31,8 +31,16 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 
 	status := true
 	if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
-		status = db.StoreTransaction(_db, tx, receipt, sender) && status
-		status = db.StoreEvents(_db, receipt) && status
+
+		// Only if tx storing goes successful, we'll try to store
+		// event log, due to the fact events table has foreign key reference
+		// to tx table
+		if !db.StoreTransaction(_db, tx, receipt, sender) {
+			status = false
+		} else {
+			status = db.StoreEvents(_db, receipt)
+		}
+
 	}
 
 	// This is not a case when real time data is received, rather this is probably
