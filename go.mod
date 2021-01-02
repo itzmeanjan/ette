@@ -27,7 +27,7 @@ require (
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/google/uuid v1.1.2 // indirect
-	github.com/gookit/color v1.3.6 // indirect
+	github.com/gookit/color v1.3.6
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/gorilla/websocket v1.4.2
 	github.com/jackc/pgmock v0.0.0-20201204152224-4fe30f7445fd // indirect

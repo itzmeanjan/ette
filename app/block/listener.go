@@ -23,7 +23,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 	subs, err := connection.Websocket.SubscribeNewHead(context.Background(), headerChan)
 	if err != nil {
-		log.Fatalf(color.Red.Sprintf("[!] Failed to subscribe to block headers : %s\n", err.Error()))
+		log.Fatal(color.Red.Sprintf("[!] Failed to subscribe to block headers : %s", err.Error()))
 	}
 
 	// Scheduling unsubscribe, to be executed when end of this block is reached
@@ -51,7 +51,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	for {
 		select {
 		case err := <-subs.Err():
-			log.Fatalf(color.Red.Sprintf("[!] Listener stopped : %s\n", err.Error()))
+			log.Fatal(color.Red.Sprintf("[!] Listener stopped : %s", err.Error()))
 			break
 		case header := <-headerChan:
 			if first {

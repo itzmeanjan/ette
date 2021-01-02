@@ -22,7 +22,7 @@ import (
 // Waits for all of them to complete
 func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState, jd func(*workerpool.WorkerPool, *d.Job)) {
 	if !(fromBlock <= toBlock) {
-		log.Printf(color.Red.Sprintf("[!] Bad block range for syncer\n"))
+		log.Print(color.Red.Sprintf("[!] Bad block range for syncer"))
 		return
 	}
 
@@ -118,7 +118,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 		// If all blocks present in between 0 to latest block in network
 		// `ette` sleeps for 1 minute & again get to work
 		if currentBlockNumber+1 == blockCount {
-			log.Printf(color.Green.Sprintf("[+] No missing blocks found\n"))
+			log.Print(color.Green.Sprintf("[+] No missing blocks found"))
 			sleep()
 			continue
 		}

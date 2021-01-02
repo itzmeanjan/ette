@@ -39,7 +39,7 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 			continue
 		}
 
-		log.Printf(color.Cyan.Sprintf("[~] Retrying block : %d\n", parsedBlockNumber))
+		log.Print(color.Cyan.Sprintf("[~] Retrying block : %d", parsedBlockNumber))
 		go fetchBlockByNumber(client, parsedBlockNumber, _db, redisClient, redisKey, _lock, _synced)
 	}
 }
@@ -47,6 +47,6 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 // Pushes failed to fetch block hash at end of Redis queue
 func pushBlockHashIntoRedisQueue(redisClient *redis.Client, redisKey string, blockNumber string) {
 	if err := redisClient.RPush(context.Background(), redisKey, blockNumber).Err(); err != nil {
-		log.Printf(color.Red.Sprintf("[!] Failed to push block %s : %s\n", blockNumber, err.Error()))
+		log.Print(color.Red.Sprintf("[!] Failed to push block %s : %s", blockNumber, err.Error()))
 	}
 }
