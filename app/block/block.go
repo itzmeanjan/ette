@@ -52,12 +52,25 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 	// Controlling behaviour of ette depending upon value of `EtteMode`
 	switch cfg.Get("EtteMode") {
 	case "1":
-		db.StoreBlock(_db, block, _lock, _synced)
+		if !db.StoreBlock(_db, block, _lock, _synced) {
+			// Pushing block number into Redis queue for retrying later
+			// because it failed to store block in database
+			pushBlockHashIntoRedisQueue(redisClient, redisKey, number)
+			return
+		}
 	case "2":
 		publishBlock()
 	case "3":
-		db.StoreBlock(_db, block, _lock, _synced)
+		// Try completing task of publishing block data, first
+		// then we'll attempt to store it, is that fails, we'll push it to retry queue
 		publishBlock()
+
+		if !db.StoreBlock(_db, block, _lock, _synced) {
+			// Pushing block number into Redis queue for retrying later
+			// because it failed to store block in database
+			pushBlockHashIntoRedisQueue(redisClient, redisKey, number)
+			return
+		}
 	}
 
 	fetchBlockContent(client, block, _db, redisClient, redisKey, true, _lock, _synced)
