@@ -39,7 +39,12 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 			continue
 		}
 
-		log.Print(color.Cyan.Sprintf("[~] Retrying block : %d", parsedBlockNumber))
+		queuedBlocks, err := redisClient.LLen(context.Background(), redisKey).Result()
+		if err != nil {
+			log.Printf(color.Red.Sprintf("[!] Failed to determine Redis queue length : %s", err.Error()))
+		}
+
+		log.Print(color.Cyan.Sprintf("[~] Retrying block : %d [ In Queue : %d ]", parsedBlockNumber, queuedBlocks))
 		go fetchBlockByNumber(client, parsedBlockNumber, _db, redisClient, redisKey, _lock, _synced)
 	}
 }
