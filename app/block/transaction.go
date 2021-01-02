@@ -16,17 +16,23 @@ import (
 )
 
 // Fetching specific transaction related data & persisting in database
-func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) bool {
+func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState, returnValChan chan bool) {
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		log.Printf("[!] Failed to fetch tx receipt [ block : %d ] : %s\n", block.NumberU64(), err.Error())
-		return false
+
+		// Notifying listener go routine, about status of this executing thread
+		returnValChan <- false
+		return
 	}
 
 	sender, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
 	if err != nil {
 		log.Printf("[!] Failed to fetch tx sender [ block : %d ] : %s\n", block.NumberU64(), err.Error())
-		return false
+
+		// Notifying listener go routine, about status of this executing thread
+		returnValChan <- false
+		return
 	}
 
 	status := true
@@ -45,9 +51,12 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 
 	// This is not a case when real time data is received, rather this is probably
 	// a sync attempt to latest state of blockchain
-	// So, in this case, we don't need to publish any data on channel
+	//
+	// So, in this case, we don't need to publish any data on pubsub channel
 	if !publishable {
-		return status
+		// Notifying listener go routine, about status of this executing thread
+		returnValChan <- status
+		return
 	}
 
 	if cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3" {
@@ -110,5 +119,6 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 
 	}
 
-	return status
+	// Notifying listener go routine, about status of this executing thread
+	returnValChan <- status
 }

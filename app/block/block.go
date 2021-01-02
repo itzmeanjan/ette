@@ -108,13 +108,35 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 		return
 	}
 
-	count := 0
+	// Communication channel to be shared between multiple executing go routines
+	// which are trying to fetch all tx(s) present in block, concurrently
+	returnValChan := make(chan bool)
+
+	// Concurrently trying to process all tx(s) for this block, in hope of better performance
 	for _, v := range block.Transactions() {
-		if fetchTransactionByHash(client, block, v, _db, redisClient, redisKey, publishable, _lock, _synced) {
+
+		// Concurrently trying to fetch multiple tx(s) present in block
+		// and expecting their status result to be published on shared channel
+		//
+		// Which is being read 👇
+		go func(tx *types.Transaction) {
+			fetchTransactionByHash(client, block, tx, _db, redisClient, redisKey, publishable,
+				_lock, _synced, returnValChan)
+		}(v)
+
+	}
+
+	// Keeping track of how many of these tx fetchers where able to successfully complete
+	// job assigned to them
+	count := 0
+	for v := range returnValChan {
+		if v {
 			count++
 		}
 	}
 
+	// When all tx(s) are successfully processed ( as they have informed us over go channel ),
+	// we're happy to exit from this context
 	if count == len(block.Transactions()) {
 		log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
 		safeUpdationOfSyncState(_lock, _synced)
@@ -122,6 +144,7 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	}
 
 	// Pushing block number into Redis queue for retrying later
+	// because it failed to complete some of its jobs 👆
 	pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
 }
 
