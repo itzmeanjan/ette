@@ -48,10 +48,8 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 	// for resolving graphQL queries
 	graph.GetDatabaseConnection(_db)
 
-	_count := db.GetBlockCount(_db)
-
 	_lock := &sync.Mutex{}
-	_synced := &d.SyncState{Done: 0, BlockCountInDB: _count, BlockCountAtStartUp: _count, NewBlocksInserted: 0}
+	_synced := &d.SyncState{Done: 0, BlockCountAtStartUp: db.GetBlockCount(_db), NewBlocksInserted: 0}
 
 	return _connection, _redisClient, _db, _lock, _synced
 }
