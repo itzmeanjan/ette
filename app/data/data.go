@@ -39,9 +39,13 @@ type BlockChainNodeConnection struct {
 type SyncState struct {
 	Done                uint64
 	StartedAt           time.Time
-	BlockCountInDB      uint64
 	BlockCountAtStartUp uint64
 	NewBlocksInserted   uint64
+}
+
+// BlockCountInDB - Blocks currently present in database
+func (s *SyncState) BlockCountInDB() uint64 {
+	return s.BlockCountAtStartUp + s.NewBlocksInserted
 }
 
 // Block - Block related info to be delivered to client in this format
