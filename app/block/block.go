@@ -71,11 +71,11 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 	// Controlling behaviour of ette depending upon value of `EtteMode`
 	switch cfg.Get("EtteMode") {
 	case "1":
-		db.StoreBlock(_db, block)
+		db.StoreBlock(_db, block, _lock, _synced)
 	case "2":
 		publishBlock()
 	case "3":
-		db.StoreBlock(_db, block)
+		db.StoreBlock(_db, block, _lock, _synced)
 		publishBlock()
 	}
 
@@ -97,7 +97,7 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 	}
 
 	// Either creates new entry or updates existing one
-	if !db.StoreBlock(_db, block) {
+	if !db.StoreBlock(_db, block, _lock, _synced) {
 		// Pushing block number into Redis queue for retrying later
 		pushBlockHashIntoRedisQueue(redisClient, redisKey, fmt.Sprintf("%d", number))
 		return

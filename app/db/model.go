@@ -4,14 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"log"
-	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/lib/pq"
-	"gorm.io/gorm"
 )
 
 // Tabler - ...
@@ -40,56 +37,6 @@ type Blocks struct {
 // TableName - Overriding default table name
 func (Blocks) TableName() string {
 	return "blocks"
-}
-
-// BuildTransactionRootHash - Computing tx root hash from all tx(s) present in local storage of `ette`
-func (b *Blocks) BuildTransactionRootHash(_db *gorm.DB) common.Hash {
-
-	// Finding out all tx(s) mined in block ( by number )
-	tx := GetTransactionsByBlockNumber(_db, b.Number)
-	if tx == nil {
-		// If failed to find so, returning invalid tx root hash
-		return common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000")
-	}
-
-	var txList types.Transactions
-	txList = make([]*types.Transaction, len(tx.Transactions))
-
-	for k, v := range tx.Transactions {
-
-		// Convertint tx value to big number
-		amount := big.NewInt(0)
-		amount, ok := amount.SetString(v.Value, 10)
-		if !ok {
-			log.Printf("[!] Failed to convert tx value to big number\n")
-			break
-		}
-
-		// Converting tx gas price to big number
-		gasPrice := big.NewInt(0)
-		gasPrice, ok = gasPrice.SetString(v.GasPrice, 10)
-		if !ok {
-			log.Printf("[!] Failed to convert gas price to big number\n")
-			break
-		}
-
-		// Storing tx data in tx list, this tx type can be used
-		// for deriving tx root hash, which is to be used for checking whether
-		// local storage data is what is supposed to be or not
-		txList[k] = types.NewTransaction(
-			v.Nonce,
-			common.HexToAddress(v.To),
-			amount,
-			v.Gas,
-			gasPrice,
-			v.Data)
-
-	}
-
-	// Deriving tx root hash from tx list of given block i.e.
-	// which are stored in local storage
-	return types.DeriveSha(txList, trie.NewStackTrie(nil))
-
 }
 
 // SimilarTo - Checking whether two blocks are exactly similar or not

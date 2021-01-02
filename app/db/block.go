@@ -2,8 +2,10 @@ package db
 
 import (
 	"log"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/core/types"
+	d "github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
 )
 
@@ -12,11 +14,21 @@ import (
 //
 // Also checks equality with existing data, if mismatch found
 // updated with latest data
-func StoreBlock(_db *gorm.DB, _block *types.Block) bool {
+func StoreBlock(_db *gorm.DB, _block *types.Block, _lock *sync.Mutex, _synced *d.SyncState) bool {
 
 	persistedBlock := GetBlock(_db, _block.NumberU64())
 	if persistedBlock == nil {
-		return PutBlock(_db, _block)
+
+		status := PutBlock(_db, _block)
+		if status {
+			_lock.Lock()
+			defer _lock.Unlock()
+
+			_synced.NewBlocksInserted++
+		}
+
+		return status
+
 	}
 
 	if !persistedBlock.SimilarTo(_block) {
