@@ -126,18 +126,25 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 
 	}
 
-	// Keeping track of how many of these tx fetchers where able to successfully complete
-	// job assigned to them
-	count := 0
+	// Keeping track of how many of these tx fetchers succeded & how many of them failed
+	result := d.ResultStatus{}
+
 	for v := range returnValChan {
 		if v {
-			count++
+			result.Success++
+		} else {
+			result.Failure++
+		}
+
+		// All go routines have completed their job
+		if result.Total() == uint64(block.Transactions().Len()) {
+			break
 		}
 	}
 
 	// When all tx(s) are successfully processed ( as they have informed us over go channel ),
-	// we're happy to exit from this context
-	if count == len(block.Transactions()) {
+	// we're happy to exit from this context, given that none of them failed
+	if result.Failure == 0 {
 		log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
 		safeUpdationOfSyncState(_lock, _synced)
 		return
