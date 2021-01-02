@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/big"
 	"sync"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -17,24 +16,6 @@ import (
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
-
-// Running a different executor for keeping block count in memory, as fresh as we can keep
-func keepBlockCountInMemory(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState) {
-
-	for {
-		time.Sleep(time.Duration(100) * time.Millisecond)
-		count := db.GetBlockCount(_db)
-		if count == 0 {
-			continue
-		}
-
-		_lock.Lock()
-		_synced.BlockCountInDB = count
-		_lock.Unlock()
-		log.Printf("[+] Obtained fresh block count in DB")
-	}
-
-}
 
 // Fetching block content using blockHash
 func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
