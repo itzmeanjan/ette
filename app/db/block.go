@@ -19,12 +19,17 @@ func StoreBlock(_db *gorm.DB, _block *types.Block, _lock *sync.Mutex, _synced *d
 	persistedBlock := GetBlock(_db, _block.NumberU64())
 	if persistedBlock == nil {
 
+		// If we're able to successfully insert block data into table
+		// it's going to be considered, while calculating total block count in database
 		status := PutBlock(_db, _block)
 		if status {
+			// Trying to safely update inserted block count
+			// -- Critical section of code
 			_lock.Lock()
 			defer _lock.Unlock()
 
 			_synced.NewBlocksInserted++
+			// -- ends here
 		}
 
 		return status
