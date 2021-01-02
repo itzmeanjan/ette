@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
+	"github.com/gookit/color"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
@@ -24,7 +25,7 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 		// Pushing block number into Redis queue for retrying later
 		pushBlockHashIntoRedisQueue(redisClient, redisKey, number)
 
-		log.Printf("[!] Failed to fetch block by hash [ block : %s] : %s\n", number, err.Error())
+		log.Printf(color.Red.Sprintf("[!] Failed to fetch block by hash [ block : %s] : %s\n", number, err.Error()))
 		return
 	}
 
@@ -45,7 +46,7 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 			TransactionRootHash: block.TxHash().Hex(),
 			ReceiptRootHash:     block.ReceiptHash().Hex(),
 		}).Err(); err != nil {
-			log.Printf("[!] Failed to publish block %d in channel : %s\n", block.NumberU64(), err.Error())
+			log.Printf(color.Red.Sprintf("[!] Failed to publish block %d in channel : %s\n", block.NumberU64(), err.Error()))
 		}
 	}
 
@@ -86,7 +87,7 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 		// Pushing block number into Redis queue for retrying later
 		pushBlockHashIntoRedisQueue(redisClient, redisKey, fmt.Sprintf("%d", number))
 
-		log.Printf("[!] Failed to fetch block by number [ block : %d ] : %s\n", number, err)
+		log.Printf(color.Red.Sprintf("[!] Failed to fetch block by number [ block : %d ] : %s\n", number, err))
 		return
 	}
 
@@ -103,7 +104,8 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 // Fetching all transactions in this block, along with their receipt
 func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) {
 	if block.Transactions().Len() == 0 {
-		log.Printf("[!] Empty Block : %d\n", block.NumberU64())
+		log.Printf(color.Green.Sprintf("[+] Empty Block : %d\n", block.NumberU64()))
+
 		safeUpdationOfSyncState(_lock, _synced)
 		return
 	}
@@ -145,7 +147,8 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	// When all tx(s) are successfully processed ( as they have informed us over go channel ),
 	// we're happy to exit from this context, given that none of them failed
 	if result.Failure == 0 {
-		log.Printf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions()))
+		log.Printf(color.Green.Sprintf("[+] Block %d with %d tx(s)\n", block.NumberU64(), len(block.Transactions())))
+
 		safeUpdationOfSyncState(_lock, _synced)
 		return
 	}

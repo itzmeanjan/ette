@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/go-redis/redis/v8"
+	"github.com/gookit/color"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
@@ -22,7 +23,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 	subs, err := connection.Websocket.SubscribeNewHead(context.Background(), headerChan)
 	if err != nil {
-		log.Fatalf("[!] Failed to subscribe to block headers : %s\n", err.Error())
+		log.Fatalf(color.Red.Sprintf("[!] Failed to subscribe to block headers : %s\n", err.Error()))
 	}
 
 	// Scheduling unsubscribe, to be executed when end of this block is reached
@@ -50,7 +51,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	for {
 		select {
 		case err := <-subs.Err():
-			log.Fatalf("[!] Listener stopped : %s\n", err.Error())
+			log.Fatalf(color.Red.Sprintf("[!] Listener stopped : %s\n", err.Error()))
 			break
 		case header := <-headerChan:
 			if first {

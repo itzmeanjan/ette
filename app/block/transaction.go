@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
+	"github.com/gookit/color"
 	c "github.com/itzmeanjan/ette/app/common"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
@@ -19,7 +20,7 @@ import (
 func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState, returnValChan chan bool) {
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
-		log.Printf("[!] Failed to fetch tx receipt [ block : %d ] : %s\n", block.NumberU64(), err.Error())
+		log.Printf(color.Red.Sprintf("[!] Failed to fetch tx receipt [ block : %d ] : %s\n", block.NumberU64(), err.Error()))
 
 		// Notifying listener go routine, about status of this executing thread
 		returnValChan <- false
@@ -28,7 +29,7 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 
 	sender, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
 	if err != nil {
-		log.Printf("[!] Failed to fetch tx sender [ block : %d ] : %s\n", block.NumberU64(), err.Error())
+		log.Printf(color.Red.Sprintf("[!] Failed to fetch tx sender [ block : %d ] : %s\n", block.NumberU64(), err.Error()))
 
 		// Notifying listener go routine, about status of this executing thread
 		returnValChan <- false
@@ -96,7 +97,7 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 		}
 
 		if err := redisClient.Publish(context.Background(), "transaction", _publishTx).Err(); err != nil {
-			log.Printf("[!] Failed to publish transaction from block %d : %s\n", block.NumberU64(), err.Error())
+			log.Printf(color.Red.Sprintf("[!] Failed to publish transaction from block %d : %s\n", block.NumberU64(), err.Error()))
 		}
 
 		// Publishing event/ log entries to redis pub-sub topic, to be captured by subscribers
@@ -112,7 +113,7 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 				TransactionHash: v.TxHash.Hex(),
 				BlockHash:       v.BlockHash.Hex(),
 			}).Err(); err != nil {
-				log.Printf("[!] Failed to publish event from block %d : %s\n", block.NumberU64(), err.Error())
+				log.Printf(color.Red.Sprintf("[!] Failed to publish event from block %d : %s\n", block.NumberU64(), err.Error()))
 			}
 
 		}

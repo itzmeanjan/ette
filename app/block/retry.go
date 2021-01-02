@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
+	"github.com/gookit/color"
 	d "github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
 )
@@ -38,7 +39,7 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 			continue
 		}
 
-		log.Printf("[~] Retrying block : %d\n", parsedBlockNumber)
+		log.Printf(color.Cyan.Sprintf("[~] Retrying block : %d\n", parsedBlockNumber))
 		go fetchBlockByNumber(client, parsedBlockNumber, _db, redisClient, redisKey, _lock, _synced)
 	}
 }
@@ -46,6 +47,6 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 // Pushes failed to fetch block hash at end of Redis queue
 func pushBlockHashIntoRedisQueue(redisClient *redis.Client, redisKey string, blockNumber string) {
 	if err := redisClient.RPush(context.Background(), redisKey, blockNumber).Err(); err != nil {
-		log.Printf("[!] Failed to push block %s : %s\n", blockNumber, err.Error())
+		log.Printf(color.Red.Sprintf("[!] Failed to push block %s : %s\n", blockNumber, err.Error()))
 	}
 }
