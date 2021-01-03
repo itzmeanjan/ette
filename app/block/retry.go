@@ -14,14 +14,14 @@ import (
 	"gorm.io/gorm"
 )
 
-// Pop oldest block hash from Redis queue & try to fetch it in different go routine
+// Pop oldest block number from Redis queue & try to fetch it in different go routine
 //
-// Sleeps for 500 milliseconds
+// Sleeps for 1000 milliseconds
 //
 // Keeps repeating
 func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
 	sleep := func() {
-		time.Sleep(time.Duration(500) * time.Millisecond)
+		time.Sleep(time.Duration(1) * time.Second)
 	}
 
 	for {
@@ -49,9 +49,29 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 	}
 }
 
-// Pushes failed to fetch block hash at end of Redis queue
+// Pushes failed to fetch block number at end of Redis queue
+// given it has not already been added
 func pushBlockHashIntoRedisQueue(redisClient *redis.Client, redisKey string, blockNumber string) {
-	if err := redisClient.RPush(context.Background(), redisKey, blockNumber).Err(); err != nil {
-		log.Print(color.Red.Sprintf("[!] Failed to push block %s : %s", blockNumber, err.Error()))
+	// Checking presence first & then deciding whether to add it or not
+	if !checkExistenceOfBlockNumberInRedisQueue(redisClient, redisKey, blockNumber) {
+
+		if err := redisClient.RPush(context.Background(), redisKey, blockNumber).Err(); err != nil {
+			log.Print(color.Red.Sprintf("[!] Failed to push block %s : %s", blockNumber, err.Error()))
+		}
+
 	}
+}
+
+// Checks whether block number is already added in Redis backed retry queue or not
+//
+// If yes, it'll not be added again
+//
+// Note: this feature of checking index of value in redis queue,
+// was added in Redis v6.0.6 : https://redis.io/commands/lpos
+func checkExistenceOfBlockNumberInRedisQueue(redisClient *redis.Client, redisKey string, blockNumber string) bool {
+	if _, err := redisClient.LPos(context.Background(), redisKey, blockNumber, redis.LPosArgs{}).Result(); err != nil {
+		return false
+	}
+
+	return true
 }
