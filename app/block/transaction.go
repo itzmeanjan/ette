@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
+	"github.com/gookit/color"
 	c "github.com/itzmeanjan/ette/app/common"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
@@ -16,30 +17,47 @@ import (
 )
 
 // Fetching specific transaction related data & persisting in database
-func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) bool {
+func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState, returnValChan chan bool) {
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
-		log.Printf("[!] Failed to fetch tx receipt [ block : %d ] : %s\n", block.NumberU64(), err.Error())
-		return false
+		log.Print(color.Red.Sprintf("[!] Failed to fetch tx receipt [ block : %d ] : %s", block.NumberU64(), err.Error()))
+
+		// Notifying listener go routine, about status of this executing thread
+		returnValChan <- false
+		return
 	}
 
 	sender, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
 	if err != nil {
-		log.Printf("[!] Failed to fetch tx sender [ block : %d ] : %s\n", block.NumberU64(), err.Error())
-		return false
+		log.Print(color.Red.Sprintf("[!] Failed to fetch tx sender [ block : %d ] : %s", block.NumberU64(), err.Error()))
+
+		// Notifying listener go routine, about status of this executing thread
+		returnValChan <- false
+		return
 	}
 
 	status := true
 	if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
-		status = db.StoreTransaction(_db, tx, receipt, sender) && status
-		status = db.StoreEvents(_db, receipt) && status
+
+		// Only if tx storing goes successful, we'll try to store
+		// event log, due to the fact events table has foreign key reference
+		// to tx table
+		if !db.StoreTransaction(_db, tx, receipt, sender) {
+			status = false
+		} else {
+			status = db.StoreEvents(_db, receipt)
+		}
+
 	}
 
 	// This is not a case when real time data is received, rather this is probably
 	// a sync attempt to latest state of blockchain
-	// So, in this case, we don't need to publish any data on channel
+	//
+	// So, in this case, we don't need to publish any data on pubsub channel
 	if !publishable {
-		return status
+		// Notifying listener go routine, about status of this executing thread
+		returnValChan <- status
+		return
 	}
 
 	if cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3" {
@@ -79,7 +97,7 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 		}
 
 		if err := redisClient.Publish(context.Background(), "transaction", _publishTx).Err(); err != nil {
-			log.Printf("[!] Failed to publish transaction from block %d : %s\n", block.NumberU64(), err.Error())
+			log.Print(color.Red.Sprintf("[!] Failed to publish transaction from block %d : %s", block.NumberU64(), err.Error()))
 		}
 
 		// Publishing event/ log entries to redis pub-sub topic, to be captured by subscribers
@@ -95,12 +113,13 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 				TransactionHash: v.TxHash.Hex(),
 				BlockHash:       v.BlockHash.Hex(),
 			}).Err(); err != nil {
-				log.Printf("[!] Failed to publish event from block %d : %s\n", block.NumberU64(), err.Error())
+				log.Print(color.Red.Sprintf("[!] Failed to publish event from block %d : %s", block.NumberU64(), err.Error()))
 			}
 
 		}
 
 	}
 
-	return status
+	// Notifying listener go routine, about status of this executing thread
+	returnValChan <- status
 }

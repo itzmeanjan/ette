@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/go-redis/redis/v8"
+	"github.com/gookit/color"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
@@ -22,11 +23,24 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 	subs, err := connection.Websocket.SubscribeNewHead(context.Background(), headerChan)
 	if err != nil {
-		log.Fatalf("[!] Failed to subscribe to block headers : %s\n", err.Error())
+		log.Fatal(color.Red.Sprintf("[!] Failed to subscribe to block headers : %s", err.Error()))
 	}
 
 	// Scheduling unsubscribe, to be executed when end of this block is reached
 	defer subs.Unsubscribe()
+
+	// Starting go routine for fetching blocks `ette` failed to process in previous attempt
+	//
+	// Uses Redis backed queue for fetching pending block hash & retries
+	go retryBlockFetching(connection.RPC, _db, redisClient, redisKey, _lock, _synced)
+
+	// Last time `ette` stopped syncing here
+	currentHighestBlockNumber := db.GetCurrentBlockNumber(_db)
+
+	// Starting now, to be used for calculating system performance, uptime etc.
+	_lock.Lock()
+	_synced.StartedAt = time.Now().UTC()
+	_lock.Unlock()
 
 	// Flag to check for whether this is first time block header being received
 	// or not
@@ -34,24 +48,10 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	// If yes, we'll start syncer to fetch all block starting from 0 to this block
 	first := true
 
-	_lock.Lock()
-	_synced.StartedAt = time.Now().UTC()
-	_lock.Unlock()
-
-	// Starting go routine for fetching blocks `ette` failed to process in previous attempt
-	//
-	// Uses Redis backed queue for fetching pending block hash & retries
-	go retryBlockFetching(connection.RPC, _db, redisClient, redisKey, _lock, _synced)
-	// Keeping, as fresh as possible, block count in memory, which will be helpful
-	// in answersing queries faster
-	go keepBlockCountInMemory(_db, _lock, _synced)
-	// Last time `ette` stopped syncing here
-	currentHighestBlockNumber := db.GetCurrentBlockNumber(_db)
-
 	for {
 		select {
 		case err := <-subs.Err():
-			log.Fatalf("[!] Listener stopped : %s\n", err.Error())
+			log.Fatal(color.Red.Sprintf("[!] Listener stopped : %s", err.Error()))
 			break
 		case header := <-headerChan:
 			if first {

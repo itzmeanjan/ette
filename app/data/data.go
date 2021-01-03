@@ -15,6 +15,22 @@ import (
 	"gorm.io/gorm"
 )
 
+// ResultStatus - Keeps track of how many operations went successful
+// and how many of them failed
+type ResultStatus struct {
+	Success uint64
+	Failure uint64
+}
+
+// Total - Returns total count of operations which were supposed to be
+// performed
+//
+// To be useful when deciding whether all go routines have sent their status i.e. completed
+// their task or not
+func (r ResultStatus) Total() uint64 {
+	return r.Success + r.Failure
+}
+
 // Job - For running a block fetching job, these are all the information which are required
 type Job struct {
 	Client      *ethclient.Client
@@ -37,9 +53,15 @@ type BlockChainNodeConnection struct {
 
 // SyncState - Whether `ette` is synced with blockchain or not
 type SyncState struct {
-	Done           uint64
-	StartedAt      time.Time
-	BlockCountInDB uint64
+	Done                uint64
+	StartedAt           time.Time
+	BlockCountAtStartUp uint64
+	NewBlocksInserted   uint64
+}
+
+// BlockCountInDB - Blocks currently present in database
+func (s *SyncState) BlockCountInDB() uint64 {
+	return s.BlockCountAtStartUp + s.NewBlocksInserted
 }
 
 // Block - Block related info to be delivered to client in this format
