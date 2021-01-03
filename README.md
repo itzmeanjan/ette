@@ -58,7 +58,10 @@ And that's `ette`
 - Make sure you've Go _( >= 1.15 )_ installed
 - You need to also install & set up PostgreSQL. I found [this](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-20-04) guide helpful.
 - Redis needs to be installed too. Consider following [this](https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-redis-on-ubuntu-20-04) guide.
-- Blockchain Node's websocket connection URL, required because we'll be listening for events in real time.
+
+> Note : Redis **v6.0.6** is required
+
+- Blockchain Node's both **HTTP & Websocket** connection URL required, because we'll be querying block, transaction, event log related data using HTTP interface & listening for block mining events in real time over Websocket.
 
 ## Installation 🛠
 
