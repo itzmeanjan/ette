@@ -104,7 +104,7 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 // Fetching all transactions in this block, along with their receipt
 func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) {
 	if block.Transactions().Len() == 0 {
-		log.Print(color.Green.Sprintf("[+] Empty Block : %d", block.NumberU64()))
+		log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s)", block.NumberU64()))
 
 		safeUpdationOfSyncState(_lock, _synced)
 		return
