@@ -9,6 +9,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// DoesSubscriptionPlanTableExist - Checks whether this table is already migrated or not, if yes,
+// no need to do it again
+func DoesSubscriptionPlanTableExist(_db *gorm.DB) bool {
+	return _db.Migrator().HasTable(&SubscriptionPlans{})
+}
+
 // AddNewSubscriptionPlan - Adding new subcription plan to database
 // after those being read from .plans.json
 func AddNewSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
