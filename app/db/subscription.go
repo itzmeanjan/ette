@@ -9,33 +9,58 @@ import (
 	"gorm.io/gorm"
 )
 
-// DoesSubscriptionPlanTableExist - Checks whether this table is already migrated or not, if yes,
-// no need to do it again
-func DoesSubscriptionPlanTableExist(_db *gorm.DB) bool {
-	return _db.Migrator().HasTable(&SubscriptionPlans{})
-}
-
-// DoesSubscriptionPlanExist - Given subscription plan name, checks whether it exists or not
-func DoesSubscriptionPlanExist(_db *gorm.DB, planName string) bool {
+// DeliveryCountByPlanName - Given subscription plan name, returns subscription plan's delivery count
+func DeliveryCountByPlanName(_db *gorm.DB, planName string) (uint64, error) {
 	var subscriptionPlan SubscriptionPlans
 
 	if err := _db.Where("name = ?", planName).Find(&subscriptionPlan).Error; err != nil {
-		return false
+		return 0, err
 	}
 
-	return true
+	return subscriptionPlan.DeliveryCount, nil
+}
+
+// UpdateSubscriptionPlan - Tries to update existing subscription plan, where
+// it's assumed plan name is unchanged & allowed delivery count in 24 hours
+// has got updated
+func UpdateSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
+
+	if err := _db.Where("name = ?", name).Update("deliverycount", deliveryCount).Error; err != nil {
+		log.Printf("[!] Failed to update subscription plan : %s\n", err.Error())
+	}
+
 }
 
 // AddNewSubscriptionPlan - Adding new subcription plan to database
 // after those being read from .plans.json
+//
+// Taking into consideration the factor, whether it has
+// been already persisted or not, or any changes made to `.plans.json` file
 func AddNewSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
 
-	if err := _db.Create(&SubscriptionPlans{
-		Name:          name,
-		DeliveryCount: deliveryCount,
-	}).Error; err != nil {
-		log.Printf("[!] Failed to add subscription plan : %s\n", err.Error())
+	count, err := DeliveryCountByPlanName(_db, name)
+	// Plans not yet persisted in table, attempting to persist them 👇
+	if err != nil {
+
+		if err := _db.Create(&SubscriptionPlans{
+			Name:          name,
+			DeliveryCount: deliveryCount,
+		}).Error; err != nil {
+			log.Printf("[!] Failed to persist subscription plan : %s\n", err.Error())
+		}
+		return
+
 	}
+
+	// No change made in `.plans.json` file
+	// i.e. subscription plan is already persisted
+	if count == deliveryCount {
+		return
+	}
+
+	// Plan with same name already persisted in table
+	// trying to update it
+	UpdateSubscriptionPlan(_db, name, deliveryCount)
 
 }
 
@@ -43,11 +68,6 @@ func AddNewSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
 // holder ``.plans.json` file, it'll read that content into memory & then parse JSON
 // content of its, which will be persisted into database, into `subscription_plans` table
 func PersistAllSubscriptionPlans(_db *gorm.DB, file string) {
-
-	if DoesSubscriptionPlanTableExist(_db) {
-		log.Printf("[+] Subscription plans already persisted, not touching\n")
-		return
-	}
 
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
