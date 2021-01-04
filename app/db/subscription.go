@@ -9,15 +9,66 @@ import (
 	"gorm.io/gorm"
 )
 
-// AddNewSubscriptionPlan - Adding new subcription plan to database
-// after those being read from .plans.json
-func AddNewSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
+// DeliveryCountByPlanName - Given subscription plan name, returns subscription plan's delivery count
+func DeliveryCountByPlanName(_db *gorm.DB, planName string) (uint64, error) {
+	var subscriptionPlan SubscriptionPlans
+
+	if err := _db.Where("name = ?", planName).Find(&subscriptionPlan).Error; err != nil {
+		return 0, err
+	}
+
+	return subscriptionPlan.DeliveryCount, nil
+}
+
+// UpdateSubscriptionPlan - Tries to update existing subscription plan, where
+// it's assumed plan name is unchanged & allowed delivery count in 24 hours
+// has got updated
+func UpdateSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
+
+	if err := _db.Model(&SubscriptionPlans{}).Where("name = ?", name).Update("deliverycount", deliveryCount).Error; err != nil {
+		log.Printf("[!] Failed to update subscription plan : %s\n", err.Error())
+	}
+
+}
+
+// CreateSubscriptionPlan - Creates new entry for subscription plan
+func CreateSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
 
 	if err := _db.Create(&SubscriptionPlans{
 		Name:          name,
 		DeliveryCount: deliveryCount,
 	}).Error; err != nil {
-		log.Printf("[!] Failed to add subscription plan : %s\n", err.Error())
+		log.Printf("[!] Failed to persist subscription plan : %s\n", err.Error())
+	}
+
+}
+
+// AddNewSubscriptionPlan - Adding new subcription plan to database
+// after those being read from .plans.json
+//
+// Taking into consideration the factor, whether it has
+// been already persisted or not, or any changes made to `.plans.json` file
+func AddNewSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
+
+	count, err := DeliveryCountByPlanName(_db, name)
+	// Plans not yet persisted in table, attempting to persist them 👇
+	if err != nil {
+		CreateSubscriptionPlan(_db, name, deliveryCount)
+		return
+	}
+
+	switch count {
+	case 0:
+		// Entry doesn't yet exist, attempting to create it
+		CreateSubscriptionPlan(_db, name, deliveryCount)
+	case deliveryCount:
+		// No change made in `.plans.json` file
+		// i.e. subscription plan is already persisted
+		return
+	default:
+		// Plan with same name already persisted in table
+		// trying to update it
+		UpdateSubscriptionPlan(_db, name, deliveryCount)
 	}
 
 }
