@@ -33,6 +33,11 @@ func AddNewSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
 // content of its, which will be persisted into database, into `subscription_plans` table
 func PersistAllSubscriptionPlans(_db *gorm.DB, file string) {
 
+	if DoesSubscriptionPlanTableExist(_db) {
+		log.Printf("[+] Subscription plans already persisted, not touching\n")
+		return
+	}
+
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Fatalf("[!] Failed to read content from subscription plan file : %s\n", err.Error())
