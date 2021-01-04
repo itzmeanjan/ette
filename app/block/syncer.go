@@ -1,6 +1,7 @@
 package block
 
 import (
+	"fmt"
 	"log"
 	"runtime"
 	"sync"
@@ -131,7 +132,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 
 				// Worker fetches block by number from local storage
 				block := db.GetBlock(j.DB, j.Block)
-				if block == nil {
+				if block == nil && !checkExistenceOfBlockNumberInRedisQueue(redisClient, redisKey, fmt.Sprintf("%d", j.Block)) {
 					// If not found, block fetching cycle is run, for this block
 					fetchBlockByNumber(j.Client, j.Block, j.DB, j.RedisClient, j.RedisKey, j.Lock, j.Synced)
 				}
