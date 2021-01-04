@@ -75,5 +75,6 @@ create table subscription_plans (
 
 create table subscription_details (
     address char(42) primary key,
-    subscriptionplan int not null
+    subscriptionplan int not null,
+    foreign key (subscriptionplan) references subscription_plans(id)
 );
