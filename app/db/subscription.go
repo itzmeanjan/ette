@@ -57,21 +57,19 @@ func AddNewSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
 		return
 	}
 
-	// No change made in `.plans.json` file
-	// i.e. subscription plan is already persisted
-	if count == deliveryCount {
-		return
-	}
-
-	// Entry doesn't yet exist, attempting to create it
-	if count == 0 {
+	switch count {
+	case 0:
+		// Entry doesn't yet exist, attempting to create it
 		CreateSubscriptionPlan(_db, name, deliveryCount)
+	case deliveryCount:
+		// No change made in `.plans.json` file
+		// i.e. subscription plan is already persisted
 		return
+	default:
+		// Plan with same name already persisted in table
+		// trying to update it
+		UpdateSubscriptionPlan(_db, name, deliveryCount)
 	}
-
-	// Plan with same name already persisted in table
-	// trying to update it
-	UpdateSubscriptionPlan(_db, name, deliveryCount)
 
 }
 
