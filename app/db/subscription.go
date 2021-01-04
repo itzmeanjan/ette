@@ -25,8 +25,20 @@ func DeliveryCountByPlanName(_db *gorm.DB, planName string) (uint64, error) {
 // has got updated
 func UpdateSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
 
-	if err := _db.Where("name = ?", name).Update("deliverycount", deliveryCount).Error; err != nil {
+	if err := _db.Model(&SubscriptionPlans{}).Where("name = ?", name).Update("deliverycount", deliveryCount).Error; err != nil {
 		log.Printf("[!] Failed to update subscription plan : %s\n", err.Error())
+	}
+
+}
+
+// CreateSubscriptionPlan - Creates new entry for subscription plan
+func CreateSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
+
+	if err := _db.Create(&SubscriptionPlans{
+		Name:          name,
+		DeliveryCount: deliveryCount,
+	}).Error; err != nil {
+		log.Printf("[!] Failed to persist subscription plan : %s\n", err.Error())
 	}
 
 }
@@ -41,20 +53,19 @@ func AddNewSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
 	count, err := DeliveryCountByPlanName(_db, name)
 	// Plans not yet persisted in table, attempting to persist them 👇
 	if err != nil {
-
-		if err := _db.Create(&SubscriptionPlans{
-			Name:          name,
-			DeliveryCount: deliveryCount,
-		}).Error; err != nil {
-			log.Printf("[!] Failed to persist subscription plan : %s\n", err.Error())
-		}
+		CreateSubscriptionPlan(_db, name, deliveryCount)
 		return
-
 	}
 
 	// No change made in `.plans.json` file
 	// i.e. subscription plan is already persisted
 	if count == deliveryCount {
+		return
+	}
+
+	// Entry doesn't yet exist, attempting to create it
+	if count == 0 {
+		CreateSubscriptionPlan(_db, name, deliveryCount)
 		return
 	}
 
