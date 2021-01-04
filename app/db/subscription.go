@@ -15,6 +15,17 @@ func DoesSubscriptionPlanTableExist(_db *gorm.DB) bool {
 	return _db.Migrator().HasTable(&SubscriptionPlans{})
 }
 
+// DoesSubscriptionPlanExist - Given subscription plan name, checks whether it exists or not
+func DoesSubscriptionPlanExist(_db *gorm.DB, planName string) bool {
+	var subscriptionPlan SubscriptionPlans
+
+	if err := _db.Where("name = ?", planName).Find(&subscriptionPlan).Error; err != nil {
+		return false
+	}
+
+	return true
+}
+
 // AddNewSubscriptionPlan - Adding new subcription plan to database
 // after those being read from .plans.json
 func AddNewSubscriptionPlan(_db *gorm.DB, name string, deliveryCount uint64) {
