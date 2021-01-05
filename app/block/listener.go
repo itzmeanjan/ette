@@ -3,10 +3,13 @@ package block
 import (
 	"context"
 	"log"
+	"runtime"
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/gammazero/workerpool"
 	"github.com/go-redis/redis/v8"
 	"github.com/gookit/color"
 	cfg "github.com/itzmeanjan/ette/app/config"
@@ -25,28 +28,22 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	if err != nil {
 		log.Fatal(color.Red.Sprintf("[!] Failed to subscribe to block headers : %s", err.Error()))
 	}
-
-	// Scheduling unsubscribe, to be executed when end of this block is reached
+	// Scheduling unsubscribe, to be executed when end of this execution scope is reached
 	defer subs.Unsubscribe()
-
-	// Starting go routine for fetching blocks `ette` failed to process in previous attempt
-	//
-	// Uses Redis backed queue for fetching pending block hash & retries
-	go retryBlockFetching(connection.RPC, _db, redisClient, redisKey, _lock, _synced)
 
 	// Last time `ette` stopped syncing here
 	currentHighestBlockNumber := db.GetCurrentBlockNumber(_db)
 
-	// Starting now, to be used for calculating system performance, uptime etc.
-	_lock.Lock()
-	_synced.StartedAt = time.Now().UTC()
-	_lock.Unlock()
-
-	// Flag to check for whether this is first time block header being received
-	// or not
+	// Flag to check for whether this is first time block header being received or not
 	//
-	// If yes, we'll start syncer to fetch all block starting from 0 to this block
+	// If yes, we'll start syncer to fetch all block in range (last block processed, latest block)
 	first := true
+	// Creating a job queue of size `#-of CPUs present in machine`
+	// where block fetching requests to be submitted
+	wp := workerpool.New(runtime.NumCPU())
+	// Scheduling worker pool closing, to be called,
+	// when returning from this execution scope i.e. function
+	defer wp.Stop()
 
 	for {
 		select {
@@ -55,6 +52,11 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			break
 		case header := <-headerChan:
 			if first {
+
+				// Starting now, to be used for calculating system performance, uptime etc.
+				_lock.Lock()
+				_synced.StartedAt = time.Now().UTC()
+				_lock.Unlock()
 
 				// If historical data query features are enabled
 				// only then we need to sync to latest state of block chain
@@ -71,6 +73,12 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 					//
 					// This backward traversal mechanism gives us more recent blockchain happenings to cover
 					go SyncBlocksByRange(connection.RPC, _db, redisClient, redisKey, header.Number.Uint64()-1, currentHighestBlockNumber, _lock, _synced)
+
+					// Starting go routine for fetching blocks `ette` failed to process in previous attempt
+					//
+					// Uses Redis backed queue for fetching pending block hash & retries
+					go retryBlockFetching(connection.RPC, _db, redisClient, redisKey, _lock, _synced)
+
 					// Making sure on when next latest block header is received, it'll not
 					// start another syncer
 					first = false
@@ -78,7 +86,33 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 			}
 
-			go fetchBlockByHash(connection.RPC, header.Hash(), header.Number.String(), _db, redisClient, redisKey, _lock, _synced)
+			// As soon as new block is mined, `ette` will try to fetch it
+			// and that job will be submitted in job queue
+			//
+			// Putting it in a different function scope for safety purpose
+			// so that job submitter gets its own copy of block number & block hash,
+			// otherwise it might get wrong info, if new block gets mined very soon &
+			// this job is not yet submitted
+			//
+			// Though it'll be picked up sometime in future ( by missing block finder ), but it can be safely handled now
+			// so that it gets processed immediately
+			func(blockHash common.Hash, blockNumber string) {
+
+				wp.Submit(func() {
+
+					fetchBlockByHash(connection.RPC,
+						blockHash,
+						blockNumber,
+						_db,
+						redisClient,
+						redisKey,
+						_lock,
+						_synced)
+
+				})
+
+			}(header.Hash(), header.Number.String())
+
 		}
 	}
 }
