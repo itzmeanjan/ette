@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"runtime"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/gammazero/workerpool"
 	"github.com/go-redis/redis/v8"
 	"github.com/gookit/color"
 	cfg "github.com/itzmeanjan/ette/app/config"
@@ -114,6 +116,10 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	// which are trying to fetch all tx(s) present in block, concurrently
 	returnValChan := make(chan bool)
 
+	// Creating job processor queue
+	// which will process all tx(s), concurrently
+	wp := workerpool.New(runtime.NumCPU())
+
 	// Concurrently trying to process all tx(s) for this block, in hope of better performance
 	for _, v := range block.Transactions() {
 
@@ -121,9 +127,16 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 		// and expecting their status result to be published on shared channel
 		//
 		// Which is being read 👇
-		go func(tx *types.Transaction) {
-			fetchTransactionByHash(client, block, tx, _db, redisClient, redisKey, publishable,
-				_lock, _synced, returnValChan)
+		func(tx *types.Transaction) {
+
+			wp.Submit(func() {
+
+				fetchTransactionByHash(client, block, tx, _db,
+					redisClient, redisKey, publishable,
+					_lock, _synced, returnValChan)
+
+			})
+
 		}(v)
 
 	}
@@ -143,6 +156,13 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 			break
 		}
 	}
+
+	// Stopping job processor forcefully
+	// because by this time all jobs has been completed
+	//
+	// Otherwise control flow will not be able to come here
+	// it'll keep looping in 👆 loop, reading from channel
+	wp.Stop()
 
 	// When all tx(s) are successfully processed ( as they have informed us over go channel ),
 	// we're happy to exit from this context, given that none of them failed
