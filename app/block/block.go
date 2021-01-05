@@ -116,6 +116,7 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	// which are trying to fetch all tx(s) present in block, concurrently
 	returnValChan := make(chan bool)
 
+	// -- Tx processing starting
 	// Creating job processor queue
 	// which will process all tx(s), concurrently
 	wp := workerpool.New(runtime.NumCPU())
@@ -163,6 +164,7 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	// Otherwise control flow will not be able to come here
 	// it'll keep looping in 👆 loop, reading from channel
 	wp.Stop()
+	// -- Tx processing ending
 
 	// When all tx(s) are successfully processed ( as they have informed us over go channel ),
 	// we're happy to exit from this context, given that none of them failed
