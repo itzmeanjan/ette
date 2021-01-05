@@ -119,7 +119,7 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	// -- Tx processing starting
 	// Creating job processor queue
 	// which will process all tx(s), concurrently
-	wp := workerpool.New(runtime.NumCPU())
+	wp := workerpool.New(runtime.NumCPU() * int(cfg.GetConcurrencyFactor()))
 
 	// Concurrently trying to process all tx(s) for this block, in hope of better performance
 	for _, v := range block.Transactions() {

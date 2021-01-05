@@ -11,6 +11,7 @@ import (
 	"github.com/gammazero/workerpool"
 	"github.com/go-redis/redis/v8"
 	"github.com/gookit/color"
+	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
@@ -27,7 +28,7 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, r
 		return
 	}
 
-	wp := workerpool.New(runtime.NumCPU())
+	wp := workerpool.New(runtime.NumCPU() * int(cfg.GetConcurrencyFactor()))
 	i := fromBlock
 	j := toBlock
 

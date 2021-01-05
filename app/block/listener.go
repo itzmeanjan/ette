@@ -40,7 +40,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	first := true
 	// Creating a job queue of size `#-of CPUs present in machine`
 	// where block fetching requests to be submitted
-	wp := workerpool.New(runtime.NumCPU())
+	wp := workerpool.New(runtime.NumCPU() * int(cfg.GetConcurrencyFactor()))
 	// Scheduling worker pool closing, to be called,
 	// when returning from this execution scope i.e. function
 	defer wp.Stop()

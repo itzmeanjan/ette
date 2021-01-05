@@ -34,5 +34,9 @@ func GetConcurrencyFactor() uint64 {
 		return 1
 	}
 
+	if !(parsedFactor > 0) {
+		return 1
+	}
+
 	return parsedFactor
 }

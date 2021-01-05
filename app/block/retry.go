@@ -12,6 +12,7 @@ import (
 	"github.com/gammazero/workerpool"
 	"github.com/go-redis/redis/v8"
 	"github.com/gookit/color"
+	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
 )
@@ -28,7 +29,7 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 
 	// Creating worker pool and submitting jobs as soon as it's determined
 	// there's `to be processed` blocks in retry queue
-	wp := workerpool.New(runtime.NumCPU())
+	wp := workerpool.New(runtime.NumCPU() * int(cfg.GetConcurrencyFactor()))
 	defer wp.Stop()
 
 	for {
