@@ -3,11 +3,13 @@ package block
 import (
 	"context"
 	"log"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/gammazero/workerpool"
 	"github.com/go-redis/redis/v8"
 	"github.com/gookit/color"
 	d "github.com/itzmeanjan/ette/app/data"
@@ -23,6 +25,11 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 	sleep := func() {
 		time.Sleep(time.Duration(1) * time.Second)
 	}
+
+	// Creating worker pool and submitting jobs as soon as it's determined
+	// there's `to be processed` blocks in retry queue
+	wp := workerpool.New(runtime.NumCPU())
+	defer wp.Stop()
 
 	for {
 		sleep()
@@ -45,7 +52,24 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redisClient *red
 		}
 
 		log.Print(color.Cyan.Sprintf("[~] Retrying block : %d [ In Queue : %d ]", parsedBlockNumber, queuedBlocks))
-		go fetchBlockByNumber(client, parsedBlockNumber, _db, redisClient, redisKey, _lock, _synced)
+
+		// Submitting block processor job into pool
+		// which will be picked up & processed
+		//
+		// This will stop us from blindly creating too many go routines
+		func(blockNumber uint64) {
+			wp.Submit(func() {
+
+				fetchBlockByNumber(client,
+					parsedBlockNumber,
+					_db,
+					redisClient,
+					redisKey,
+					_lock,
+					_synced)
+
+			})
+		}(parsedBlockNumber)
 	}
 }
 

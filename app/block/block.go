@@ -129,7 +129,6 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 		//
 		// Which is being read 👇
 		func(tx *types.Transaction) {
-
 			wp.Submit(func() {
 
 				fetchTransactionByHash(client, block, tx, _db,
@@ -137,7 +136,6 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 					_lock, _synced, returnValChan)
 
 			})
-
 		}(v)
 
 	}
