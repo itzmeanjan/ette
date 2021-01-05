@@ -481,6 +481,14 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			remaining := (currentBlockNumber + 1) - blockCountInDB
 			elapsed := time.Now().UTC().Sub(_synced.StartedAt)
 
+			if cfg.Get("EtteMode") == "2" {
+				c.JSON(http.StatusOK, gin.H{
+					"processed": _synced.Done,
+					"elapsed":   elapsed.String(),
+				})
+				return
+			}
+
 			status := fmt.Sprintf("%.2f %%", (float64(blockCountInDB)/float64(currentBlockNumber+1))*100)
 			eta := "0s"
 			if remaining > 0 {

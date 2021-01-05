@@ -81,8 +81,8 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 					// Making sure on when next latest block header is received, it'll not
 					// start another syncer
-					first = false
 				}
+				first = false
 
 			}
 
