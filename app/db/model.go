@@ -157,7 +157,7 @@ func (e *Events) SimilarTo(event *Events) bool {
 // PackedTransaction - All data that is stored in a tx, to be passed from
 // tx data fetcher to whole block data persist handler function
 type PackedTransaction struct {
-	Tx     Transactions
+	Tx     *Transactions
 	Events []*Events
 }
 
@@ -171,7 +171,7 @@ type PackedTransactions struct {
 // database transaction to ensure data consistency, if something
 // goes wrong in mid, whole persisting operation will get reverted
 type PackedBlock struct {
-	Block Blocks
+	Block *Blocks
 	Txs   *PackedTransactions
 }
 
