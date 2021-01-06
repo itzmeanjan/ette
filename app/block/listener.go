@@ -4,8 +4,6 @@ import (
 	"context"
 	"log"
 	"runtime"
-	"sync"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -20,7 +18,7 @@ import (
 // SubscribeToNewBlocks - Listen for event when new block header is
 // available, then fetch block content ( including all transactions )
 // in different worker
-func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, redis *d.RedisInfo) {
+func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, status *d.StatusHolder, redis *d.RedisInfo) {
 	headerChan := make(chan *types.Header)
 
 	subs, err := connection.Websocket.SubscribeNewHead(context.Background(), headerChan)
@@ -53,9 +51,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			if first {
 
 				// Starting now, to be used for calculating system performance, uptime etc.
-				_lock.Lock()
-				_synced.StartedAt = time.Now().UTC()
-				_lock.Unlock()
+				status.SetStartedAt()
 
 				// If historical data query features are enabled
 				// only then we need to sync to latest state of block chain
@@ -71,12 +67,12 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 					// So, it'll check & decide whether persisting again is required or not
 					//
 					// This backward traversal mechanism gives us more recent blockchain happenings to cover
-					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, currentHighestBlockNumber, _lock, _synced)
+					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, currentHighestBlockNumber, status)
 
 					// Starting go routine for fetching blocks `ette` failed to process in previous attempt
 					//
 					// Uses Redis backed queue for fetching pending block hash & retries
-					go retryBlockFetching(connection.RPC, _db, redis, _lock, _synced)
+					go retryBlockFetching(connection.RPC, _db, redis, status)
 
 					// Making sure on when next latest block header is received, it'll not
 					// start another syncer
@@ -104,8 +100,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 						blockNumber,
 						_db,
 						redis,
-						_lock,
-						_synced)
+						status)
 
 				})
 

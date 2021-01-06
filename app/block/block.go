@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/big"
 	"runtime"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -20,7 +19,7 @@ import (
 )
 
 // Fetching block content using blockHash
-func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redis *d.RedisInfo, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redis *d.RedisInfo, _status *d.StatusHolder) {
 	block, err := client.BlockByHash(context.Background(), hash)
 	if err != nil {
 		// Pushing block number into Redis queue for retrying later
@@ -54,7 +53,7 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 	// Controlling behaviour of ette depending upon value of `EtteMode`
 	switch cfg.Get("EtteMode") {
 	case "1":
-		if !db.StoreBlock(_db, block, _lock, _synced) {
+		if !db.StoreBlock(_db, block, _status) {
 			// Pushing block number into Redis queue for retrying later
 			// because it failed to store block in database
 			pushBlockHashIntoRedisQueue(redis, number)
@@ -67,7 +66,7 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 		// then we'll attempt to store it, is that fails, we'll push it to retry queue
 		publishBlock()
 
-		if !db.StoreBlock(_db, block, _lock, _synced) {
+		if !db.StoreBlock(_db, block, _status) {
 			// Pushing block number into Redis queue for retrying later
 			// because it failed to store block in database
 			pushBlockHashIntoRedisQueue(redis, number)
@@ -75,11 +74,11 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 		}
 	}
 
-	fetchBlockContent(client, block, _db, redis, true, _lock, _synced)
+	fetchBlockContent(client, block, _db, redis, true, _status)
 }
 
 // Fetching block content using block number
-func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redis *d.RedisInfo, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redis *d.RedisInfo, _status *d.StatusHolder) {
 	_num := big.NewInt(0)
 	_num = _num.SetUint64(number)
 
@@ -93,21 +92,21 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 	}
 
 	// Either creates new entry or updates existing one
-	if !db.StoreBlock(_db, block, _lock, _synced) {
+	if !db.StoreBlock(_db, block, _status) {
 		// Pushing block number into Redis queue for retrying later
 		pushBlockHashIntoRedisQueue(redis, fmt.Sprintf("%d", number))
 		return
 	}
 
-	fetchBlockContent(client, block, _db, redis, false, _lock, _synced)
+	fetchBlockContent(client, block, _db, redis, false, _status)
 }
 
 // Fetching all transactions in this block, along with their receipt
-func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, _status *d.StatusHolder) {
 	if block.Transactions().Len() == 0 {
 		log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s)", block.NumberU64()))
 
-		safeUpdationOfSyncState(_lock, _synced)
+		safeUpdationOfSyncState(_status)
 		return
 	}
 
@@ -136,8 +135,7 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 					_db,
 					redis,
 					publishable,
-					_lock,
-					_synced,
+					_status,
 					returnValChan)
 
 			})
@@ -174,7 +172,7 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 	if result.Failure == 0 {
 		log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s)", block.NumberU64(), len(block.Transactions())))
 
-		safeUpdationOfSyncState(_lock, _synced)
+		safeUpdationOfSyncState(_status)
 		return
 	}
 
@@ -185,9 +183,6 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 
 // Updating shared varible between worker go routines, denoting progress of
 // `ette`, in terms of data syncing
-func safeUpdationOfSyncState(_lock *sync.Mutex, _synced *d.SyncState) {
-	_lock.Lock()
-	defer _lock.Unlock()
-
-	_synced.Done++
+func safeUpdationOfSyncState(status *d.StatusHolder) {
+	status.IncrementBlocksProcessed()
 }

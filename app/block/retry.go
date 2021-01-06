@@ -5,7 +5,6 @@ import (
 	"log"
 	"runtime"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -23,7 +22,7 @@ import (
 // Sleeps for 1000 milliseconds
 //
 // Keeps repeating
-func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, _lock *sync.Mutex, _synced *d.SyncState) {
+func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, status *d.StatusHolder) {
 	sleep := func() {
 		time.Sleep(time.Duration(500) * time.Millisecond)
 	}
@@ -66,8 +65,7 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.Redi
 					parsedBlockNumber,
 					_db,
 					redis,
-					_lock,
-					_synced)
+					status)
 
 			})
 		}(parsedBlockNumber)

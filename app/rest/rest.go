@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/foolin/goview"
@@ -33,7 +32,7 @@ import (
 )
 
 // RunHTTPServer - Holds definition for all REST API(s) to be exposed
-func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redisClient *redis.Client) {
+func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Client) {
 
 	// Extracted from, to field of range based block query ( using block numbers/ time stamps )
 	// gets parsed into unsigned integers
@@ -473,17 +472,13 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 		grp.GET("/synced", func(c *gin.Context) {
 
 			currentBlockNumber := db.GetCurrentBlockNumber(_db)
-
-			_lock.Lock()
-			defer _lock.Unlock()
-
-			blockCountInDB := _synced.BlockCountInDB()
+			blockCountInDB := _status.BlockCountInDB()
 			remaining := (currentBlockNumber + 1) - blockCountInDB
-			elapsed := time.Now().UTC().Sub(_synced.StartedAt)
+			elapsed := _status.ElapsedTime()
 
 			if cfg.Get("EtteMode") == "2" {
 				c.JSON(http.StatusOK, gin.H{
-					"processed": _synced.Done,
+					"processed": _status.Done(),
 					"elapsed":   elapsed.String(),
 				})
 				return
@@ -492,12 +487,12 @@ func RunHTTPServer(_db *gorm.DB, _lock *sync.Mutex, _synced *d.SyncState, _redis
 			status := fmt.Sprintf("%.2f %%", (float64(blockCountInDB)/float64(currentBlockNumber+1))*100)
 			eta := "0s"
 			if remaining > 0 {
-				eta = (time.Duration((elapsed.Seconds()/float64(_synced.Done))*float64(remaining)) * time.Second).String()
+				eta = (time.Duration((elapsed.Seconds()/float64(_status.Done()))*float64(remaining)) * time.Second).String()
 			}
 
 			c.JSON(http.StatusOK, gin.H{
 				"synced":    status,
-				"processed": _synced.Done,
+				"processed": _status.Done(),
 				"elapsed":   elapsed.String(),
 				"eta":       eta,
 			})

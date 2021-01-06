@@ -67,6 +67,36 @@ func (s *StatusHolder) IncrementBlocksProcessed() {
 
 }
 
+// BlockCountInDB - Safely reads currently present blocks in database
+func (s *StatusHolder) BlockCountInDB() uint64 {
+
+	s.Mutex.RLock()
+	defer s.Mutex.RUnlock()
+
+	return s.State.BlockCountInDB()
+
+}
+
+// ElapsedTime - Uptime of `ette`
+func (s *StatusHolder) ElapsedTime() time.Duration {
+
+	s.Mutex.RLock()
+	defer s.Mutex.RUnlock()
+
+	return time.Now().UTC().Sub(s.State.StartedAt)
+
+}
+
+// Done - #-of Blocks processed during `ette` uptime i.e. after last time it started
+func (s *StatusHolder) Done() uint64 {
+
+	s.Mutex.RLock()
+	defer s.Mutex.RUnlock()
+
+	return s.State.Done
+
+}
+
 // RedisInfo - Holds redis related information in this struct, to be used
 // when passing to functions as argument
 type RedisInfo struct {
@@ -96,8 +126,7 @@ type Job struct {
 	DB     *gorm.DB
 	Redis  *RedisInfo
 	Block  uint64
-	Lock   *sync.Mutex
-	Synced *SyncState
+	Status *StatusHolder
 }
 
 // BlockChainNodeConnection - Holds network connection object for blockchain nodes
