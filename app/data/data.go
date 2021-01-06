@@ -253,3 +253,10 @@ func (e *Events) ToJSON() []byte {
 	return data
 
 }
+
+// PackedTransaction - All data that is stored in a tx, to be passed from
+// tx data fetcher to whole block data persist handler function
+type PackedTransaction struct {
+	Tx     Transaction
+	Events Events
+}
