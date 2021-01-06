@@ -130,7 +130,7 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 		func(tx *types.Transaction) {
 			wp.Submit(func() {
 
-				fetchTransactionByHash(client,
+				FetchTransactionByHash(client,
 					block,
 					tx,
 					_db,

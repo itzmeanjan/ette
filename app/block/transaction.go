@@ -15,8 +15,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// Fetching specific transaction related data & persisting in database
-func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redis *d.RedisInfo, publishable bool, _lock *sync.Mutex, _synced *d.SyncState, returnValChan chan bool) {
+// FetchTransactionByHash - Fetching specific transaction related data & persisting in database
+func FetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redis *d.RedisInfo, publishable bool, _lock *sync.Mutex, _synced *d.SyncState, returnValChan chan bool) {
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		log.Print(color.Red.Sprintf("[!] Failed to fetch tx receipt [ block : %d ] : %s", block.NumberU64(), err.Error()))
