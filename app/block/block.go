@@ -74,7 +74,7 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 		}
 	}
 
-	fetchBlockContent(client, block, _db, redis, true, _status)
+	FetchBlockContent(client, block, _db, redis, true, _status)
 }
 
 // Fetching block content using block number
@@ -98,11 +98,11 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 		return
 	}
 
-	fetchBlockContent(client, block, _db, redis, false, _status)
+	FetchBlockContent(client, block, _db, redis, false, _status)
 }
 
-// Fetching all transactions in this block, along with their receipt
-func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, _status *d.StatusHolder) {
+// FetchBlockContent - Fetching all transactions in this block, along with their receipt
+func FetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, _status *d.StatusHolder) {
 	if block.Transactions().Len() == 0 {
 		log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s)", block.NumberU64()))
 
@@ -112,7 +112,7 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 
 	// Communication channel to be shared between multiple executing go routines
 	// which are trying to fetch all tx(s) present in block, concurrently
-	returnValChan := make(chan bool)
+	returnValChan := make(chan *db.PackedTransaction, runtime.NumCPU()*int(cfg.GetConcurrencyFactor()))
 
 	// -- Tx processing starting
 	// Creating job processor queue
@@ -145,22 +145,31 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 
 	// Keeping track of how many of these tx fetchers succeded & how many of them failed
 	result := d.ResultStatus{}
+	// Data received from tx fetchers, to be stored here
+	packedTxs := make([]*db.PackedTransaction, block.Transactions().Len())
 
 	for v := range returnValChan {
-		if v {
+		if v != nil {
 			result.Success++
 		} else {
 			result.Failure++
 		}
 
+		// #-of tx fetchers completed their job till now
+		//
+		// Either successfully or failed some how
+		total := int(result.Total())
+		// Storing tx data received from just completed go routine
+		packedTxs[total-1] = v
+
 		// All go routines have completed their job
-		if result.Total() == uint64(block.Transactions().Len()) {
+		if total == block.Transactions().Len() {
 			break
 		}
 	}
 
 	// Stopping job processor forcefully
-	// because by this time all jobs has been completed
+	// because by this time all jobs have been completed
 	//
 	// Otherwise control flow will not be able to come here
 	// it'll keep looping in 👆 loop, reading from channel
