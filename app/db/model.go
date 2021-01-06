@@ -154,6 +154,27 @@ func (e *Events) SimilarTo(event *Events) bool {
 		e.BlockHash == event.BlockHash
 }
 
+// PackedTransaction - All data that is stored in a tx, to be passed from
+// tx data fetcher to whole block data persist handler function
+type PackedTransaction struct {
+	Tx     Transactions
+	Events []*Events
+}
+
+// PackedTransactions - All tx(s) present in specific block, to be passed
+// using this structure to block data persist handler function
+type PackedTransactions struct {
+	Txs []*PackedTransaction
+}
+
+// PackedBlock - Whole block data to be persisted in a single
+// database transaction to ensure data consistency, if something
+// goes wrong in mid, whole persisting operation will get reverted
+type PackedBlock struct {
+	Block Blocks
+	Txs   *PackedTransactions
+}
+
 // Users - User address & created api key related info, holder table
 type Users struct {
 	Address   string    `gorm:"column:address;type:char(42);not null;index" json:"address"`
