@@ -7,7 +7,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/go-redis/redis/v8"
 	"github.com/gookit/color"
 	c "github.com/itzmeanjan/ette/app/common"
 	cfg "github.com/itzmeanjan/ette/app/config"
@@ -17,7 +16,7 @@ import (
 )
 
 // Fetching specific transaction related data & persisting in database
-func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState, returnValChan chan bool) {
+func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *types.Transaction, _db *gorm.DB, redis *d.RedisInfo, publishable bool, _lock *sync.Mutex, _synced *d.SyncState, returnValChan chan bool) {
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
 		log.Print(color.Red.Sprintf("[!] Failed to fetch tx receipt [ block : %d ] : %s", block.NumberU64(), err.Error()))
@@ -96,7 +95,7 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 			}
 		}
 
-		if err := redisClient.Publish(context.Background(), "transaction", _publishTx).Err(); err != nil {
+		if err := redis.Client.Publish(context.Background(), "transaction", _publishTx).Err(); err != nil {
 			log.Print(color.Red.Sprintf("[!] Failed to publish transaction from block %d : %s", block.NumberU64(), err.Error()))
 		}
 
@@ -105,7 +104,7 @@ func fetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 		// after applying filter
 		for _, v := range receipt.Logs {
 
-			if err := redisClient.Publish(context.Background(), "event", &d.Event{
+			if err := redis.Client.Publish(context.Background(), "event", &d.Event{
 				Origin:          v.Address.Hex(),
 				Index:           v.Index,
 				Topics:          c.StringifyEventTopics(v.Topics),

@@ -40,13 +40,12 @@ func (r ResultStatus) Total() uint64 {
 
 // Job - For running a block fetching job, these are all the information which are required
 type Job struct {
-	Client      *ethclient.Client
-	DB          *gorm.DB
-	RedisClient *redis.Client
-	RedisKey    string
-	Block       uint64
-	Lock        *sync.Mutex
-	Synced      *SyncState
+	Client *ethclient.Client
+	DB     *gorm.DB
+	Redis  *RedisInfo
+	Block  uint64
+	Lock   *sync.Mutex
+	Synced *SyncState
 }
 
 // BlockChainNodeConnection - Holds network connection object for blockchain nodes

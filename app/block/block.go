@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gammazero/workerpool"
-	"github.com/go-redis/redis/v8"
 	"github.com/gookit/color"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
@@ -21,11 +20,11 @@ import (
 )
 
 // Fetching block content using blockHash
-func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redis *d.RedisInfo, _lock *sync.Mutex, _synced *d.SyncState) {
 	block, err := client.BlockByHash(context.Background(), hash)
 	if err != nil {
 		// Pushing block number into Redis queue for retrying later
-		pushBlockHashIntoRedisQueue(redisClient, redisKey, number)
+		pushBlockHashIntoRedisQueue(redis, number)
 
 		log.Print(color.Red.Sprintf("[!] Failed to fetch block by hash [ block : %s] : %s", number, err.Error()))
 		return
@@ -34,7 +33,7 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 	// Publishes block data to all listening parties
 	// on `block` channel
 	publishBlock := func() {
-		if err := redisClient.Publish(context.Background(), "block", &d.Block{
+		if err := redis.Client.Publish(context.Background(), "block", &d.Block{
 			Hash:                block.Hash().Hex(),
 			Number:              block.NumberU64(),
 			Time:                block.Time(),
@@ -58,7 +57,7 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 		if !db.StoreBlock(_db, block, _lock, _synced) {
 			// Pushing block number into Redis queue for retrying later
 			// because it failed to store block in database
-			pushBlockHashIntoRedisQueue(redisClient, redisKey, number)
+			pushBlockHashIntoRedisQueue(redis, number)
 			return
 		}
 	case "2":
@@ -71,23 +70,23 @@ func fetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 		if !db.StoreBlock(_db, block, _lock, _synced) {
 			// Pushing block number into Redis queue for retrying later
 			// because it failed to store block in database
-			pushBlockHashIntoRedisQueue(redisClient, redisKey, number)
+			pushBlockHashIntoRedisQueue(redis, number)
 			return
 		}
 	}
 
-	fetchBlockContent(client, block, _db, redisClient, redisKey, true, _lock, _synced)
+	fetchBlockContent(client, block, _db, redis, true, _lock, _synced)
 }
 
 // Fetching block content using block number
-func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redis *d.RedisInfo, _lock *sync.Mutex, _synced *d.SyncState) {
 	_num := big.NewInt(0)
 	_num = _num.SetUint64(number)
 
 	block, err := client.BlockByNumber(context.Background(), _num)
 	if err != nil {
 		// Pushing block number into Redis queue for retrying later
-		pushBlockHashIntoRedisQueue(redisClient, redisKey, fmt.Sprintf("%d", number))
+		pushBlockHashIntoRedisQueue(redis, fmt.Sprintf("%d", number))
 
 		log.Print(color.Red.Sprintf("[!] Failed to fetch block by number [ block : %d ] : %s", number, err))
 		return
@@ -96,15 +95,15 @@ func fetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 	// Either creates new entry or updates existing one
 	if !db.StoreBlock(_db, block, _lock, _synced) {
 		// Pushing block number into Redis queue for retrying later
-		pushBlockHashIntoRedisQueue(redisClient, redisKey, fmt.Sprintf("%d", number))
+		pushBlockHashIntoRedisQueue(redis, fmt.Sprintf("%d", number))
 		return
 	}
 
-	fetchBlockContent(client, block, _db, redisClient, redisKey, false, _lock, _synced)
+	fetchBlockContent(client, block, _db, redis, false, _lock, _synced)
 }
 
 // Fetching all transactions in this block, along with their receipt
-func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redisClient *redis.Client, redisKey string, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) {
+func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, _lock *sync.Mutex, _synced *d.SyncState) {
 	if block.Transactions().Len() == 0 {
 		log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s)", block.NumberU64()))
 
@@ -131,9 +130,15 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 		func(tx *types.Transaction) {
 			wp.Submit(func() {
 
-				fetchTransactionByHash(client, block, tx, _db,
-					redisClient, redisKey, publishable,
-					_lock, _synced, returnValChan)
+				fetchTransactionByHash(client,
+					block,
+					tx,
+					_db,
+					redis,
+					publishable,
+					_lock,
+					_synced,
+					returnValChan)
 
 			})
 		}(v)
@@ -175,7 +180,7 @@ func fetchBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.D
 
 	// Pushing block number into Redis queue for retrying later
 	// because it failed to complete some of its jobs 👆
-	pushBlockHashIntoRedisQueue(redisClient, redisKey, block.Number().String())
+	pushBlockHashIntoRedisQueue(redis, block.Number().String())
 }
 
 // Updating shared varible between worker go routines, denoting progress of
