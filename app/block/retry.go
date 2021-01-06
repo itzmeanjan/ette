@@ -61,7 +61,7 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.Redi
 		func(blockNumber uint64) {
 			wp.Submit(func() {
 
-				fetchBlockByNumber(client,
+				FetchBlockByNumber(client,
 					parsedBlockNumber,
 					_db,
 					redis,

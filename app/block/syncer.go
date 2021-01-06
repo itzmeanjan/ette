@@ -71,7 +71,7 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 	job := func(wp *workerpool.WorkerPool, j *d.Job) {
 		wp.Submit(func() {
 
-			fetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, j.Status)
+			FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, j.Status)
 
 		})
 	}
@@ -130,7 +130,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *data.R
 				block := db.GetBlock(j.DB, j.Block)
 				if block == nil && !checkExistenceOfBlockNumberInRedisQueue(redis, fmt.Sprintf("%d", j.Block)) {
 					// If not found, block fetching cycle is run, for this block
-					fetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, j.Status)
+					FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, j.Status)
 				}
 
 			})

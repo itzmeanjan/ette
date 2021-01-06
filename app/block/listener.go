@@ -95,7 +95,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 				wp.Submit(func() {
 
-					fetchBlockByHash(connection.RPC,
+					FetchBlockByHash(connection.RPC,
 						blockHash,
 						blockNumber,
 						_db,
