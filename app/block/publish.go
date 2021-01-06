@@ -11,6 +11,28 @@ import (
 	d "github.com/itzmeanjan/ette/app/data"
 )
 
+// PublishBlock - Attempts to publish block data to Redis pubsub channel
+func PublishBlock(block *types.Block, redis *d.RedisInfo) {
+
+	if err := redis.Client.Publish(context.Background(), "block", &d.Block{
+		Hash:                block.Hash().Hex(),
+		Number:              block.NumberU64(),
+		Time:                block.Time(),
+		ParentHash:          block.ParentHash().Hex(),
+		Difficulty:          block.Difficulty().String(),
+		GasUsed:             block.GasUsed(),
+		GasLimit:            block.GasLimit(),
+		Nonce:               block.Nonce(),
+		Miner:               block.Coinbase().Hex(),
+		Size:                float64(block.Size()),
+		TransactionRootHash: block.TxHash().Hex(),
+		ReceiptRootHash:     block.ReceiptHash().Hex(),
+	}).Err(); err != nil {
+		log.Print(color.Red.Sprintf("[!] Failed to publish block %d in channel : %s", block.NumberU64(), err.Error()))
+	}
+
+}
+
 // PublishTx - Publishes tx & events in tx, related data to respective
 // Redis pubsub channel
 func PublishTx(blockNumber uint64, tx *types.Transaction, sender common.Address, receipt *types.Receipt, redis *d.RedisInfo) {
