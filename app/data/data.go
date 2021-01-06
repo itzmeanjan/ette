@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
+	"github.com/itzmeanjan/ette/app/db"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
@@ -257,12 +258,20 @@ func (e *Events) ToJSON() []byte {
 // PackedTransaction - All data that is stored in a tx, to be passed from
 // tx data fetcher to whole block data persist handler function
 type PackedTransaction struct {
-	Tx     Transaction
-	Events Events
+	Tx     db.Transactions
+	Events []*db.Events
 }
 
 // PackedTransactions - All tx(s) present in specific block, to be passed
 // using this structure to block data persist handler function
 type PackedTransactions struct {
 	Txs []*PackedTransaction
+}
+
+// PackedBlock - Whole block data to be persisted in a single
+// database transaction to ensure data consistency, if something
+// goes wrong in mid, whole persisting operation will get reverted
+type PackedBlock struct {
+	Block db.Blocks
+	Txs   *PackedTransactions
 }
