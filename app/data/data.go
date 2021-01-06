@@ -15,6 +15,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// RedisInfo - Holds redis related information in this struct, to be used
+// when passing to functions as argument
+type RedisInfo struct {
+	Client    *redis.Client // using this object `ette` will talk to Redis
+	QueueName string        // retry queue name, for storing block numbers
+}
+
 // ResultStatus - Keeps track of how many operations went successful
 // and how many of them failed
 type ResultStatus struct {
