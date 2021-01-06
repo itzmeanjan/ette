@@ -260,3 +260,9 @@ type PackedTransaction struct {
 	Tx     Transaction
 	Events Events
 }
+
+// PackedTransactions - All tx(s) present in specific block, to be passed
+// using this structure to block data persist handler function
+type PackedTransactions struct {
+	Txs []*PackedTransaction
+}
