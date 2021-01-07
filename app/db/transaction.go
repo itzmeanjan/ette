@@ -1,36 +1,35 @@
 package db
 
 import (
-	"log"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"gorm.io/gorm"
 )
 
-// StoreTransaction - Persisting transaction data into database
-// if not present already
-//
-// But if present, first checks equality & then updates if required
-func StoreTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) bool {
+// StoreTransaction - Stores specific tx into database, where presence of tx
+// in database being performed using db handle ( i.e. `dbWOTx` ) which is not
+// wrapped inside database transaction, but whenever performing any writing to database
+// uses db handle which is always passed to db engine, wrapped inside a db transaction
+// i.e. `dbWTx`, which protects helps us in rolling back to previous state, in case of some failure
+// faced during this persistance stage
+func StoreTransaction(dbWOTx *gorm.DB, dbWTx *gorm.DB, tx *Transactions) error {
 
-	persistedTx := GetTransaction(_db, _txReceipt.BlockHash, _tx.Hash())
+	persistedTx := GetTransaction(dbWOTx, tx.BlockHash, tx.BlockHash)
 	if persistedTx == nil {
-		return PutTransaction(_db, _tx, _txReceipt, _sender)
+		return PutTransaction(dbWTx, tx)
 	}
 
-	if !persistedTx.SimilarTo(_tx, _txReceipt, _sender) {
-		return UpdateTransaction(_db, _tx, _txReceipt, _sender)
+	if !persistedTx.SimilarTo(tx) {
+		return UpdateTransaction(dbWTx, tx)
 	}
 
-	return true
+	return nil
+
 }
 
 // GetTransaction - Fetches tx entry from database, given txhash & containing block hash
-func GetTransaction(_db *gorm.DB, blkHash common.Hash, txHash common.Hash) *Transactions {
+func GetTransaction(_db *gorm.DB, blkHash string, txHash string) *Transactions {
 	var tx Transactions
 
-	if err := _db.Where("hash = ? and blockhash = ?", txHash.Hex(), blkHash.Hex()).First(&tx).Error; err != nil {
+	if err := _db.Where("hash = ? and blockhash = ?", txHash, blkHash).First(&tx).Error; err != nil {
 		return nil
 	}
 
@@ -38,88 +37,20 @@ func GetTransaction(_db *gorm.DB, blkHash common.Hash, txHash common.Hash) *Tran
 }
 
 // PutTransaction - Persisting transactions present in a block in database
-func PutTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) bool {
-	var _pTx *Transactions
-	status := true
-
-	// If tx creates contract, then we hold created contract address
-	if _tx.To() == nil {
-		_pTx = &Transactions{
-			Hash:      _tx.Hash().Hex(),
-			From:      _sender.Hex(),
-			Contract:  _txReceipt.ContractAddress.Hex(),
-			Value:     _tx.Value().String(),
-			Data:      _tx.Data(),
-			Gas:       _tx.Gas(),
-			GasPrice:  _tx.GasPrice().String(),
-			Cost:      _tx.Cost().String(),
-			Nonce:     _tx.Nonce(),
-			State:     _txReceipt.Status,
-			BlockHash: _txReceipt.BlockHash.Hex(),
-		}
-	} else {
-		// This is a normal tx, so we keep contract field empty
-		_pTx = &Transactions{
-			Hash:      _tx.Hash().Hex(),
-			From:      _sender.Hex(),
-			To:        _tx.To().Hex(),
-			Value:     _tx.Value().String(),
-			Data:      _tx.Data(),
-			Gas:       _tx.Gas(),
-			GasPrice:  _tx.GasPrice().String(),
-			Cost:      _tx.Cost().String(),
-			Nonce:     _tx.Nonce(),
-			State:     _txReceipt.Status,
-			BlockHash: _txReceipt.BlockHash.Hex(),
-		}
+func PutTransaction(tx *gorm.DB, txn *Transactions) error {
+	if err := tx.Create(txn).Error; err != nil {
+		return err
 	}
 
-	if err := _db.Create(_pTx).Error; err != nil {
-		status = false
-		log.Printf("[!] Failed to persist tx [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error())
-	}
-
-	return status
+	return nil
 }
 
 // UpdateTransaction - Updating already persisted transaction in database with
 // new data
-func UpdateTransaction(_db *gorm.DB, _tx *types.Transaction, _txReceipt *types.Receipt, _sender common.Address) bool {
-	var _pTx *Transactions
-	status := true
-
-	// If tx creates contract, then we hold created contract address
-	if _tx.To() == nil {
-		_pTx = &Transactions{
-			From:     _sender.Hex(),
-			Contract: _txReceipt.ContractAddress.Hex(),
-			Value:    _tx.Value().String(),
-			Data:     _tx.Data(),
-			Gas:      _tx.Gas(),
-			GasPrice: _tx.GasPrice().String(),
-			Cost:     _tx.Cost().String(),
-			Nonce:    _tx.Nonce(),
-			State:    _txReceipt.Status,
-		}
-	} else {
-		// This is a normal tx, so we keep contract field empty
-		_pTx = &Transactions{
-			From:     _sender.Hex(),
-			To:       _tx.To().Hex(),
-			Value:    _tx.Value().String(),
-			Data:     _tx.Data(),
-			Gas:      _tx.Gas(),
-			GasPrice: _tx.GasPrice().String(),
-			Cost:     _tx.Cost().String(),
-			Nonce:    _tx.Nonce(),
-			State:    _txReceipt.Status,
-		}
+func UpdateTransaction(tx *gorm.DB, txn *Transactions) error {
+	if err := tx.Where("hash = ? and blockhash = ?", txn.Hash, txn.BlockHash).Updates(txn).Error; err != nil {
+		return err
 	}
 
-	if err := _db.Where("hash = ? and blockhash = ?", _tx.Hash().Hex(), _txReceipt.BlockHash.Hex()).Updates(_pTx).Error; err != nil {
-		status = false
-		log.Printf("[!] Failed to update tx [ block : %s ] : %s\n", _txReceipt.BlockNumber.String(), err.Error())
-	}
-
-	return status
+	return nil
 }
