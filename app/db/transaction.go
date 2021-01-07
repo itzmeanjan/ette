@@ -36,21 +36,12 @@ func GetTransaction(_db *gorm.DB, blkHash string, txHash string) *Transactions {
 	return &tx
 }
 
-// PutTransaction - Persisting transactions present in a block in database
+// PutTransaction - Persisting transaction
 func PutTransaction(tx *gorm.DB, txn *Transactions) error {
-	if err := tx.Create(txn).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Create(txn).Error
 }
 
-// UpdateTransaction - Updating already persisted transaction in database with
-// new data
+// UpdateTransaction - Updating already persisted transaction
 func UpdateTransaction(tx *gorm.DB, txn *Transactions) error {
-	if err := tx.Where("hash = ? and blockhash = ?", txn.Hash, txn.BlockHash).Updates(txn).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Where("hash = ? and blockhash = ?", txn.Hash, txn.BlockHash).Updates(txn).Error
 }
