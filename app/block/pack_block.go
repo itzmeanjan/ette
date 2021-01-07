@@ -7,7 +7,7 @@ import (
 
 // BuildPackedBlock - Builds struct holding whole block data i.e.
 // block header, block body i.e. tx(s), event log(s)
-func BuildPackedBlock(block *types.Block, txs *db.PackedTransactions) *db.PackedBlock {
+func BuildPackedBlock(block *types.Block, txs []*db.PackedTransaction) *db.PackedBlock {
 
 	packedBlock := &db.PackedBlock{}
 
@@ -25,7 +25,7 @@ func BuildPackedBlock(block *types.Block, txs *db.PackedTransactions) *db.Packed
 		TransactionRootHash: block.TxHash().Hex(),
 		ReceiptRootHash:     block.ReceiptHash().Hex(),
 	}
-	packedBlock.Txs = txs
+	packedBlock.Transactions = txs
 
 	return packedBlock
 
