@@ -41,6 +41,18 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) err
 
 		}
 
+		if block.Transactions == nil {
+
+			// During 👆 flow, if we've really inserted any new block into database
+			// count will get updated
+			if blockInserted {
+				status.IncrementBlocksInserted()
+			}
+
+			return nil
+
+		}
+
 		for _, t := range block.Transactions {
 
 			if err := StoreTransaction(dbWOTx, dbWTx, t.Tx); err != nil {
@@ -58,7 +70,7 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) err
 		}
 
 		// During 👆 flow, if we've really inserted any new block into database
-		// that count will get updated
+		// count will get updated
 		if blockInserted {
 			status.IncrementBlocksInserted()
 		}

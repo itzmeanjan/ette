@@ -1,6 +1,8 @@
 package db
 
 import (
+	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -11,6 +13,10 @@ import (
 // i.e. `dbWTx`, which protects helps us in rolling back to previous state, in case of some failure
 // faced during this persistance stage
 func StoreTransaction(dbWOTx *gorm.DB, dbWTx *gorm.DB, tx *Transactions) error {
+
+	if tx == nil {
+		return errors.New("Empty transaction received while attempting to persist")
+	}
 
 	persistedTx := GetTransaction(dbWOTx, tx.BlockHash, tx.BlockHash)
 	if persistedTx == nil {

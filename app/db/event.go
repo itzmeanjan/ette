@@ -1,6 +1,8 @@
 package db
 
 import (
+	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -14,6 +16,10 @@ import (
 // but while making any change, it'll be definitely protected using transaction
 // to make whole block persistance operation little bit atomic
 func StoreEvent(dbWOTx *gorm.DB, dbWTx *gorm.DB, event *Events) error {
+
+	if event == nil {
+		return errors.New("Empty event received while attempting to persist")
+	}
 
 	persistedEvent := GetEvent(dbWOTx, event.Index, event.BlockHash)
 	if persistedEvent == nil {
