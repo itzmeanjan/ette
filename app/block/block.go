@@ -22,10 +22,22 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	}
 
 	if block.Transactions().Len() == 0 {
-		log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s)", block.NumberU64()))
 
+		// If block doesn't contain any tx, we'll attempt to persist only block
+		if err := db.StoreBlock(_db, BuildPackedBlock(block, nil), status); err != nil {
+
+			// If failed to persist, we'll put it in retry queue
+			pushBlockHashIntoRedisQueue(redis, block.Number().String())
+			return
+
+		}
+
+		// Successfully processed block
+		log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s)", block.NumberU64()))
 		status.IncrementBlocksProcessed()
+
 		return
+
 	}
 
 	// Communication channel to be shared between multiple executing go routines
@@ -41,7 +53,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	for _, v := range block.Transactions() {
 
 		// Concurrently trying to fetch multiple tx(s) present in block
-		// and expecting their status result to be published on shared channel
+		// and expecting their return value to be published on shared channel
 		//
 		// Which is being read 👇
 		func(tx *types.Transaction) {
@@ -94,16 +106,27 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	wp.Stop()
 	// -- Tx processing ending
 
-	// When all tx(s) are successfully processed ( as they have informed us over go channel ),
-	// we're happy to exit from this context, given that none of them failed
-	if result.Failure == 0 {
-		log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s)", block.NumberU64(), len(block.Transactions())))
+	// When all tx(s) aren't successfully processed ( as they have informed us over go channel ),
+	// we're exiting from this context, while putting this block number in retry queue
+	if !(result.Failure == 0) {
 
-		status.IncrementBlocksProcessed()
+		// If failed to persist, we'll put it in retry queue
+		pushBlockHashIntoRedisQueue(redis, block.Number().String())
 		return
+
 	}
 
-	// Pushing block number into Redis queue for retrying later
-	// because it failed to complete some of its jobs 👆
-	pushBlockHashIntoRedisQueue(redis, block.Number().String())
+	// If block doesn't contain any tx, we'll attempt to persist only block
+	if err := db.StoreBlock(_db, BuildPackedBlock(block, packedTxs), status); err != nil {
+
+		// If failed to persist, we'll put it in retry queue
+		pushBlockHashIntoRedisQueue(redis, block.Number().String())
+		return
+
+	}
+
+	// Successfully processed block
+	log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s)", block.NumberU64(), block.Transactions().Len()))
+	status.IncrementBlocksProcessed()
+
 }
