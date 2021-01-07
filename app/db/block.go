@@ -17,10 +17,12 @@ import (
 //
 // 👆 gives us performance improvement, also taste of atomic db operation
 // i.e. either whole block data is written or nothing is written
-func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, _status *d.StatusHolder) error {
+func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) error {
 
 	// -- Starting DB transaction
 	return dbWOTx.Transaction(func(dbWTx *gorm.DB) error {
+
+		blockInserted := false
 
 		persistedBlock := GetBlock(dbWOTx, block.Block.Number)
 		if persistedBlock == nil {
@@ -29,9 +31,9 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, _status *d.StatusHolder) er
 				return err
 			}
 
-		}
+			blockInserted = true
 
-		if !persistedBlock.SimilarTo(block.Block) {
+		} else if !persistedBlock.SimilarTo(block.Block) {
 
 			if err := UpdateBlock(dbWTx, block.Block); err != nil {
 				return err
@@ -53,6 +55,12 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, _status *d.StatusHolder) er
 
 			}
 
+		}
+
+		// During 👆 flow, if we've really inserted any new block into database
+		// that count will get updated
+		if blockInserted {
+			status.IncrementBlocksInserted()
 		}
 
 		return nil
