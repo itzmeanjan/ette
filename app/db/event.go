@@ -1,8 +1,6 @@
 package db
 
 import (
-	"github.com/ethereum/go-ethereum/core/types"
-	com "github.com/itzmeanjan/ette/app/common"
 	"gorm.io/gorm"
 )
 
@@ -28,53 +26,6 @@ func StoreEvent(dbWOTx *gorm.DB, dbWTx *gorm.DB, event *Events) error {
 
 	return nil
 
-}
-
-// StoreEvents - Putting event data obtained from one tx
-// into database, if not existing already
-//
-// Otherwise, it'll match with existing entry and decide
-// whether updation is required or not
-func StoreEvents(_db *gorm.DB, _txReceipt *types.Receipt) bool {
-	count := 0
-
-	for _, v := range _txReceipt.Logs {
-
-		// Event which we're trying to persist
-		// but it may already have been persisted
-		//
-		// So, we'll first check its existence in database
-		// then try to match with this entry
-		// and if not matching fully, we'll
-		// simply try to update entry
-		newEvent := &Events{
-			Origin:          v.Address.Hex(),
-			Index:           v.Index,
-			Topics:          com.StringifyEventTopics(v.Topics),
-			Data:            v.Data,
-			TransactionHash: v.TxHash.Hex(),
-			BlockHash:       v.BlockHash.Hex(),
-		}
-
-		persistedEvent := GetEvent(_db, v.Index, v.BlockHash.Hex())
-		if persistedEvent == nil {
-			if PutEvent(_db, newEvent) {
-				count++
-			}
-			continue
-		}
-
-		if !persistedEvent.SimilarTo(newEvent) {
-			if UpdateEvent(_db, newEvent) {
-				count++
-			}
-			continue
-		}
-
-		count++
-	}
-
-	return count == len(_txReceipt.Logs)
 }
 
 // GetEvent - Given event index in block & block hash, returns event which is
