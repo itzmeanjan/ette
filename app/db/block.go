@@ -1,9 +1,6 @@
 package db
 
 import (
-	"log"
-
-	"github.com/ethereum/go-ethereum/core/types"
 	d "github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
 )
@@ -11,32 +8,58 @@ import (
 // StoreBlock - Persisting block data in database,
 // if data already not stored
 //
-// Also checks equality with existing data, if mismatch found
+// Also checks equality with existing data, if mismatch found,
 // updated with latest data
-func StoreBlock(_db *gorm.DB, _block *types.Block, _status *d.StatusHolder) bool {
+//
+// Tries to wrap db modifications inside database transaction to
+// guarantee consistency, other read only operations being performed without
+// protection of db transaction
+//
+// 👆 gives us performance improvement, also taste of atomic db operation
+// i.e. either whole block data is written or nothing is written
+func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, _status *d.StatusHolder) error {
 
-	persistedBlock := GetBlock(_db, _block.NumberU64())
-	if persistedBlock == nil {
+	// -- Starting DB transaction
+	return dbWOTx.Transaction(func(dbWTx *gorm.DB) error {
 
-		// If we're able to successfully insert block data into table
-		// it's going to be considered, while calculating total block count in database
-		status := PutBlock(_db, _block)
-		if status {
-			// Trying to safely update inserted block count
-			// -- Critical section of code
-			_status.IncrementBlocksInserted()
-			// -- ends here
+		persistedBlock := GetBlock(dbWOTx, block.Block.Number)
+		if persistedBlock == nil {
+
+			if err := PutBlock(dbWTx, block.Block); err != nil {
+				return err
+			}
+
 		}
 
-		return status
+		if !persistedBlock.SimilarTo(block.Block) {
 
-	}
+			if err := UpdateBlock(dbWTx, block.Block); err != nil {
+				return err
+			}
 
-	if !persistedBlock.SimilarTo(_block) {
-		return UpdateBlock(_db, _block)
-	}
+		}
 
-	return true
+		for _, t := range block.Transactions {
+
+			if err := StoreTransaction(dbWOTx, dbWTx, t.Tx); err != nil {
+				return err
+			}
+
+			for _, e := range t.Events {
+
+				if err := StoreEvent(dbWOTx, dbWTx, e); err != nil {
+					return err
+				}
+
+			}
+
+		}
+
+		return nil
+
+	})
+	// -- Ending DB transaction
+
 }
 
 // GetBlock - Fetch block by number, from database
@@ -50,52 +73,12 @@ func GetBlock(_db *gorm.DB, number uint64) *Blocks {
 	return &block
 }
 
-// PutBlock - Persisting fetched block information in database
-func PutBlock(_db *gorm.DB, _block *types.Block) bool {
-	status := true
-
-	if err := _db.Create(&Blocks{
-		Hash:                _block.Hash().Hex(),
-		Number:              _block.NumberU64(),
-		Time:                _block.Time(),
-		ParentHash:          _block.ParentHash().Hex(),
-		Difficulty:          _block.Difficulty().String(),
-		GasUsed:             _block.GasUsed(),
-		GasLimit:            _block.GasLimit(),
-		Nonce:               _block.Nonce(),
-		Miner:               _block.Coinbase().Hex(),
-		Size:                float64(_block.Size()),
-		TransactionRootHash: _block.TxHash().Hex(),
-		ReceiptRootHash:     _block.ReceiptHash().Hex(),
-	}).Error; err != nil {
-		status = false
-		log.Printf("[!] Failed to persist block : %d : %s\n", _block.NumberU64(), err.Error())
-	}
-
-	return status
+// PutBlock - Persisting fetched block
+func PutBlock(tx *gorm.DB, block *Blocks) error {
+	return tx.Create(block).Error
 }
 
-// UpdateBlock - Updating already existing block entry with newly
-// obtained info
-func UpdateBlock(_db *gorm.DB, _block *types.Block) bool {
-	status := true
-
-	if err := _db.Where("number = ?", _block.NumberU64()).Updates(&Blocks{
-		Hash:                _block.Hash().Hex(),
-		Time:                _block.Time(),
-		ParentHash:          _block.ParentHash().Hex(),
-		Difficulty:          _block.Difficulty().String(),
-		GasUsed:             _block.GasUsed(),
-		GasLimit:            _block.GasLimit(),
-		Nonce:               _block.Nonce(),
-		Miner:               _block.Coinbase().Hex(),
-		Size:                float64(_block.Size()),
-		TransactionRootHash: _block.TxHash().Hex(),
-		ReceiptRootHash:     _block.ReceiptHash().Hex(),
-	}).Error; err != nil {
-		status = false
-		log.Printf("[!] Failed to update block : %d : %s\n", _block.NumberU64(), err.Error())
-	}
-
-	return status
+// UpdateBlock - Updating already existing block
+func UpdateBlock(tx *gorm.DB, block *Blocks) error {
+	return tx.Where("number = ?", block.Number).Updates(block).Error
 }
