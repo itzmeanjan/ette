@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gookit/color"
-	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
@@ -70,20 +69,6 @@ func FetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 		// from blockchain node
 		returnValChan <- nil
 		return
-	}
-
-	// Checking whether `ette` is running in real-time data delivery
-	// mode or not
-	//
-	// If yes & this tx, event log data can be published,
-	// we'll try to publish data to redis pubsub channel
-	// which will be eventually broadcasted to all clients subscribed to
-	// topic of their interest
-	if publishable && (cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3") {
-
-		PublishTx(block.NumberU64(), tx, sender, receipt, redis)
-		PublishEvents(block.NumberU64(), receipt, redis)
-
 	}
 
 	// Passing all tx related data to listener go routine

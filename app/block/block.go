@@ -17,14 +17,31 @@ import (
 // ProcessBlockContent - Processes everything inside this block i.e. block data, tx data, event data
 func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, status *d.StatusHolder) {
 
-	if publishable && (cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
-		PublishBlock(block, redis)
+	// Closure managing publishing whole block data i.e. block header, txn(s), event logs
+	// on redis pubsub channel
+	pubsubWorker := func(txns []*db.PackedTransaction) *db.PackedBlock {
+
+		// Constructing block data to published & persisted
+		packedBlock := BuildPackedBlock(block, txns)
+
+		// Attempting to publish whole block data to redis pubsub channel
+		if publishable && (cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+			PublishBlock(packedBlock, redis)
+		}
+
+		return packedBlock
+
 	}
 
 	if block.Transactions().Len() == 0 {
 
+		// Constructing block data to be persisted
+		//
+		// This is what we just published on pubsub channel
+		packedBlock := pubsubWorker(nil)
+
 		// If block doesn't contain any tx, we'll attempt to persist only block
-		if err := db.StoreBlock(_db, BuildPackedBlock(block, nil), status); err != nil {
+		if err := db.StoreBlock(_db, packedBlock, status); err != nil {
 
 			// If failed to persist, we'll put it in retry queue
 			pushBlockHashIntoRedisQueue(redis, block.Number().String())
@@ -116,8 +133,13 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 	}
 
+	// Constructing block data to be persisted
+	//
+	// This is what we just published on pubsub channel
+	packedBlock := pubsubWorker(packedTxs)
+
 	// If block doesn't contain any tx, we'll attempt to persist only block
-	if err := db.StoreBlock(_db, BuildPackedBlock(block, packedTxs), status); err != nil {
+	if err := db.StoreBlock(_db, packedBlock, status); err != nil {
 
 		// If failed to persist, we'll put it in retry queue
 		pushBlockHashIntoRedisQueue(redis, block.Number().String())
