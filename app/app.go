@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"log"
+	"os"
+	"os/signal"
 	"sync"
 
 	"github.com/go-redis/redis/v8"
@@ -65,9 +67,17 @@ func Run(configFile, subscriptionPlansFile string) {
 		QueueName: "blocks",
 	}
 
-	// All storage resources being used gets cleaned up
+	// Attempting to listen to Ctrl+C signal
+	// and when received gracefully shutting down `ette`
+	interruptChan := make(chan os.Signal, 1)
+	signal.Notify(interruptChan, os.Interrupt)
+
+	// All resources being used gets cleaned up
 	// when we're returning from this function scope
-	defer func() {
+	go func() {
+
+		<-interruptChan
+		log.Printf("[+] Gracefully shutting down `ette`")
 
 		sql, err := _db.DB()
 		if err != nil {
