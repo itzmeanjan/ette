@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"log"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gammazero/workerpool"
-	"github.com/go-redis/redis/v8"
 	"github.com/gookit/color"
+	cfg "github.com/itzmeanjan/ette/app/config"
+	"github.com/itzmeanjan/ette/app/data"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
@@ -21,13 +21,13 @@ import (
 // while running n workers concurrently, where n = number of cores this machine has
 //
 // Waits for all of them to complete
-func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState, jd func(*workerpool.WorkerPool, *d.Job)) {
+func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromBlock uint64, toBlock uint64, status *d.StatusHolder, jd func(*workerpool.WorkerPool, *d.Job)) {
 	if !(fromBlock <= toBlock) {
 		log.Print(color.Red.Sprintf("[!] Bad block range for syncer"))
 		return
 	}
 
-	wp := workerpool.New(runtime.NumCPU())
+	wp := workerpool.New(runtime.NumCPU() * int(cfg.GetConcurrencyFactor()))
 	i := fromBlock
 	j := toBlock
 
@@ -35,13 +35,11 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, r
 	// just mentioning which block needs to be fetched
 	job := func(num uint64) {
 		jd(wp, &d.Job{
-			Client:      client,
-			DB:          _db,
-			RedisClient: redisClient,
-			RedisKey:    redisKey,
-			Block:       num,
-			Lock:        _lock,
-			Synced:      _synced,
+			Client: client,
+			DB:     _db,
+			Redis:  redis,
+			Block:  num,
+			Status: status,
 		})
 	}
 
@@ -65,7 +63,7 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, r
 //
 // Range can be either ascending or descending, depending upon that proper arguments to be
 // passed to `Syncer` function during invokation
-func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, fromBlock uint64, toBlock uint64, _lock *sync.Mutex, _synced *d.SyncState) {
+func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromBlock uint64, toBlock uint64, status *d.StatusHolder) {
 
 	// Job to be submitted and executed by each worker
 	//
@@ -73,7 +71,7 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redi
 	job := func(wp *workerpool.WorkerPool, j *d.Job) {
 		wp.Submit(func() {
 
-			fetchBlockByNumber(j.Client, j.Block, j.DB, j.RedisClient, j.RedisKey, j.Lock, j.Synced)
+			FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, j.Status)
 
 		})
 	}
@@ -81,9 +79,9 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redi
 	log.Printf("[*] Starting block syncer\n")
 
 	if fromBlock < toBlock {
-		Syncer(client, _db, redisClient, redisKey, fromBlock, toBlock, _lock, _synced, job)
+		Syncer(client, _db, redis, fromBlock, toBlock, status, job)
 	} else {
-		Syncer(client, _db, redisClient, redisKey, toBlock, fromBlock, _lock, _synced, job)
+		Syncer(client, _db, redis, toBlock, fromBlock, status, job)
 	}
 
 	log.Printf("[+] Stopping block syncer\n")
@@ -94,12 +92,12 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redisClient *redi
 	//
 	// And this will itself run as a infinite job, completes one iteration &
 	// takes break for 1 min, then repeats
-	go SyncMissingBlocksInDB(client, _db, redisClient, redisKey, _lock, _synced)
+	go SyncMissingBlocksInDB(client, _db, redis, status)
 }
 
 // SyncMissingBlocksInDB - Checks with database for what blocks are present & what are not, fetches missing
 // blocks & related data iteratively
-func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *redis.Client, redisKey string, _lock *sync.Mutex, _synced *d.SyncState) {
+func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, status *d.StatusHolder) {
 
 	// Sleep for 1 minute & then again check whether we need to fetch missing blocks or not
 	sleep := func() {
@@ -112,9 +110,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 		currentBlockNumber := db.GetCurrentBlockNumber(_db)
 
 		// Safely reading shared variable
-		_lock.Lock()
-		blockCount := _synced.BlockCountInDB()
-		_lock.Unlock()
+		blockCount := status.BlockCountInDB()
 
 		// If all blocks present in between 0 to latest block in network
 		// `ette` sleeps for 1 minute & again get to work
@@ -132,15 +128,15 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redisClient *
 
 				// Worker fetches block by number from local storage
 				block := db.GetBlock(j.DB, j.Block)
-				if block == nil && !checkExistenceOfBlockNumberInRedisQueue(redisClient, redisKey, fmt.Sprintf("%d", j.Block)) {
+				if block == nil && !checkExistenceOfBlockNumberInRedisQueue(redis, fmt.Sprintf("%d", j.Block)) {
 					// If not found, block fetching cycle is run, for this block
-					fetchBlockByNumber(j.Client, j.Block, j.DB, j.RedisClient, j.RedisKey, j.Lock, j.Synced)
+					FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, j.Status)
 				}
 
 			})
 		}
 
-		Syncer(client, _db, redisClient, redisKey, 0, currentBlockNumber, _lock, _synced, job)
+		Syncer(client, _db, redis, 0, currentBlockNumber, status, job)
 
 		log.Printf("[+] Stopping missing block finder\n")
 		sleep()

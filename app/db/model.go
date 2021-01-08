@@ -6,8 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/lib/pq"
 )
 
@@ -40,19 +38,19 @@ func (Blocks) TableName() string {
 }
 
 // SimilarTo - Checking whether two blocks are exactly similar or not
-func (b *Blocks) SimilarTo(block *types.Block) bool {
-	return b.Hash == block.Hash().Hex() &&
-		b.Number == block.NumberU64() &&
-		b.Time == block.Time() &&
-		b.ParentHash == block.ParentHash().Hex() &&
-		b.Difficulty == block.Difficulty().String() &&
-		b.GasUsed == block.GasUsed() &&
-		b.GasLimit == block.GasLimit() &&
-		b.Nonce == block.Nonce() &&
-		b.Miner == block.Coinbase().Hex() &&
-		b.Size == float64(block.Size()) &&
-		b.TransactionRootHash == block.TxHash().Hex() &&
-		b.ReceiptRootHash == block.ReceiptHash().Hex()
+func (b *Blocks) SimilarTo(_b *Blocks) bool {
+	return b.Hash == _b.Hash &&
+		b.Number == _b.Number &&
+		b.Time == _b.Time &&
+		b.ParentHash == _b.ParentHash &&
+		b.Difficulty == _b.Difficulty &&
+		b.GasUsed == _b.GasUsed &&
+		b.GasLimit == _b.GasLimit &&
+		b.Nonce == _b.Nonce &&
+		b.Miner == _b.Miner &&
+		b.Size == _b.Size &&
+		b.TransactionRootHash == _b.TransactionRootHash &&
+		b.ReceiptRootHash == _b.ReceiptRootHash
 }
 
 // Transactions - Blockchain transaction holder table model
@@ -78,32 +76,32 @@ func (Transactions) TableName() string {
 }
 
 // SimilarTo - Checking equality of two transactions
-func (t *Transactions) SimilarTo(tx *types.Transaction, txReceipt *types.Receipt, sender common.Address) bool {
-	if tx.To() == nil {
-		return t.Hash == tx.Hash().Hex() &&
-			t.From == sender.Hex() &&
-			t.Contract == txReceipt.ContractAddress.Hex() &&
-			t.Value == tx.Value().String() &&
-			bytes.Compare(t.Data, tx.Data()) == 0 &&
-			t.Gas == tx.Gas() &&
-			t.GasPrice == tx.GasPrice().String() &&
-			t.Cost == tx.Cost().String() &&
-			t.Nonce == tx.Nonce() &&
-			t.State == txReceipt.Status &&
-			t.BlockHash == txReceipt.BlockHash.Hex()
+func (t *Transactions) SimilarTo(_t *Transactions) bool {
+	if _t.To == "" {
+		return t.Hash == _t.Hash &&
+			t.From == _t.From &&
+			t.Contract == _t.Contract &&
+			t.Value == _t.Value &&
+			bytes.Compare(t.Data, _t.Data) == 0 &&
+			t.Gas == _t.Gas &&
+			t.GasPrice == _t.GasPrice &&
+			t.Cost == _t.Cost &&
+			t.Nonce == _t.Nonce &&
+			t.State == _t.State &&
+			t.BlockHash == _t.BlockHash
 	}
 
-	return t.Hash == tx.Hash().Hex() &&
-		t.From == sender.Hex() &&
-		t.To == tx.To().Hex() &&
-		t.Value == tx.Value().String() &&
-		bytes.Compare(t.Data, tx.Data()) == 0 &&
-		t.Gas == tx.Gas() &&
-		t.GasPrice == tx.GasPrice().String() &&
-		t.Cost == tx.Cost().String() &&
-		t.Nonce == tx.Nonce() &&
-		t.State == txReceipt.Status &&
-		t.BlockHash == txReceipt.BlockHash.Hex()
+	return t.Hash == _t.Hash &&
+		t.From == _t.From &&
+		t.To == _t.To &&
+		t.Value == _t.Value &&
+		bytes.Compare(t.Data, _t.Data) == 0 &&
+		t.Gas == _t.Gas &&
+		t.GasPrice == _t.GasPrice &&
+		t.Cost == _t.Cost &&
+		t.Nonce == _t.Nonce &&
+		t.State == _t.State &&
+		t.BlockHash == _t.BlockHash
 }
 
 // Events - Events emitted from smart contracts to be held in this table
@@ -122,7 +120,7 @@ func (Events) TableName() string {
 }
 
 // SimilarTo - Checking equality of two events
-func (e *Events) SimilarTo(event *Events) bool {
+func (e *Events) SimilarTo(_e *Events) bool {
 
 	// Given two string arrays, it'll match it's elements by index & if all of them are same
 	// returns boolean result
@@ -141,17 +139,27 @@ func (e *Events) SimilarTo(event *Events) bool {
 		return matched
 	}
 
-	// Given two byte slices, checks their equality
-	compareByteSlices := func(sliceOne []byte, sliceTwo []byte) bool {
-		return bytes.Compare(e.Data, event.Data) == 0
-	}
+	return e.Origin == _e.Origin &&
+		e.Index == _e.Index &&
+		compareStringArrays(e.Topics, _e.Topics) &&
+		bytes.Compare(e.Data, _e.Data) == 0 &&
+		e.TransactionHash == _e.TransactionHash &&
+		e.BlockHash == _e.BlockHash
+}
 
-	return e.Origin == event.Origin &&
-		e.Index == event.Index &&
-		compareStringArrays(e.Topics, event.Topics) &&
-		compareByteSlices(e.Data, event.Data) &&
-		e.TransactionHash == event.TransactionHash &&
-		e.BlockHash == event.BlockHash
+// PackedTransaction - All data that is stored in a tx, to be passed from
+// tx data fetcher to whole block data persist handler function
+type PackedTransaction struct {
+	Tx     *Transactions
+	Events []*Events
+}
+
+// PackedBlock - Whole block data to be persisted in a single
+// database transaction to ensure data consistency, if something
+// goes wrong in mid, whole persisting operation will get reverted
+type PackedBlock struct {
+	Block        *Blocks
+	Transactions []*PackedTransaction
 }
 
 // Users - User address & created api key related info, holder table

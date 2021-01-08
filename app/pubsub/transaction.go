@@ -231,6 +231,6 @@ func (t *TransactionConsumer) SendData(data interface{}) bool {
 		return false
 	}
 
-	log.Printf("[!] Delivered `transaction` data to client\n")
+	log.Printf("[+] Delivered `transaction` data to client\n")
 	return true
 }

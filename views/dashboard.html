@@ -117,6 +117,15 @@
 
 }">Create new app</button>
 <script>
+    // Stopping metamask from reloading page, when
+    // when is changed, as we're not really concerned about
+    // which network the user is in
+    //
+    // We're interested in making user sign message of certain format
+    if (typeof ethereum !== undefined) {
+        ethereum.autoRefreshOnNetworkChange = false
+    }
+
     fetch('/v1/dashboard/apps', {
         method: 'GET',
         credentials: 'include',
@@ -163,6 +172,7 @@
 
                     p.innerHTML = e
                     p.style.color = v.enabled ? '#64d9a4' : '#eb8975'
+                    p.ondblclick = e => {  e.stopPropagation() }
                     
                     card.appendChild(p)
                 })
