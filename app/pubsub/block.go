@@ -178,6 +178,6 @@ func (b *BlockConsumer) SendData(data interface{}) bool {
 		return false
 	}
 
-	log.Printf("[!] Delivered `block` data to client\n")
+	log.Printf("[+] Delivered `block` data to client\n")
 	return true
 }

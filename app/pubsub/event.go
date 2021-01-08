@@ -213,6 +213,6 @@ func (e *EventConsumer) SendData(data interface{}) bool {
 		return false
 	}
 
-	log.Printf("[!] Delivered `event` data to client\n")
+	log.Printf("[+] Delivered `event` data to client\n")
 	return true
 }

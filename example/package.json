@@ -9,6 +9,6 @@
   "author": "Anjan Roy <anjanroy@yandex.com>",
   "license": "CC0-1.0",
   "dependencies": {
-    "websocket": "^1.0.32"
+    "websocket": "^1.0.33"
   }
 }

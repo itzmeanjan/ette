@@ -47,12 +47,7 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.Redi
 			continue
 		}
 
-		queuedBlocks, err := redis.Client.LLen(context.Background(), redis.QueueName).Result()
-		if err != nil {
-			log.Printf(color.Red.Sprintf("[!] Failed to determine Redis queue length : %s", err.Error()))
-		}
-
-		log.Print(color.Cyan.Sprintf("[~] Retrying block : %d [ In Queue : %d ]", parsedBlockNumber, queuedBlocks))
+		log.Print(color.Cyan.Sprintf("[~] Retrying block : %d [ In Queue : %d ]", parsedBlockNumber, getRetryQueueLength(redis)))
 
 		// Submitting block processor job into pool
 		// which will be picked up & processed
@@ -97,4 +92,16 @@ func checkExistenceOfBlockNumberInRedisQueue(redis *data.RedisInfo, blockNumber 
 	}
 
 	return true
+}
+
+// Returns redis backed retry queue length
+func getRetryQueueLength(redis *data.RedisInfo) int64 {
+
+	blockCount, err := redis.Client.LLen(context.Background(), redis.QueueName).Result()
+	if err != nil {
+		log.Printf(color.Red.Sprintf("[!] Failed to determine Redis queue length : %s", err.Error()))
+	}
+
+	return blockCount
+
 }
