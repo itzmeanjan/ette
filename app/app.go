@@ -95,6 +95,9 @@ func Run(configFile, subscriptionPlansFile string) {
 			return
 		}
 
+		// Stopping process
+		os.Exit(0)
+
 	}()
 
 	// Pushing block header propagation listener to another thread of execution
