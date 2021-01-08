@@ -83,4 +83,15 @@
         } else {
             alert('Metamask needs to be installed !')
         } }">Login</div>
+
+<script>
+    // Stopping metamask from reloading page, when
+    // when is changed, as we're not really concerned about
+    // which network the user is in
+    //
+    // We're interested in making user sign message of certain format
+    if (typeof ethereum !== undefined) {
+        ethereum.autoRefreshOnNetworkChange = false
+    }
+</script>
 {{end}}
