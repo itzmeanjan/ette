@@ -172,7 +172,7 @@
 
                     p.innerHTML = e
                     p.style.color = v.enabled ? '#64d9a4' : '#eb8975'
-                    p.ondblclick = e => {  e.preventDefault() }
+                    p.ondblclick = e => {  e.stopPropagation() }
                     
                     card.appendChild(p)
                 })
