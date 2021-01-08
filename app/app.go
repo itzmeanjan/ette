@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/gookit/color"
 	blk "github.com/itzmeanjan/ette/app/block"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
@@ -63,6 +64,28 @@ func Run(configFile, subscriptionPlansFile string) {
 		Client:    _redisClient,
 		QueueName: "blocks",
 	}
+
+	// All storage resources being used gets cleaned up
+	// when we're returning from this function scope
+	defer func() {
+
+		sql, err := _db.DB()
+		if err != nil {
+			log.Printf(color.Red.Sprintf("[!] Failed to get underlying DB connection : %s", err.Error()))
+			return
+		}
+
+		if err := sql.Close(); err != nil {
+			log.Printf(color.Red.Sprintf("[!] Failed to close underlying DB connection : %s", err.Error()))
+			return
+		}
+
+		if err := _redisInfo.Client.Close(); err != nil {
+			log.Printf(color.Red.Sprintf("[!] Failed to close connection to Redis : %s", err.Error()))
+			return
+		}
+
+	}()
 
 	// Pushing block header propagation listener to another thread of execution
 	go blk.SubscribeToNewBlocks(_connection, _db, _status, &_redisInfo)
