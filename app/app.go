@@ -77,7 +77,6 @@ func Run(configFile, subscriptionPlansFile string) {
 	go func() {
 
 		<-interruptChan
-		log.Printf("[+] Gracefully shutting down `ette`")
 
 		sql, err := _db.DB()
 		if err != nil {
@@ -96,6 +95,7 @@ func Run(configFile, subscriptionPlansFile string) {
 		}
 
 		// Stopping process
+		log.Printf(color.Magenta.Sprintf("\n[+] Gracefully shut down `ette`"))
 		os.Exit(0)
 
 	}()
