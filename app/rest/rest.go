@@ -1140,17 +1140,33 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// failure message to client & close connection
 			user := req.GetUserFromAPIKey(_db)
 			if user == nil {
+				// -- Critical section of code begins
+				//
+				// Attempting to write to shared network connection
+				lock.Lock()
+
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
+
+				lock.Unlock()
+				// -- ends here
 				break
 			}
 
 			// Checking if user has kept this APIKey enabled or not
 			if !user.Enabled {
+				// -- Critical section of code begins
+				//
+				// Attempting to write to shared network connection
+				lock.Lock()
+
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
+
+				lock.Unlock()
+				// -- ends here
 				break
 			}
 
@@ -1158,17 +1174,33 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 			// Checking if client is under allowed rate limit or not
 			if !req.IsUnderRateLimit(_db, userAddress) {
+				// -- Critical section of code begins
+				//
+				// Attempting to write to shared network connection
+				lock.Lock()
+
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Crossed Allowed Rate Limit"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
+
+				lock.Unlock()
+				// -- ends here
 				break
 			}
 
 			// Validating incoming request on websocket subscription channel
 			if !req.Validate(topics) {
+				// -- Critical section of code begins
+				//
+				// Attempting to write to shared network connection
+				lock.Lock()
+
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
+
+				lock.Unlock()
+				// -- ends here
 				break
 			}
 
