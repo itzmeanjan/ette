@@ -1099,6 +1099,33 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		// or unsubscrribed from
 		topics := make(map[string]ps.Consumer)
 
+		// When returning from this execution scope, unsubscribing client
+		// from all topics it might have subscribed to during it's life time
+		//
+		// Just attempting to do a graceful unsubscription
+		defer func() {
+
+			for _, v := range topics {
+
+				if v, ok := v.(*ps.BlockConsumer); ok {
+					v.Request.Type = "unsubscribe"
+					continue
+				}
+
+				if v, ok := v.(*ps.TransactionConsumer); ok {
+					v.Request.Type = "unsubscribe"
+					continue
+				}
+
+				if v, ok := v.(*ps.EventConsumer); ok {
+					v.Request.Type = "unsubscribe"
+					continue
+				}
+
+			}
+
+		}()
+
 		// Communication with client handling logic
 		for {
 			var req ps.SubscriptionRequest
@@ -1170,7 +1197,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 					}
 				}
 
-				topics[req.Name] = nil
+				delete(topics, req.Name)
 			}
 		}
 	})
