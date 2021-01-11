@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -38,6 +39,10 @@ func (t *TransactionConsumer) Subscribe() {
 // and reads data from subcribed channel, which also gets delivered to client application
 func (t *TransactionConsumer) Listen() {
 
+	// When leaving this execution scope, attempting to unsubscribe
+	// client from pubsub topic, it was listening to, in a graceful fashion
+	defer t.Unsubscribe()
+
 	for {
 
 		// Checking if client is still subscribed to this topic
@@ -45,19 +50,7 @@ func (t *TransactionConsumer) Listen() {
 		//
 		// If not, we're cancelling this subscription
 		if t.Request.Type == "unsubscribe" {
-
-			if err := t.Connection.WriteJSON(&SubscriptionResponse{
-				Code:    1,
-				Message: "Unsubscribed from `transaction`",
-			}); err != nil {
-				log.Printf("[!] Failed to deliver transaction unsubscription confirmation to client : %s\n", err.Error())
-			}
-
-			if err := t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-				log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
-			}
 			break
-
 		}
 
 		msg, err := t.PubSub.ReceiveTimeout(context.Background(), time.Second)
@@ -99,10 +92,6 @@ func (t *TransactionConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
 		}
 
-		if err := t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
-		}
-
 		return false
 
 	}
@@ -114,10 +103,6 @@ func (t *TransactionConsumer) Send(msg string) bool {
 			Message: "Bad API Key",
 		}); err != nil {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
-		}
-
-		if err := t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
 		}
 
 		return false
@@ -133,10 +118,6 @@ func (t *TransactionConsumer) Send(msg string) bool {
 			Message: "Crossed Allowed Rate Limit",
 		}); err != nil {
 			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
-		}
-
-		if err := t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
 		}
 
 		return false
@@ -219,18 +200,33 @@ func (t *TransactionConsumer) Send(msg string) bool {
 func (t *TransactionConsumer) SendData(data interface{}) bool {
 	if err := t.Connection.WriteJSON(data); err != nil {
 		log.Printf("[!] Failed to deliver `transaction` data to client : %s\n", err.Error())
-
-		if err = t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
-		}
-
-		if err = t.Connection.Close(); err != nil {
-			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
-		}
-
 		return false
 	}
 
 	log.Printf("[+] Delivered `transaction` data to client\n")
 	return true
+}
+
+// Unsubscribe - Unsubscribe from transactions pubsub topic, which client has subscribed to
+func (t *TransactionConsumer) Unsubscribe() {
+
+	if t.PubSub == nil {
+		log.Printf("[!] Bad attempt to unsubscribe from `%s` topic\n", t.Request.Topic())
+		return
+	}
+
+	if err := t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
+		log.Printf("[!] Failed to unsubscribe from `%s` topic : %s\n", t.Request.Topic(), err.Error())
+		return
+	}
+
+	resp := &SubscriptionResponse{
+		Code:    1,
+		Message: fmt.Sprintf("Unsubscribed from `%s`", t.Request.Topic()),
+	}
+
+	if err := t.Connection.WriteJSON(resp); err != nil {
+		log.Printf("[!] Failed to deliver `%s` unsubscription confirmation to client : %s\n", t.Request.Topic(), err.Error())
+	}
+
 }
