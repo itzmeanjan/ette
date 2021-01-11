@@ -85,6 +85,12 @@ func (b *BlockConsumer) Send(msg string) bool {
 	user := db.GetUserFromAPIKey(b.DB, b.Request.APIKey)
 	if user == nil {
 
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		b.Lock.Lock()
+
 		if err := b.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
 			Message: "Bad API Key",
@@ -92,12 +98,20 @@ func (b *BlockConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
 		}
 
+		b.Lock.Unlock()
+		// -- ends here
 		return false
 
 	}
 
 	if !user.Enabled {
 
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		b.Lock.Lock()
+
 		if err := b.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
 			Message: "Bad API Key",
@@ -105,6 +119,8 @@ func (b *BlockConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
 		}
 
+		b.Lock.Unlock()
+		// -- ends here
 		return false
 
 	}
@@ -113,6 +129,12 @@ func (b *BlockConsumer) Send(msg string) bool {
 	// if client has crossed it's allowed data delivery limit
 	if !db.IsUnderRateLimit(b.DB, b.UserAddress.Hex()) {
 
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		b.Lock.Lock()
+
 		if err := b.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
 			Message: "Crossed Allowed Rate Limit",
@@ -120,6 +142,8 @@ func (b *BlockConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
 		}
 
+		b.Lock.Unlock()
+		// -- ends here
 		return false
 
 	}
@@ -149,6 +173,13 @@ func (b *BlockConsumer) Send(msg string) bool {
 // connection ( connection might be already closed though )
 func (b *BlockConsumer) SendData(data interface{}) bool {
 
+	// -- Critical section of code begins
+	//
+	// Attempting to write to a network resource,
+	// shared among multiple go routines
+	b.Lock.Lock()
+	defer b.Lock.Unlock()
+
 	if err := b.Connection.WriteJSON(data); err != nil {
 		log.Printf("[!] Failed to deliver `block` data to client : %s\n", err.Error())
 		return false
@@ -176,6 +207,13 @@ func (b *BlockConsumer) Unsubscribe() {
 		Code:    1,
 		Message: fmt.Sprintf("Unsubscribed from `%s`", b.Request.Topic()),
 	}
+
+	// -- Critical section of code begins
+	//
+	// Attempting to write to a network resource,
+	// shared among multiple go routines
+	b.Lock.Lock()
+	defer b.Lock.Unlock()
 
 	if err := b.Connection.WriteJSON(resp); err != nil {
 		log.Printf("[!] Failed to deliver `%s` unsubscription confirmation to client : %s\n", b.Request.Topic(), err.Error())
