@@ -3,6 +3,7 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -35,6 +36,11 @@ func (b *BlockConsumer) Subscribe() {
 // and reads data from subcribed channel, which also gets delivered to client application
 func (b *BlockConsumer) Listen() {
 
+	// When ever returning from this function's
+	// execution context, client will be unsubscribed from
+	// pubsub topic i.e. `block` topic in this case
+	defer b.Unsubscribe()
+
 	for {
 
 		// Checking if client is still subscribed to this topic
@@ -42,19 +48,7 @@ func (b *BlockConsumer) Listen() {
 		//
 		// If not, we're cancelling this subscription
 		if b.Request.Type == "unsubscribe" {
-
-			if err := b.Connection.WriteJSON(&SubscriptionResponse{
-				Code:    1,
-				Message: "Unsubscribed from `block`",
-			}); err != nil {
-				log.Printf("[!] Failed to deliver block unsubscription confirmation to client : %s\n", err.Error())
-			}
-
-			if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
-				log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
-			}
 			break
-
 		}
 
 		msg, err := b.PubSub.ReceiveTimeout(context.Background(), time.Second)
@@ -96,10 +90,6 @@ func (b *BlockConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
 		}
 
-		if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
-		}
-
 		return false
 
 	}
@@ -111,10 +101,6 @@ func (b *BlockConsumer) Send(msg string) bool {
 			Message: "Bad API Key",
 		}); err != nil {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
-		}
-
-		if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
 		}
 
 		return false
@@ -130,10 +116,6 @@ func (b *BlockConsumer) Send(msg string) bool {
 			Message: "Crossed Allowed Rate Limit",
 		}); err != nil {
 			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
-		}
-
-		if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
 		}
 
 		return false
@@ -156,6 +138,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 	}
 
 	return false
+
 }
 
 // SendData - Sending message to client application, connected over websocket
@@ -166,18 +149,34 @@ func (b *BlockConsumer) SendData(data interface{}) bool {
 
 	if err := b.Connection.WriteJSON(data); err != nil {
 		log.Printf("[!] Failed to deliver `block` data to client : %s\n", err.Error())
-
-		if err = b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
-		}
-
-		if err = b.Connection.Close(); err != nil {
-			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
-		}
-
 		return false
 	}
 
 	log.Printf("[+] Delivered `block` data to client\n")
 	return true
+
+}
+
+// Unsubscribe - Unsubscribe from block data publishing event this client has subscribed to
+func (b *BlockConsumer) Unsubscribe() {
+
+	if b.PubSub == nil {
+		log.Printf("[!] Bad attempt to unsubscribe from `%s` topic\n", b.Request.Topic())
+		return
+	}
+
+	if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
+		log.Printf("[!] Failed to unsubscribe from `%s` topic : %s\n", b.Request.Topic(), err.Error())
+		return
+	}
+
+	resp := &SubscriptionResponse{
+		Code:    1,
+		Message: fmt.Sprintf("Unsubscribed from `%s`", b.Request.Topic()),
+	}
+
+	if err := b.Connection.WriteJSON(resp); err != nil {
+		log.Printf("[!] Failed to deliver `%s` unsubscription confirmation to client : %s\n", b.Request.Topic(), err.Error())
+	}
+
 }
