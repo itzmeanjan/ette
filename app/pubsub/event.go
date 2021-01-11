@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -41,6 +42,12 @@ func (e *EventConsumer) Subscribe() {
 // if client has subscribed to get notified on occurrence of this event
 func (e *EventConsumer) Listen() {
 
+	// Before leaving this execution context, attempting to
+	// unsubscribe client from `event` pubsub topic
+	//
+	// One attempt to unsubscribe gracefully
+	defer e.Unsubscribe()
+
 	for {
 
 		// Checking if client is still subscribed to this topic
@@ -48,19 +55,7 @@ func (e *EventConsumer) Listen() {
 		//
 		// If not, we're cancelling this subscription
 		if e.Request.Type == "unsubscribe" {
-
-			if err := e.Connection.WriteJSON(&SubscriptionResponse{
-				Code:    1,
-				Message: "Unsubscribed from `event`",
-			}); err != nil {
-				log.Printf("[!] Failed to deliver event unsubscription confirmation to client : %s\n", err.Error())
-			}
-
-			if err := e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
-				log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
-			}
 			break
-
 		}
 
 		msg, err := e.PubSub.ReceiveTimeout(context.Background(), time.Second)
@@ -102,10 +97,6 @@ func (e *EventConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
 		}
 
-		if err := e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
-		}
-
 		return false
 
 	}
@@ -117,10 +108,6 @@ func (e *EventConsumer) Send(msg string) bool {
 			Message: "Bad API Key",
 		}); err != nil {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
-		}
-
-		if err := e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
 		}
 
 		return false
@@ -136,10 +123,6 @@ func (e *EventConsumer) Send(msg string) bool {
 			Message: "Crossed Allowed Rate Limit",
 		}); err != nil {
 			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
-		}
-
-		if err := e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
 		}
 
 		return false
@@ -201,18 +184,35 @@ func (e *EventConsumer) Send(msg string) bool {
 func (e *EventConsumer) SendData(data interface{}) bool {
 	if err := e.Connection.WriteJSON(data); err != nil {
 		log.Printf("[!] Failed to deliver `event` data to client : %s\n", err.Error())
-
-		if err = e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
-			log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
-		}
-
-		if err = e.Connection.Close(); err != nil {
-			log.Printf("[!] Failed to close websocket connection : %s\n", err.Error())
-		}
-
 		return false
 	}
 
 	log.Printf("[+] Delivered `event` data to client\n")
 	return true
+}
+
+// Unsubscribe - Unsubscribe from event data publishing topic, to be called
+// when stopping to listen data being published on this pubsub channel
+// due to client has requested a unsubscription/ network connection got hampered
+func (e *EventConsumer) Unsubscribe() {
+
+	if e.PubSub == nil {
+		log.Printf("[!] Bad attempt to unsubscribe from `%s` topic\n", e.Request.Topic())
+		return
+	}
+
+	if err := e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
+		log.Printf("[!] Failed to unsubscribe from `%s` topic : %s\n", e.Request.Topic(), err.Error())
+		return
+	}
+
+	resp := &SubscriptionResponse{
+		Code:    1,
+		Message: fmt.Sprintf("Unsubscribed from `%s`", e.Request.Topic()),
+	}
+
+	if err := e.Connection.WriteJSON(resp); err != nil {
+		log.Printf("[!] Failed to deliver `%s` unsubscription confirmation to client : %s\n", e.Request.Topic(), err.Error())
+	}
+
 }
