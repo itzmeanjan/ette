@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -28,6 +29,7 @@ type TransactionConsumer struct {
 	Connection  *websocket.Conn
 	PubSub      *redis.PubSub
 	DB          *gorm.DB
+	Lock        *sync.Mutex
 }
 
 // Subscribe - Subscribe to `transaction` topic, under which all transaction related data to be published

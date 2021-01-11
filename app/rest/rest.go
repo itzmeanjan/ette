@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/foolin/goview"
@@ -1095,9 +1096,9 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			return
 		}
 
-		// keeping track of which topics this client has already subscribed to
-		// or unsubscrribed from
+		// Keeping track of which topics this client has subscribed to
 		topics := make(map[string]ps.Consumer)
+		lock := sync.Mutex{}
 
 		// When returning from this execution scope, unsubscribing client
 		// from all topics it might have subscribed to during it's life time
@@ -1126,7 +1127,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 		}()
 
-		// Communication with client handling logic
+		// Client communication handling logic
 		for {
 			var req ps.SubscriptionRequest
 
@@ -1174,27 +1175,35 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			switch req.Type {
 			case "subscribe":
 				switch req.Topic() {
+
 				case "block":
-					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req, _db, userAddress)
+					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
+
 				case "transaction":
-					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req, _db, userAddress)
+					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
+
 				case "event":
-					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req, _db, userAddress)
+					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
+
 				}
 			case "unsubscribe":
 				switch req.Topic() {
+
 				case "block":
 					if v, ok := topics[req.Name].(*ps.BlockConsumer); ok {
 						v.Request.Type = req.Type
 					}
+
 				case "transaction":
 					if v, ok := topics[req.Name].(*ps.TransactionConsumer); ok {
 						v.Request.Type = req.Type
 					}
+
 				case "event":
 					if v, ok := topics[req.Name].(*ps.EventConsumer); ok {
 						v.Request.Type = req.Type
 					}
+
 				}
 
 				delete(topics, req.Name)

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -29,6 +30,7 @@ type EventConsumer struct {
 	Connection  *websocket.Conn
 	PubSub      *redis.PubSub
 	DB          *gorm.DB
+	Lock        *sync.Mutex
 }
 
 // Subscribe - Event consumer is subscribing to `event` topic,
