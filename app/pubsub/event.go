@@ -92,6 +92,12 @@ func (e *EventConsumer) Send(msg string) bool {
 	user := db.GetUserFromAPIKey(e.DB, e.Request.APIKey)
 	if user == nil {
 
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		e.Lock.Lock()
+
 		if err := e.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
 			Message: "Bad API Key",
@@ -99,12 +105,20 @@ func (e *EventConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
 		}
 
+		e.Lock.Unlock()
+		// -- ends here
 		return false
 
 	}
 
 	if !user.Enabled {
 
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		e.Lock.Lock()
+
 		if err := e.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
 			Message: "Bad API Key",
@@ -112,6 +126,8 @@ func (e *EventConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
 		}
 
+		e.Lock.Unlock()
+		// -- ends here
 		return false
 
 	}
@@ -120,6 +136,12 @@ func (e *EventConsumer) Send(msg string) bool {
 	// if client has crossed it's allowed data delivery limit
 	if !db.IsUnderRateLimit(e.DB, e.UserAddress.Hex()) {
 
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		e.Lock.Lock()
+
 		if err := e.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
 			Message: "Crossed Allowed Rate Limit",
@@ -127,6 +149,8 @@ func (e *EventConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
 		}
 
+		e.Lock.Unlock()
+		// -- ends here
 		return false
 
 	}
@@ -184,6 +208,14 @@ func (e *EventConsumer) Send(msg string) bool {
 // If failed, we're going to remove subscription & close websocket
 // connection ( connection might be already closed though )
 func (e *EventConsumer) SendData(data interface{}) bool {
+
+	// -- Critical section of code begins
+	//
+	// Attempting to write to a network resource,
+	// shared among multiple go routines
+	e.Lock.Lock()
+	defer e.Lock.Unlock()
+
 	if err := e.Connection.WriteJSON(data); err != nil {
 		log.Printf("[!] Failed to deliver `event` data to client : %s\n", err.Error())
 		return false
@@ -212,6 +244,13 @@ func (e *EventConsumer) Unsubscribe() {
 		Code:    1,
 		Message: fmt.Sprintf("Unsubscribed from `%s`", e.Request.Topic()),
 	}
+
+	// -- Critical section of code begins
+	//
+	// Attempting to write to a network resource,
+	// shared among multiple go routines
+	e.Lock.Lock()
+	defer e.Lock.Unlock()
 
 	if err := e.Connection.WriteJSON(resp); err != nil {
 		log.Printf("[!] Failed to deliver `%s` unsubscription confirmation to client : %s\n", e.Request.Topic(), err.Error())

@@ -87,6 +87,12 @@ func (t *TransactionConsumer) Send(msg string) bool {
 	user := db.GetUserFromAPIKey(t.DB, t.Request.APIKey)
 	if user == nil {
 
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		t.Lock.Lock()
+
 		if err := t.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
 			Message: "Bad API Key",
@@ -94,12 +100,20 @@ func (t *TransactionConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
 		}
 
+		t.Lock.Unlock()
+		// -- ends here
 		return false
 
 	}
 
 	if !user.Enabled {
 
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		t.Lock.Lock()
+
 		if err := t.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
 			Message: "Bad API Key",
@@ -107,6 +121,8 @@ func (t *TransactionConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
 		}
 
+		t.Lock.Unlock()
+		// -- ends here
 		return false
 
 	}
@@ -115,6 +131,12 @@ func (t *TransactionConsumer) Send(msg string) bool {
 	// if client has crossed it's allowed data delivery limit
 	if !db.IsUnderRateLimit(t.DB, t.UserAddress.Hex()) {
 
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		t.Lock.Lock()
+
 		if err := t.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
 			Message: "Crossed Allowed Rate Limit",
@@ -122,6 +144,8 @@ func (t *TransactionConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
 		}
 
+		t.Lock.Unlock()
+		// -- ends here
 		return false
 
 	}
@@ -200,6 +224,14 @@ func (t *TransactionConsumer) Send(msg string) bool {
 // If failed, we're going to remove subscription & close websocket
 // connection ( connection might be already closed though )
 func (t *TransactionConsumer) SendData(data interface{}) bool {
+
+	// -- Critical section of code begins
+	//
+	// Attempting to write to a network resource,
+	// shared among multiple go routines
+	t.Lock.Lock()
+	defer t.Lock.Unlock()
+
 	if err := t.Connection.WriteJSON(data); err != nil {
 		log.Printf("[!] Failed to deliver `transaction` data to client : %s\n", err.Error())
 		return false
@@ -226,6 +258,13 @@ func (t *TransactionConsumer) Unsubscribe() {
 		Code:    1,
 		Message: fmt.Sprintf("Unsubscribed from `%s`", t.Request.Topic()),
 	}
+
+	// -- Critical section of code begins
+	//
+	// Attempting to write to a network resource,
+	// shared among multiple go routines
+	t.Lock.Lock()
+	defer t.Lock.Unlock()
 
 	if err := t.Connection.WriteJSON(resp); err != nil {
 		log.Printf("[!] Failed to deliver `%s` unsubscription confirmation to client : %s\n", t.Request.Topic(), err.Error())
