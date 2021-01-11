@@ -13,6 +13,7 @@ type Consumer interface {
 	Listen()
 	Send(msg string) bool
 	SendData(data interface{}) bool
+	Unsubscribe()
 }
 
 // NewBlockConsumer - Creating one new block data consumer, which will subscribe to block
