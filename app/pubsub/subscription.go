@@ -48,7 +48,7 @@ func (s *SubscriptionRequest) GetRegex() *regexp.Regexp {
 }
 
 // Topic - Get main topic name to which this client is subscribing to
-// i.e. {block, transaction}
+// i.e. {block, transaction, event}
 func (s *SubscriptionRequest) Topic() string {
 	if strings.HasPrefix(s.Name, "block") {
 		return "block"
