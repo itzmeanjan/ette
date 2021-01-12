@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/foolin/goview"
@@ -1095,11 +1096,38 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			return
 		}
 
-		// keeping track of which topics this client has already subscribed to
-		// or unsubscrribed from
+		// Keeping track of which topics this client has subscribed to
 		topics := make(map[string]ps.Consumer)
+		lock := sync.Mutex{}
 
-		// Communication with client handling logic
+		// When returning from this execution scope, unsubscribing client
+		// from all topics it might have subscribed to during it's life time
+		//
+		// Just attempting to do a graceful unsubscription
+		defer func() {
+
+			for _, v := range topics {
+
+				if v, ok := v.(*ps.BlockConsumer); ok {
+					v.Request.Type = "unsubscribe"
+					continue
+				}
+
+				if v, ok := v.(*ps.TransactionConsumer); ok {
+					v.Request.Type = "unsubscribe"
+					continue
+				}
+
+				if v, ok := v.(*ps.EventConsumer); ok {
+					v.Request.Type = "unsubscribe"
+					continue
+				}
+
+			}
+
+		}()
+
+		// Client communication handling logic
 		for {
 			var req ps.SubscriptionRequest
 
@@ -1112,17 +1140,33 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// failure message to client & close connection
 			user := req.GetUserFromAPIKey(_db)
 			if user == nil {
+				// -- Critical section of code begins
+				//
+				// Attempting to write to shared network connection
+				lock.Lock()
+
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
+
+				lock.Unlock()
+				// -- ends here
 				break
 			}
 
 			// Checking if user has kept this APIKey enabled or not
 			if !user.Enabled {
+				// -- Critical section of code begins
+				//
+				// Attempting to write to shared network connection
+				lock.Lock()
+
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
+
+				lock.Unlock()
+				// -- ends here
 				break
 			}
 
@@ -1130,47 +1174,71 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 			// Checking if client is under allowed rate limit or not
 			if !req.IsUnderRateLimit(_db, userAddress) {
+				// -- Critical section of code begins
+				//
+				// Attempting to write to shared network connection
+				lock.Lock()
+
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Crossed Allowed Rate Limit"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
+
+				lock.Unlock()
+				// -- ends here
 				break
 			}
 
 			// Validating incoming request on websocket subscription channel
 			if !req.Validate(topics) {
+				// -- Critical section of code begins
+				//
+				// Attempting to write to shared network connection
+				lock.Lock()
+
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
+
+				lock.Unlock()
+				// -- ends here
 				break
 			}
 
 			switch req.Type {
 			case "subscribe":
 				switch req.Topic() {
+
 				case "block":
-					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req, _db, userAddress)
+					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
+
 				case "transaction":
-					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req, _db, userAddress)
+					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
+
 				case "event":
-					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req, _db, userAddress)
+					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
+
 				}
 			case "unsubscribe":
 				switch req.Topic() {
+
 				case "block":
 					if v, ok := topics[req.Name].(*ps.BlockConsumer); ok {
 						v.Request.Type = req.Type
 					}
+
 				case "transaction":
 					if v, ok := topics[req.Name].(*ps.TransactionConsumer); ok {
 						v.Request.Type = req.Type
 					}
+
 				case "event":
 					if v, ok := topics[req.Name].(*ps.EventConsumer); ok {
 						v.Request.Type = req.Type
 					}
+
 				}
 
-				topics[req.Name] = nil
+				delete(topics, req.Name)
 			}
 		}
 	})
