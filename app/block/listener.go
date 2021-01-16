@@ -65,13 +65,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 					// blocks from highest block number it fetched last time to current network block number
 					// i.e. trying to fill up gap, which was caused when `ette` was offline
 					//
-					// But in reverse direction i.e. from 100 to 50, where `ette` fetched upto 50 last time & 100
-					// is latest block, got mined in network
-					//
-					// Yes it's going refetch 50, due to the fact, some portions of 50 might be missed in last try
-					// So, it'll check & decide whether persisting again is required or not
-					//
-					// This backward traversal mechanism gives us more recent blockchain happenings to cover
+					// Backward traversal mechanism gives us more recent blockchain happenings to cover
 					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, currentHighestBlockNumber, status)
 
 					// Starting go routine for fetching blocks `ette` failed to process in previous attempt
