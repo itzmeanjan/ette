@@ -69,7 +69,19 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 	//
 	// Job specification is provided in `Job` struct
 	job := func(wp *workerpool.WorkerPool, j *d.Job) {
+
 		wp.Submit(func() {
+
+			if !HasBlockFinalized(status, j.Block) {
+
+				log.Print(color.Yellow.Sprintf("[x] Finality not yet achieved for block %d [ Latest : %d ]", j.Block, status.GetLatestBlockNumber()))
+
+				// Pushing into unfinalized block queue, to be picked up only when
+				// finality for this block has been achieved
+				pushBlockNumberIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", j.Block))
+				return
+
+			}
 
 			FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, j.Status)
 
@@ -124,7 +136,19 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *data.R
 		//
 		// Job specification is provided in `Job` struct
 		job := func(wp *workerpool.WorkerPool, j *d.Job) {
+
 			wp.Submit(func() {
+
+				if !HasBlockFinalized(status, j.Block) {
+
+					log.Print(color.Yellow.Sprintf("[x] Finality not yet achieved for block %d [ Latest : %d ]", j.Block, status.GetLatestBlockNumber()))
+
+					// Pushing into unfinalized block queue, to be picked up only when
+					// finality for this block has been achieved
+					pushBlockNumberIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", j.Block))
+					return
+
+				}
 
 				// Worker fetches block by number from local storage
 				block := db.GetBlock(j.DB, j.Block)

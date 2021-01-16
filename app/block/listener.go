@@ -101,6 +101,9 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 				if checkIfOldestBlockNumberIsConfirmed(redis, status) {
 
 					oldest := popOldestBlockNumberFromUnfinalizedQueue(redis)
+
+					log.Print(color.Yellow.Sprintf("[*] Achieved finality on block %d, attempting to process [ Latest : %d ]", oldest, status.GetLatestBlockNumber()))
+
 					wp.Submit(func() {
 
 						FetchBlockByNumber(connection.RPC,

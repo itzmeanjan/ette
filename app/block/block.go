@@ -51,7 +51,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 		if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
-			log.Print(color.Yellow.Sprintf("[+] Finality not yet achieved for block %d with 0 tx(s) [ Latest : %d ]", packedBlock.Block.Number, status.GetLatestBlockNumber()))
+			log.Print(color.Yellow.Sprintf("[x] Finality not yet achieved for block %d with 0 tx(s) [ Latest : %d ]", packedBlock.Block.Number, status.GetLatestBlockNumber()))
 
 			// Pushing into unfinalized block queue, to be picked up only when
 			// finality for this block has been achieved
@@ -162,7 +162,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 	if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
-		log.Print(color.Yellow.Sprintf("[+] Finality not yet achieved for block %d with %d tx(s) [ Latest : %d ]", packedBlock.Block.Number, block.Transactions().Len(), status.GetLatestBlockNumber()))
+		log.Print(color.Yellow.Sprintf("[x] Finality not yet achieved for block %d with %d tx(s) [ Latest : %d ]", packedBlock.Block.Number, block.Transactions().Len(), status.GetLatestBlockNumber()))
 
 		// Pushing into unfinalized block queue, to be picked up only when
 		// finality for this block has been achieved
