@@ -43,6 +43,8 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		// If block doesn't contain any tx, we'll attempt to persist only block
 		if err := db.StoreBlock(_db, packedBlock, status); err != nil {
 
+			log.Print(color.Red.Sprintf("[+] Failed to process block %d with 0 tx(s) : %s", block.NumberU64(), err.Error()))
+
 			// If failed to persist, we'll put it in retry queue
 			pushBlockHashIntoRedisQueue(redis, block.Number().String())
 			return
@@ -140,6 +142,8 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 	// If block doesn't contain any tx, we'll attempt to persist only block
 	if err := db.StoreBlock(_db, packedBlock, status); err != nil {
+
+		log.Print(color.Red.Sprintf("[+] Failed to process block %d with %d tx(s) : %s", block.NumberU64(), block.Transactions().Len(), err.Error()))
 
 		// If failed to persist, we'll put it in retry queue
 		pushBlockHashIntoRedisQueue(redis, block.Number().String())

@@ -1,6 +1,8 @@
 package db
 
 import (
+	"errors"
+
 	d "github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
 )
@@ -18,6 +20,10 @@ import (
 // 👆 gives us performance improvement, also taste of atomic db operation
 // i.e. either whole block data is written or nothing is written
 func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) error {
+
+	if block == nil {
+		return errors.New("Empty block received while attempting to persist")
+	}
 
 	// -- Starting DB transaction
 	return dbWOTx.Transaction(func(dbWTx *gorm.DB) error {
