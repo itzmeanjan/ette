@@ -86,3 +86,15 @@ func checkBlockNumberExistenceInUnfinalizedQueue(redis *data.RedisInfo, blockNum
 
 	return true
 }
+
+// Returns redis backed unfinalized block number queue length
+func getUnfinalizedBlocksQueueLength(redis *data.RedisInfo) int64 {
+
+	blockCount, err := redis.Client.LLen(context.Background(), redis.UnfinalizedBlocksQueueName).Result()
+	if err != nil {
+		log.Printf(color.Red.Sprintf("[!] Failed to determine non-final block queue length : %s", err.Error()))
+	}
+
+	return blockCount
+
+}
