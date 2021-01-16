@@ -14,6 +14,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// HasBlockFinalized - Checking whether block under processing i.e. `number`
+// has `N` confirmations on top of it or not
+func HasBlockFinalized(status *d.StatusHolder, number uint64) bool {
+
+	return status.GetLatestBlockNumber()-cfg.GetBlockConfirmations() <= number
+
+}
+
 // ProcessBlockContent - Processes everything inside this block i.e. block data, tx data, event data
 func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, status *d.StatusHolder) {
 
