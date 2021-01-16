@@ -61,6 +61,8 @@ And that's `ette`
 
 > Note : Redis **v6.0.6** is required
 
+> Note : Setting password in Redis instance has been made optional from now on, though it's recommended.
+
 - Blockchain Node's both **HTTP & Websocket** connection URL required, because we'll be querying block, transaction, event log related data using HTTP interface & listening for block mining events in real time over Websocket.
 
 ## Installation 🛠
@@ -98,6 +100,10 @@ cd ette
     - For processing block(s)/ tx(s) concurrently, it'll create `ConcurrencyFactor * #-of CPUs on machine` workers, who will pick up jobs submitted to them.
     - If nothing is specified, it defaults to 1 & assuming you're running `ette` on machine with 4 CPUs, it'll spawn worker pool of size 4. But more number of jobs can be submitted, only 4 can be running at max.
     - 👆 being done for controlling concurrency level, by putting more control on user's hand.
+    - If you want to persist blocks in delayed fashion, you might consider setting `BlockConfirmations` to some _number > 0_.
+    - That will make `ette` think you're asking it 80 is latest block, which can be persisted in final data store, when latest mined block number is 100 & `BlockConfirmations` is set to 20.
+    - This option is **recommended** to be used, at least in production.
+    - Skipping `RedisPassword` is absolutely fine, if you don't want to use any password in Redis instance. [ **Not recommended** ]
 
 ```
 RPCUrl=https://<domain-name>
@@ -117,6 +123,7 @@ Production=yes
 EtteMode=3
 EtteGraphQLPlayGround=yes
 ConcurrencyFactor=2
+BlockConfirmations=20
 ```
 
 - Create another file in same directory, named `.plans.json`, whose content will look like 👇.
