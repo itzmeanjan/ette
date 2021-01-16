@@ -74,11 +74,11 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 
 			if !HasBlockFinalized(status, j.Block) {
 
-				log.Print(color.LightRed.Sprintf("[x] Non-final block %d [ Latest Block : %d | In Queue : %d ]", j.Block, status.GetLatestBlockNumber(), getUnfinalizedBlocksQueueLength(redis)))
+				log.Print(color.LightRed.Sprintf("[x] Non-final block %d [ Latest Block : %d | In Queue : %d ]", j.Block, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
 
 				// Pushing into unfinalized block queue, to be picked up only when
 				// finality for this block has been achieved
-				pushBlockNumberIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", j.Block))
+				PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", j.Block))
 				return
 
 			}
@@ -141,18 +141,18 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *data.R
 
 				if !HasBlockFinalized(status, j.Block) {
 
-					log.Print(color.LightRed.Sprintf("[x] Non-final block %d [ Latest Block : %d | In Queue : %d ]", j.Block, status.GetLatestBlockNumber(), getUnfinalizedBlocksQueueLength(redis)))
+					log.Print(color.LightRed.Sprintf("[x] Non-final block %d [ Latest Block : %d | In Queue : %d ]", j.Block, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
 
 					// Pushing into unfinalized block queue, to be picked up only when
 					// finality for this block has been achieved
-					pushBlockNumberIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", j.Block))
+					PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", j.Block))
 					return
 
 				}
 
 				// Worker fetches block by number from local storage
 				block := db.GetBlock(j.DB, j.Block)
-				if block == nil && !checkExistenceOfBlockNumberInRetryQueue(redis, fmt.Sprintf("%d", j.Block)) {
+				if block == nil && !CheckBlockInRetryQueue(redis, fmt.Sprintf("%d", j.Block)) {
 					// If not found, block fetching cycle is run, for this block
 					FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, j.Status)
 				}

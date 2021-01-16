@@ -71,7 +71,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 					// Starting go routine for fetching blocks `ette` failed to process in previous attempt
 					//
 					// Uses Redis backed queue for fetching pending block hash & retries
-					go retryBlockFetching(connection.RPC, _db, redis, status)
+					go RetryQueueManager(connection.RPC, _db, redis, status)
 
 					// Making sure on when next latest block header is received, it'll not
 					// start another syncer
@@ -98,11 +98,11 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 				//
 				// If yes, we're attempting to process it, because it has now
 				// achieved enough confirmations
-				if checkIfOldestBlockNumberIsConfirmed(redis, status) {
+				if CheckIfOldestBlockIsConfirmed(redis, status) {
 
-					oldest := popOldestBlockNumberFromUnfinalizedQueue(redis)
+					oldest := PopOldestBlockFromUnfinalizedQueue(redis)
 
-					log.Print(color.Yellow.Sprintf("[*] Attempting to process finalised block %d [ Latest Block : %d | In Queue : %d ]", oldest, status.GetLatestBlockNumber(), getUnfinalizedBlocksQueueLength(redis)))
+					log.Print(color.Yellow.Sprintf("[*] Attempting to process finalised block %d [ Latest Block : %d | In Queue : %d ]", oldest, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
 
 					wp.Submit(func() {
 

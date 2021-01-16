@@ -10,9 +10,9 @@ import (
 	"github.com/itzmeanjan/ette/app/data"
 )
 
-// Attempts to read left most element of Redis backed non-final block queue
+// GetOldestBlockFromUnfinalizedQueue - Attempts to read left most element of Redis backed non-final block queue
 // i.e. element at 0th index
-func getOldestBlockNumberFromUnfinalizedQueue(redis *data.RedisInfo) string {
+func GetOldestBlockFromUnfinalizedQueue(redis *data.RedisInfo) string {
 
 	blockNumber, err := redis.Client.LIndex(context.Background(), redis.UnfinalizedBlocksQueueName, 0).Result()
 	if err != nil {
@@ -23,11 +23,11 @@ func getOldestBlockNumberFromUnfinalizedQueue(redis *data.RedisInfo) string {
 
 }
 
-// Given oldest block number present in redis backed unfinalized queue
+// CheckIfOldestBlockIsConfirmed - Given oldest block number present in redis backed unfinalized queue
 // checks whether this block has yet reached finality or not
-func checkIfOldestBlockNumberIsConfirmed(redis *data.RedisInfo, status *data.StatusHolder) bool {
+func CheckIfOldestBlockIsConfirmed(redis *data.RedisInfo, status *data.StatusHolder) bool {
 
-	oldest := getOldestBlockNumberFromUnfinalizedQueue(redis)
+	oldest := GetOldestBlockFromUnfinalizedQueue(redis)
 	if oldest == "" {
 		return false
 	}
@@ -41,9 +41,9 @@ func checkIfOldestBlockNumberIsConfirmed(redis *data.RedisInfo, status *data.Sta
 
 }
 
-// Pops oldest block i.e. left most block from non-final block number
+// PopOldestBlockFromUnfinalizedQueue - Pops oldest block i.e. left most block from non-final block number
 // queue, which can be processed now
-func popOldestBlockNumberFromUnfinalizedQueue(redis *data.RedisInfo) uint64 {
+func PopOldestBlockFromUnfinalizedQueue(redis *data.RedisInfo) uint64 {
 
 	blockNumber, err := redis.Client.LPop(context.Background(), redis.UnfinalizedBlocksQueueName).Result()
 	if err != nil {
@@ -59,12 +59,12 @@ func popOldestBlockNumberFromUnfinalizedQueue(redis *data.RedisInfo) uint64 {
 
 }
 
-// Pushes block number, which has not yet reached finality, into
+// PushBlockIntoUnfinalizedQueue - Pushes block number, which has not yet reached finality, into
 // Redis backed queue, which will be poped out only when `N` block
 // confirmations achieved on top of it
-func pushBlockNumberIntoUnfinalizedQueue(redis *data.RedisInfo, blockNumber string) {
+func PushBlockIntoUnfinalizedQueue(redis *data.RedisInfo, blockNumber string) {
 	// Checking presence first & then deciding whether to add it or not
-	if !checkBlockNumberExistenceInUnfinalizedQueue(redis, blockNumber) {
+	if !CheckBlockInUnfinalizedQueue(redis, blockNumber) {
 
 		if _, err := redis.Client.RPush(context.Background(), redis.UnfinalizedBlocksQueueName, blockNumber).Result(); err != nil {
 			log.Print(color.Red.Sprintf("[!] Failed to push block %s into non-final block queue : %s", blockNumber, err.Error()))
@@ -73,13 +73,14 @@ func pushBlockNumberIntoUnfinalizedQueue(redis *data.RedisInfo, blockNumber stri
 	}
 }
 
-// Checks whether block number is already added in Redis backed unfinalized queue or not
+// CheckBlockInUnfinalizedQueue - Checks whether block number is already added in
+// Redis backed unfinalized queue or not
 //
 // If yes, it'll not be added again
 //
 // Note: this feature of checking index of value in redis queue,
 // was added in Redis v6.0.6 : https://redis.io/commands/lpos
-func checkBlockNumberExistenceInUnfinalizedQueue(redis *data.RedisInfo, blockNumber string) bool {
+func CheckBlockInUnfinalizedQueue(redis *data.RedisInfo, blockNumber string) bool {
 	if _, err := redis.Client.LPos(context.Background(), redis.UnfinalizedBlocksQueueName, blockNumber, _redis.LPosArgs{}).Result(); err != nil {
 		return false
 	}
@@ -87,8 +88,8 @@ func checkBlockNumberExistenceInUnfinalizedQueue(redis *data.RedisInfo, blockNum
 	return true
 }
 
-// Returns redis backed unfinalized block number queue length
-func getUnfinalizedBlocksQueueLength(redis *data.RedisInfo) int64 {
+// GetUnfinalizedQueueLength - Returns redis backed unfinalized block number queue length
+func GetUnfinalizedQueueLength(redis *data.RedisInfo) int64 {
 
 	blockCount, err := redis.Client.LLen(context.Background(), redis.UnfinalizedBlocksQueueName).Result()
 	if err != nil {
