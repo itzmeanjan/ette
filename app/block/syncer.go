@@ -74,7 +74,7 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 
 			if !HasBlockFinalized(status, j.Block) {
 
-				log.Print(color.Yellow.Sprintf("[x] Finality not yet achieved for block %d [ Latest : %d ]", j.Block, status.GetLatestBlockNumber()))
+				log.Print(color.Yellow.Sprintf("[x] Finality not yet achieved for block %d [ Latest : %d, In Queue : %d ]", j.Block, status.GetLatestBlockNumber(), getUnfinalizedBlocksQueueLength(redis)))
 
 				// Pushing into unfinalized block queue, to be picked up only when
 				// finality for this block has been achieved
@@ -141,7 +141,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *data.R
 
 				if !HasBlockFinalized(status, j.Block) {
 
-					log.Print(color.Yellow.Sprintf("[x] Finality not yet achieved for block %d [ Latest : %d ]", j.Block, status.GetLatestBlockNumber()))
+					log.Print(color.Yellow.Sprintf("[x] Finality not yet achieved for block %d [ Latest : %d, In Queue : %d ]", j.Block, status.GetLatestBlockNumber(), getUnfinalizedBlocksQueueLength(redis)))
 
 					// Pushing into unfinalized block queue, to be picked up only when
 					// finality for this block has been achieved
