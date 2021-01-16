@@ -92,27 +92,54 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// so that it gets processed immediately
 			func(blockHash common.Hash, blockNumber string) {
 
-				// Before submitting new block processing job
-				// checking whether there exists any block in unfinalized
-				// block queue or not
+				// How many times inside for loop
+				// we attempted to pop oldest block
+				// and submit a processing request
+				var attemptCount int64
+				// How many times at max we want to pop
+				// oldest block number from unfinalized queue
 				//
-				// If yes, we're attempting to process it, because it has now
-				// achieved enough confirmations
-				if CheckIfOldestBlockIsConfirmed(redis, status) {
+				// We always want to maintain queue length at confirmations we want ( as set in .env file ) 👇
+				expectedAttemptCount := GetUnfinalizedQueueLength(redis) - int64(cfg.GetBlockConfirmations())
 
-					oldest := PopOldestBlockFromUnfinalizedQueue(redis)
+				// Attempting to submit all blocks to job processor queue
+				// if more blocks are present in non-final queue, than actually
+				// should be
+				for GetUnfinalizedQueueLength(redis) > int64(cfg.GetBlockConfirmations()) {
 
-					log.Print(color.Yellow.Sprintf("[*] Attempting to process finalised block %d [ Latest Block : %d | In Queue : %d ]", oldest, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+					// Before submitting new block processing job
+					// checking whether there exists any block in unfinalized
+					// block queue or not
+					//
+					// If yes, we're attempting to process it, because it has now
+					// achieved enough confirmations
+					if CheckIfOldestBlockIsConfirmed(redis, status) {
 
-					wp.Submit(func() {
+						oldest := PopOldestBlockFromUnfinalizedQueue(redis)
 
-						FetchBlockByNumber(connection.RPC,
-							oldest,
-							_db,
-							redis,
-							status)
+						log.Print(color.Yellow.Sprintf("[*] Attempting to process finalised block %d [ Latest Block : %d | In Queue : %d ]", oldest, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
 
-					})
+						wp.Submit(func() {
+
+							FetchBlockByNumber(connection.RPC,
+								oldest,
+								_db,
+								redis,
+								status)
+
+						})
+
+					}
+
+					attemptCount++
+					// If first X block entries in unfinalised queue
+					// are not yet ready to be processed i.e. not finalised
+					// then we're exiting from this loop
+					//
+					// Otherwise we'll endup looping here, `ette` will come into halt
+					if attemptCount >= expectedAttemptCount {
+						break
+					}
 
 				}
 
