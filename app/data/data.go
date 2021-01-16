@@ -21,6 +21,7 @@ type SyncState struct {
 	StartedAt           time.Time
 	BlockCountAtStartUp uint64
 	NewBlocksInserted   uint64
+	LatestBlockNumber   uint64
 }
 
 // BlockCountInDB - Blocks currently present in database
@@ -94,6 +95,27 @@ func (s *StatusHolder) Done() uint64 {
 	defer s.Mutex.RUnlock()
 
 	return s.State.Done
+
+}
+
+// GetLatestBlockNumber - Attempting to safely read latest block number seen
+func (s *StatusHolder) GetLatestBlockNumber() uint64 {
+
+	s.Mutex.RLock()
+	defer s.Mutex.RUnlock()
+
+	return s.State.LatestBlockNumber
+
+}
+
+// SetLatestBlockNumber - Attempting to safely write latest block number
+func (s *StatusHolder) SetLatestBlockNumber(num uint64) {
+
+	s.Mutex.Lock()
+	defer s.Mutex.Unlock()
+
+	s.State.LatestBlockNumber = num
+	return
 
 }
 
