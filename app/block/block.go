@@ -18,7 +18,7 @@ import (
 // has `N` confirmations on top of it or not
 func HasBlockFinalized(status *d.StatusHolder, number uint64) bool {
 
-	return status.GetLatestBlockNumber()-cfg.GetBlockConfirmations() <= number
+	return status.GetLatestBlockNumber()-cfg.GetBlockConfirmations() >= number
 
 }
 
