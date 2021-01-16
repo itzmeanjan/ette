@@ -55,17 +55,17 @@ func (b *Blocks) SimilarTo(_b *Blocks) bool {
 // Transactions - Blockchain transaction holder table model
 type Transactions struct {
 	Hash      string `gorm:"column:hash;type:char(66);primaryKey"`
-	From      string `gorm:"column:from;type:char(42);not null"`
-	To        string `gorm:"column:to;type:char(42)"`
-	Contract  string `gorm:"column:contract;type:char(42)"`
+	From      string `gorm:"column:from;type:char(42);not null;index"`
+	To        string `gorm:"column:to;type:char(42);index"`
+	Contract  string `gorm:"column:contract;type:char(42);index"`
 	Value     string `gorm:"column:value;type:varchar"`
 	Data      []byte `gorm:"column:data;type:bytea"`
 	Gas       uint64 `gorm:"column:gas;type:bigint;not null"`
 	GasPrice  string `gorm:"column:gasprice;type:varchar;not null"`
 	Cost      string `gorm:"column:cost;type:varchar;not null"`
-	Nonce     uint64 `gorm:"column:nonce;type:bigint;not null"`
+	Nonce     uint64 `gorm:"column:nonce;type:bigint;not null;index"`
 	State     uint64 `gorm:"column:state;type:smallint;not null"`
-	BlockHash string `gorm:"column:blockhash;type:char(66);not null"`
+	BlockHash string `gorm:"column:blockhash;type:char(66);not null;index"`
 	Events    Events `gorm:"foreignKey:txhash"`
 }
 
@@ -76,12 +76,12 @@ func (Transactions) TableName() string {
 
 // Events - Events emitted from smart contracts to be held in this table
 type Events struct {
-	Origin          string         `gorm:"column:origin;type:char(42);not null"`
+	BlockHash       string         `gorm:"column:blockhash;type:char(66);not null;primaryKey"`
 	Index           uint           `gorm:"column:index;type:integer;not null;primaryKey"`
+	Origin          string         `gorm:"column:origin;type:char(42);not null;index"`
 	Topics          pq.StringArray `gorm:"column:topics;type:text[];not null"`
 	Data            []byte         `gorm:"column:data;type:bytea"`
-	TransactionHash string         `gorm:"column:txhash;type:char(66);not null"`
-	BlockHash       string         `gorm:"column:blockhash;type:char(66);not null;primaryKey"`
+	TransactionHash string         `gorm:"column:txhash;type:char(66);not null;index"`
 }
 
 // TableName - Overriding default table name
@@ -136,7 +136,7 @@ func (u *Users) ToJSON() []byte {
 type DeliveryHistory struct {
 	ID         uint64    `gorm:"column:id;type:bigserial;primaryKey"`
 	Client     string    `gorm:"column:client;type:char(42);not null;index"`
-	TimeStamp  time.Time `gorm:"column:ts;type:timestamp;not null"`
+	TimeStamp  time.Time `gorm:"column:ts;type:timestamp;not null;index:,sort:asc"`
 	EndPoint   string    `gorm:"column:endpoint;type:varchar(100);not null"`
 	DataLength uint64    `gorm:"column:datalength;type:bigint;not null"`
 }
@@ -165,7 +165,7 @@ func (SubscriptionPlans) TableName() string {
 // and 	`address` refers to address in users table
 type SubscriptionDetails struct {
 	Address          string `gorm:"column:address;type:char(42);primaryKey" json:"address"`
-	SubscriptionPlan uint32 `gorm:"column:subscriptionplan;type:int;not null" json:"subscriptionPlan"`
+	SubscriptionPlan uint32 `gorm:"column:subscriptionplan;type:int;not null;index" json:"subscriptionPlan"`
 }
 
 // TableName - Overriding default table name
