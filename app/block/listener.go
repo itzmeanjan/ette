@@ -102,7 +102,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 					oldest := popOldestBlockNumberFromUnfinalizedQueue(redis)
 
-					log.Print(color.Yellow.Sprintf("[*] Achieved finality on block %d, attempting to process [ Latest Block : %d, In Queue : %d ]", oldest, status.GetLatestBlockNumber(), getUnfinalizedBlocksQueueLength(redis)))
+					log.Print(color.Yellow.Sprintf("[*] Attempting to process finalised block %d [ Latest Block : %d | In Queue : %d ]", oldest, status.GetLatestBlockNumber(), getUnfinalizedBlocksQueueLength(redis)))
 
 					wp.Submit(func() {
 

@@ -51,7 +51,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 		if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
-			log.Print(color.Yellow.Sprintf("[x] Finality not yet achieved for block %d with 0 tx(s) [ Latest Block : %d, In Queue : %d ]", packedBlock.Block.Number, status.GetLatestBlockNumber(), getUnfinalizedBlocksQueueLength(redis)))
+			log.Print(color.LightRed.Sprintf("[x] Non-final block %d with 0 tx(s) [ Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, status.GetLatestBlockNumber(), getUnfinalizedBlocksQueueLength(redis)))
 
 			// Pushing into unfinalized block queue, to be picked up only when
 			// finality for this block has been achieved
@@ -66,7 +66,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 			log.Print(color.Red.Sprintf("[+] Failed to process block %d with 0 tx(s) : %s", block.NumberU64(), err.Error()))
 
 			// If failed to persist, we'll put it in retry queue
-			pushBlockHashIntoRedisQueue(redis, block.Number().String())
+			pushBlockNumberIntoRetryQueue(redis, block.Number().String())
 			return
 
 		}
@@ -150,7 +150,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	if !(result.Failure == 0) {
 
 		// If failed to persist, we'll put it in retry queue
-		pushBlockHashIntoRedisQueue(redis, block.Number().String())
+		pushBlockNumberIntoRetryQueue(redis, block.Number().String())
 		return
 
 	}
@@ -162,7 +162,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 	if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
-		log.Print(color.Yellow.Sprintf("[x] Finality not yet achieved for block %d with %d tx(s) [ Latest Block : %d, In Queue : %d ]", packedBlock.Block.Number, block.Transactions().Len(), status.GetLatestBlockNumber(), getUnfinalizedBlocksQueueLength(redis)))
+		log.Print(color.LightRed.Sprintf("[x] Non-final block %d with %d tx(s) [ Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, block.Transactions().Len(), status.GetLatestBlockNumber(), getUnfinalizedBlocksQueueLength(redis)))
 
 		// Pushing into unfinalized block queue, to be picked up only when
 		// finality for this block has been achieved
@@ -177,7 +177,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		log.Print(color.Red.Sprintf("[+] Failed to process block %d with %d tx(s) : %s", block.NumberU64(), block.Transactions().Len(), err.Error()))
 
 		// If failed to persist, we'll put it in retry queue
-		pushBlockHashIntoRedisQueue(redis, block.Number().String())
+		pushBlockNumberIntoRetryQueue(redis, block.Number().String())
 		return
 
 	}

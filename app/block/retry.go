@@ -69,9 +69,9 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.Redi
 
 // Pushes failed to fetch block number at end of Redis queue
 // given it has not already been added
-func pushBlockHashIntoRedisQueue(redis *data.RedisInfo, blockNumber string) {
+func pushBlockNumberIntoRetryQueue(redis *data.RedisInfo, blockNumber string) {
 	// Checking presence first & then deciding whether to add it or not
-	if !checkExistenceOfBlockNumberInRedisQueue(redis, blockNumber) {
+	if !checkExistenceOfBlockNumberInRetryQueue(redis, blockNumber) {
 
 		if _, err := redis.Client.RPush(context.Background(), redis.BlockRetryQueueName, blockNumber).Result(); err != nil {
 			log.Print(color.Red.Sprintf("[!] Failed to push block %s into retry queue : %s", blockNumber, err.Error()))
@@ -86,7 +86,7 @@ func pushBlockHashIntoRedisQueue(redis *data.RedisInfo, blockNumber string) {
 //
 // Note: this feature of checking index of value in redis queue,
 // was added in Redis v6.0.6 : https://redis.io/commands/lpos
-func checkExistenceOfBlockNumberInRedisQueue(redis *data.RedisInfo, blockNumber string) bool {
+func checkExistenceOfBlockNumberInRetryQueue(redis *data.RedisInfo, blockNumber string) bool {
 	if _, err := redis.Client.LPos(context.Background(), redis.BlockRetryQueueName, blockNumber, _redis.LPosArgs{}).Result(); err != nil {
 		return false
 	}
