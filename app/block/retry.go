@@ -73,8 +73,8 @@ func pushBlockHashIntoRedisQueue(redis *data.RedisInfo, blockNumber string) {
 	// Checking presence first & then deciding whether to add it or not
 	if !checkExistenceOfBlockNumberInRedisQueue(redis, blockNumber) {
 
-		if err := redis.Client.RPush(context.Background(), redis.BlockRetryQueueName, blockNumber).Err(); err != nil {
-			log.Print(color.Red.Sprintf("[!] Failed to push block %s : %s", blockNumber, err.Error()))
+		if _, err := redis.Client.RPush(context.Background(), redis.BlockRetryQueueName, blockNumber).Result(); err != nil {
+			log.Print(color.Red.Sprintf("[!] Failed to push block %s into retry queue : %s", blockNumber, err.Error()))
 		}
 
 	}
@@ -99,7 +99,7 @@ func getRetryQueueLength(redis *data.RedisInfo) int64 {
 
 	blockCount, err := redis.Client.LLen(context.Background(), redis.BlockRetryQueueName).Result()
 	if err != nil {
-		log.Printf(color.Red.Sprintf("[!] Failed to determine Redis queue length : %s", err.Error()))
+		log.Printf(color.Red.Sprintf("[!] Failed to determine retry queue length : %s", err.Error()))
 	}
 
 	return blockCount

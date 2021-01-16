@@ -92,6 +92,27 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// so that it gets processed immediately
 			func(blockHash common.Hash, blockNumber string) {
 
+				// Before submitting new block processing job
+				// checking whether there exists any block in unfinalized
+				// block queue or not
+				//
+				// If yes, we're attempting to process it, because it has now
+				// achieved enough confirmations
+				if checkIfOldestBlockNumberIsConfirmed(redis, status) {
+
+					oldest := popOldestBlockNumberFromUnfinalizedQueue(redis)
+					wp.Submit(func() {
+
+						FetchBlockByNumber(connection.RPC,
+							oldest,
+							_db,
+							redis,
+							status)
+
+					})
+
+				}
+
 				wp.Submit(func() {
 
 					FetchBlockByHash(connection.RPC,
