@@ -48,6 +48,11 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			log.Fatal(color.Red.Sprintf("[!] Listener stopped : %s", err.Error()))
 			break
 		case header := <-headerChan:
+
+			// Latest block number seen, is getting safely updated, as
+			// soon as new block mined data gets propagated to network
+			status.SetLatestBlockNumber(header.Number.Uint64())
+
 			if first {
 
 				// Starting now, to be used for calculating system performance, uptime etc.
