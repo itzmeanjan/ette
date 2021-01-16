@@ -24,7 +24,7 @@ import (
 // Keeps repeating
 func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, status *d.StatusHolder) {
 	sleep := func() {
-		time.Sleep(time.Duration(500) * time.Millisecond)
+		time.Sleep(time.Duration(1000) * time.Millisecond)
 	}
 
 	// Creating worker pool and submitting jobs as soon as it's determined
