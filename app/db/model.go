@@ -1,7 +1,6 @@
 package db
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
 	"time"
@@ -75,35 +74,6 @@ func (Transactions) TableName() string {
 	return "transactions"
 }
 
-// SimilarTo - Checking equality of two transactions
-func (t *Transactions) SimilarTo(_t *Transactions) bool {
-	if _t.To == "" {
-		return t.Hash == _t.Hash &&
-			t.From == _t.From &&
-			t.Contract == _t.Contract &&
-			t.Value == _t.Value &&
-			bytes.Compare(t.Data, _t.Data) == 0 &&
-			t.Gas == _t.Gas &&
-			t.GasPrice == _t.GasPrice &&
-			t.Cost == _t.Cost &&
-			t.Nonce == _t.Nonce &&
-			t.State == _t.State &&
-			t.BlockHash == _t.BlockHash
-	}
-
-	return t.Hash == _t.Hash &&
-		t.From == _t.From &&
-		t.To == _t.To &&
-		t.Value == _t.Value &&
-		bytes.Compare(t.Data, _t.Data) == 0 &&
-		t.Gas == _t.Gas &&
-		t.GasPrice == _t.GasPrice &&
-		t.Cost == _t.Cost &&
-		t.Nonce == _t.Nonce &&
-		t.State == _t.State &&
-		t.BlockHash == _t.BlockHash
-}
-
 // Events - Events emitted from smart contracts to be held in this table
 type Events struct {
 	Origin          string         `gorm:"column:origin;type:char(42);not null"`
@@ -117,34 +87,6 @@ type Events struct {
 // TableName - Overriding default table name
 func (Events) TableName() string {
 	return "events"
-}
-
-// SimilarTo - Checking equality of two events
-func (e *Events) SimilarTo(_e *Events) bool {
-
-	// Given two string arrays, it'll match it's elements by index & if all of them are same
-	// returns boolean result
-	compareStringArrays := func(arrayOne pq.StringArray, arrayTwo pq.StringArray) bool {
-		matched := true
-
-		for k, v := range arrayOne {
-
-			if v != arrayTwo[k] {
-				matched = false
-				break
-			}
-
-		}
-
-		return matched
-	}
-
-	return e.Origin == _e.Origin &&
-		e.Index == _e.Index &&
-		compareStringArrays(e.Topics, _e.Topics) &&
-		bytes.Compare(e.Data, _e.Data) == 0 &&
-		e.TransactionHash == _e.TransactionHash &&
-		e.BlockHash == _e.BlockHash
 }
 
 // PackedTransaction - All data that is stored in a tx, to be passed from
