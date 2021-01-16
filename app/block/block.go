@@ -1,6 +1,7 @@
 package block
 
 import (
+	"fmt"
 	"log"
 	"runtime"
 
@@ -47,6 +48,17 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		//
 		// This is what we just published on pubsub channel
 		packedBlock := pubsubWorker(nil)
+
+		if !HasBlockFinalized(status, packedBlock.Block.Number) {
+
+			log.Print(color.Yellow.Sprintf("[+] Finality not yet achieved for block %d with 0 tx(s) [ Latest : %d ]", packedBlock.Block.Number, status.GetLatestBlockNumber()))
+
+			// Pushing into unfinalized block queue, to be picked up only when
+			// finality for this block has been achieved
+			pushBlockNumberIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", packedBlock.Block.Number))
+			return
+
+		}
 
 		// If block doesn't contain any tx, we'll attempt to persist only block
 		if err := db.StoreBlock(_db, packedBlock, status); err != nil {
@@ -147,6 +159,17 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	//
 	// This is what we just published on pubsub channel
 	packedBlock := pubsubWorker(packedTxs)
+
+	if !HasBlockFinalized(status, packedBlock.Block.Number) {
+
+		log.Print(color.Yellow.Sprintf("[+] Finality not yet achieved for block %d with %d tx(s) [ Latest : %d ]", packedBlock.Block.Number, block.Transactions().Len(), status.GetLatestBlockNumber()))
+
+		// Pushing into unfinalized block queue, to be picked up only when
+		// finality for this block has been achieved
+		pushBlockNumberIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", packedBlock.Block.Number))
+		return
+
+	}
 
 	// If block doesn't contain any tx, we'll attempt to persist only block
 	if err := db.StoreBlock(_db, packedBlock, status); err != nil {
