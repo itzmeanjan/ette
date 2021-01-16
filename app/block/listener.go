@@ -92,16 +92,6 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// so that it gets processed immediately
 			func(blockHash common.Hash, blockNumber string) {
 
-				// How many times inside for loop
-				// we attempted to pop oldest block
-				// and submit a processing request
-				var attemptCount int64
-				// How many times at max we want to pop
-				// oldest block number from unfinalized queue
-				//
-				// We always want to maintain queue length at confirmations we want ( as set in .env file ) 👇
-				expectedAttemptCount := GetUnfinalizedQueueLength(redis) - int64(cfg.GetBlockConfirmations())
-
 				// Attempting to submit all blocks to job processor queue
 				// if more blocks are present in non-final queue, than actually
 				// should be
@@ -129,15 +119,9 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 						})
 
-					}
-
-					attemptCount++
-					// If first X block entries in unfinalised queue
-					// are not yet ready to be processed i.e. not finalised
-					// then we're exiting from this loop
-					//
-					// Otherwise we'll endup looping here, `ette` will come into halt
-					if attemptCount >= expectedAttemptCount {
+					} else {
+						// If oldest block is not finalized, no meaning
+						// staying here, we'll revisit it some time in future
 						break
 					}
 
