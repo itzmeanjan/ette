@@ -63,8 +63,9 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 func Run(configFile, subscriptionPlansFile string) {
 	_connection, _redisClient, _db, _status := bootstrap(configFile, subscriptionPlansFile)
 	_redisInfo := d.RedisInfo{
-		Client:    _redisClient,
-		QueueName: "blocks",
+		Client:                     _redisClient,
+		BlockRetryQueueName:        "blocks_in_retry_queue",
+		UnfinalizedBlocksQueueName: "unfinalized_blocks",
 	}
 
 	// Attempting to listen to Ctrl+C signal

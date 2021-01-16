@@ -36,7 +36,7 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.Redi
 		sleep()
 
 		// Popping oldest element from Redis queue
-		blockNumber, err := redis.Client.LPop(context.Background(), redis.QueueName).Result()
+		blockNumber, err := redis.Client.LPop(context.Background(), redis.BlockRetryQueueName).Result()
 		if err != nil {
 			continue
 		}
@@ -73,7 +73,7 @@ func pushBlockHashIntoRedisQueue(redis *data.RedisInfo, blockNumber string) {
 	// Checking presence first & then deciding whether to add it or not
 	if !checkExistenceOfBlockNumberInRedisQueue(redis, blockNumber) {
 
-		if err := redis.Client.RPush(context.Background(), redis.QueueName, blockNumber).Err(); err != nil {
+		if err := redis.Client.RPush(context.Background(), redis.BlockRetryQueueName, blockNumber).Err(); err != nil {
 			log.Print(color.Red.Sprintf("[!] Failed to push block %s : %s", blockNumber, err.Error()))
 		}
 
@@ -87,7 +87,7 @@ func pushBlockHashIntoRedisQueue(redis *data.RedisInfo, blockNumber string) {
 // Note: this feature of checking index of value in redis queue,
 // was added in Redis v6.0.6 : https://redis.io/commands/lpos
 func checkExistenceOfBlockNumberInRedisQueue(redis *data.RedisInfo, blockNumber string) bool {
-	if _, err := redis.Client.LPos(context.Background(), redis.QueueName, blockNumber, _redis.LPosArgs{}).Result(); err != nil {
+	if _, err := redis.Client.LPos(context.Background(), redis.BlockRetryQueueName, blockNumber, _redis.LPosArgs{}).Result(); err != nil {
 		return false
 	}
 
@@ -97,7 +97,7 @@ func checkExistenceOfBlockNumberInRedisQueue(redis *data.RedisInfo, blockNumber 
 // Returns redis backed retry queue length
 func getRetryQueueLength(redis *data.RedisInfo) int64 {
 
-	blockCount, err := redis.Client.LLen(context.Background(), redis.QueueName).Result()
+	blockCount, err := redis.Client.LLen(context.Background(), redis.BlockRetryQueueName).Result()
 	if err != nil {
 		log.Printf(color.Red.Sprintf("[!] Failed to determine Redis queue length : %s", err.Error()))
 	}

@@ -100,8 +100,10 @@ func (s *StatusHolder) Done() uint64 {
 // RedisInfo - Holds redis related information in this struct, to be used
 // when passing to functions as argument
 type RedisInfo struct {
-	Client    *redis.Client // using this object `ette` will talk to Redis
-	QueueName string        // retry queue name, for storing block numbers
+	Client                     *redis.Client // using this object `ette` will talk to Redis
+	BlockRetryQueueName        string        // retry queue name, for storing block numbers
+	UnfinalizedBlocksQueueName string        // stores unfinalized block numbers, processes
+	// them later after reaching finality ( as set by deployer of `ette` )
 }
 
 // ResultStatus - Keeps track of how many operations went successful
