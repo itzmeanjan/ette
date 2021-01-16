@@ -35,7 +35,11 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 		Websocket: getClient(false),
 	}
 
-	_redisClient := getPubSubClient()
+	_redisClient := getRedisClient()
+
+	if _redisClient == nil {
+		log.Fatalf("[!] Failed to connect to Redis Server\n")
+	}
 
 	if err := _redisClient.FlushAll(context.Background()).Err(); err != nil {
 		log.Printf("[!] Failed to flush all keys from redis : %s\n", err.Error())
