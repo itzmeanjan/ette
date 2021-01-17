@@ -75,3 +75,22 @@ func GetBlockNumberRange() uint64 {
 	return parsedBlockRange
 
 }
+
+// GetTimeRange - Returns what's the max time span that can be used while performing query
+// from client side, in terms of second
+func GetTimeRange() uint64 {
+
+	timeRange := Get("TimeRange")
+	if timeRange == "" {
+		return 3600
+	}
+
+	parsedTimeRange, err := strconv.ParseUint(timeRange, 10, 64)
+	if err != nil {
+		log.Printf("[!] Failed to parse time range : %s\n", err.Error())
+		return 3600
+	}
+
+	return parsedTimeRange
+
+}
