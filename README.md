@@ -104,6 +104,8 @@ cd ette
     - That will make `ette` think you're asking it 80 is latest block, which can be persisted in final data store, when latest mined block number is 100 & `BlockConfirmations` is set to 20.
     - This option is **recommended** to be used, at least in production.
     - Skipping `RedisPassword` is absolutely fine, if you don't want to use any password in Redis instance. [ **Not recommended** ]
+    - For range based queries `BlockRange` can be set to limit how many blocks can be queried by client in a single go. Default value 100.
+    - For time span based queries `TimeRange` can be set to put limit on max time span _( in terms of second )_, can be used by clients. Default value 3600 i.e. 1 hour.
 
 ```
 RPCUrl=https://<domain-name>
@@ -124,6 +126,8 @@ EtteMode=3
 EtteGraphQLPlayGround=yes
 ConcurrencyFactor=2
 BlockConfirmations=20
+BlockRange=1000
+TimeRange=21600
 ```
 
 - Create another file in same directory, named `.plans.json`, whose content will look like 👇.
