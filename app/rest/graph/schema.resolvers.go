@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	cfg "github.com/itzmeanjan/ette/app/config"
 	_db "github.com/itzmeanjan/ette/app/db"
 	"github.com/itzmeanjan/ette/app/rest/graph/generated"
 	"github.com/itzmeanjan/ette/app/rest/graph/model"
@@ -33,7 +34,7 @@ func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*mode
 }
 
 func (r *queryResolver) BlocksByNumberRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
-	_from, _to, err := rangeChecker(from, to, 10)
+	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -42,7 +43,7 @@ func (r *queryResolver) BlocksByNumberRange(ctx context.Context, from string, to
 }
 
 func (r *queryResolver) BlocksByTimeRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
-	_from, _to, err := rangeChecker(from, to, 60)
+	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -80,7 +81,7 @@ func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 100)
+	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -93,7 +94,7 @@ func (r *queryResolver) TransactionsFromAccountByTimeRange(ctx context.Context, 
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 600)
+	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -106,7 +107,7 @@ func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, 
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 100)
+	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -119,7 +120,7 @@ func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, ac
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 600)
+	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -136,7 +137,7 @@ func (r *queryResolver) TransactionsBetweenAccountsByNumberRange(ctx context.Con
 		return nil, errors.New("Bad To Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 100)
+	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -153,7 +154,7 @@ func (r *queryResolver) TransactionsBetweenAccountsByTimeRange(ctx context.Conte
 		return nil, errors.New("Bad To Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 600)
+	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -166,7 +167,7 @@ func (r *queryResolver) ContractsCreatedFromAccountByNumberRange(ctx context.Con
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 100)
+	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -179,7 +180,7 @@ func (r *queryResolver) ContractsCreatedFromAccountByTimeRange(ctx context.Conte
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 600)
+	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -205,7 +206,7 @@ func (r *queryResolver) EventsFromContractByNumberRange(ctx context.Context, con
 		return nil, errors.New("Bad Contract Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 10)
+	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -218,7 +219,7 @@ func (r *queryResolver) EventsFromContractByTimeRange(ctx context.Context, contr
 		return nil, errors.New("Bad Contract Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 60)
+	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -247,7 +248,7 @@ func (r *queryResolver) EventsFromContractWithTopicsByNumberRange(ctx context.Co
 		return nil, errors.New("Bad Contract Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 10)
+	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -260,7 +261,7 @@ func (r *queryResolver) EventsFromContractWithTopicsByTimeRange(ctx context.Cont
 		return nil, errors.New("Bad Contract Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, 60)
+	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}

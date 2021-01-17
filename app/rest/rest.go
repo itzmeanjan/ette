@@ -584,7 +584,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 			if fromBlock != "" && toBlock != "" {
 
-				_from, _to, err := rangeChecker(fromBlock, toBlock, 10)
+				_from, _to, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -610,7 +610,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 			if fromTime != "" && toTime != "" {
 
-				_from, _to, err := rangeChecker(fromTime, toTime, 60)
+				_from, _to, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -702,7 +702,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// ( i.e. deployer ) with in given block number range
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(deployer, "0x") && len(deployer) == 42 {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -726,7 +726,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// ( i.e. deployer ) with in given time frame
 			if fromTime != "" && toTime != "" && strings.HasPrefix(deployer, "0x") && len(deployer) == 42 {
 
-				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -750,7 +750,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// between that pair, where `from` & `to` fields are fixed
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -774,7 +774,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// between that pair, where `from` & `to` fields are fixed
 			if fromTime != "" && toTime != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
 
-				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -798,7 +798,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// from account
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -822,7 +822,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// from this account in that given time span
 			if fromTime != "" && toTime != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
 
-				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -846,7 +846,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// to this account in that block range
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 100)
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -870,7 +870,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// to this account in that given time span
 			if fromTime != "" && toTime != "" && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
 
-				_fromTime, _toTime, err := rangeChecker(fromBlock, toBlock, 600)
+				_fromTime, _toTime, err := rangeChecker(fromBlock, toBlock, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -981,7 +981,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// events satisfying criteria
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 && ((strings.HasPrefix(topic0, "0x") && len(topic0) == 66) || (strings.HasPrefix(topic1, "0x") && len(topic1) == 66) || (strings.HasPrefix(topic2, "0x") && len(topic2) == 66) || (strings.HasPrefix(topic3, "0x") && len(topic3) == 66)) {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 10)
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -1005,7 +1005,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// events satisfying criteria
 			if fromTime != "" && toTime != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 && ((strings.HasPrefix(topic0, "0x") && len(topic0) == 66) || (strings.HasPrefix(topic1, "0x") && len(topic1) == 66) || (strings.HasPrefix(topic2, "0x") && len(topic2) == 66) || (strings.HasPrefix(topic3, "0x") && len(topic3) == 66)) {
 
-				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -1028,7 +1028,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// Given block number range & contract address, finds out all events emitted by this contract
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, 10)
+				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -1052,7 +1052,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// events emitted by this contract during time span
 			if fromTime != "" && toTime != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
 
-				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, 600)
+				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
