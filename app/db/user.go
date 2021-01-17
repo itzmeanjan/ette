@@ -121,6 +121,6 @@ func IsUnderRateLimit(_db *gorm.DB, userAddress string) bool {
 		return false
 	}
 
-	// 50k times data delivered to client in a day
-	return count < 50000
+	// Compare it with allowed rate count per 24 hours, of plan user is subscribed to
+	return count < int64(GetAllowedDeliveryCountByAddress(_db, common.HexToAddress(userAddress)))
 }
