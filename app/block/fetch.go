@@ -20,7 +20,7 @@ func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 	block, err := client.BlockByHash(context.Background(), hash)
 	if err != nil {
 		// Pushing block number into Redis queue for retrying later
-		pushBlockHashIntoRedisQueue(redis, number)
+		PushBlockIntoRetryQueue(redis, number)
 
 		log.Print(color.Red.Sprintf("[!] Failed to fetch block by hash [ block : %s] : %s", number, err.Error()))
 		return
@@ -37,7 +37,7 @@ func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 	block, err := client.BlockByNumber(context.Background(), _num)
 	if err != nil {
 		// Pushing block number into Redis queue for retrying later
-		pushBlockHashIntoRedisQueue(redis, fmt.Sprintf("%d", number))
+		PushBlockIntoRetryQueue(redis, fmt.Sprintf("%d", number))
 
 		log.Print(color.Red.Sprintf("[!] Failed to fetch block by number [ block : %d ] : %s", number, err))
 		return

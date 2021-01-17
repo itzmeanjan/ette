@@ -36,6 +36,12 @@ create table transactions (
     foreign key (blockhash) references blocks(hash)
 );
 
+create index on transactions(from);
+create index on transactions(to);
+create index on transactions(contract);
+create index on transactions(nonce);
+create index on transactions(blockhash);
+
 create table events (
     origin char(42) not null,
     index integer not null,
@@ -47,6 +53,9 @@ create table events (
     foreign key (txhash) references transactions(hash),
     foreign key (blockhash) references blocks(hash)
 );
+
+create index on events(origin);
+create index on events(txhash);
 
 create table users (
     address char(42) not null,
@@ -66,6 +75,7 @@ create table delivery_history (
 );
 
 create index on delivery_history(client);
+create index on delivery_history(ts asc);
 
 create table subscription_plans (
     id serial primary key,
@@ -78,3 +88,5 @@ create table subscription_details (
     subscriptionplan int not null,
     foreign key (subscriptionplan) references subscription_plans(id)
 );
+
+create index on subscription_details(subscriptionplan);

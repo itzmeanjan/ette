@@ -17,14 +17,15 @@ import (
 	"gorm.io/gorm"
 )
 
-// Pop oldest block number from Redis queue & try to fetch it in different go routine
+// RetryQueueManager - Pop oldest block number from Redis backed retry
+// queue & try to fetch it in different go routine
 //
 // Sleeps for 1000 milliseconds
 //
 // Keeps repeating
-func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, status *d.StatusHolder) {
+func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, status *d.StatusHolder) {
 	sleep := func() {
-		time.Sleep(time.Duration(500) * time.Millisecond)
+		time.Sleep(time.Duration(1000) * time.Millisecond)
 	}
 
 	// Creating worker pool and submitting jobs as soon as it's determined
@@ -36,7 +37,7 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.Redi
 		sleep()
 
 		// Popping oldest element from Redis queue
-		blockNumber, err := redis.Client.LPop(context.Background(), redis.QueueName).Result()
+		blockNumber, err := redis.Client.LPop(context.Background(), redis.BlockRetryQueueName).Result()
 		if err != nil {
 			continue
 		}
@@ -47,7 +48,7 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.Redi
 			continue
 		}
 
-		log.Print(color.Cyan.Sprintf("[~] Retrying block : %d [ In Queue : %d ]", parsedBlockNumber, getRetryQueueLength(redis)))
+		log.Print(color.Cyan.Sprintf("[~] Retrying block : %d [ In Queue : %d ]", parsedBlockNumber, GetRetryQueueLength(redis)))
 
 		// Submitting block processor job into pool
 		// which will be picked up & processed
@@ -67,39 +68,40 @@ func retryBlockFetching(client *ethclient.Client, _db *gorm.DB, redis *data.Redi
 	}
 }
 
-// Pushes failed to fetch block number at end of Redis queue
+// PushBlockIntoRetryQueue - Pushes failed to fetch block number at end of Redis queue
 // given it has not already been added
-func pushBlockHashIntoRedisQueue(redis *data.RedisInfo, blockNumber string) {
+func PushBlockIntoRetryQueue(redis *data.RedisInfo, blockNumber string) {
 	// Checking presence first & then deciding whether to add it or not
-	if !checkExistenceOfBlockNumberInRedisQueue(redis, blockNumber) {
+	if !CheckBlockInRetryQueue(redis, blockNumber) {
 
-		if err := redis.Client.RPush(context.Background(), redis.QueueName, blockNumber).Err(); err != nil {
-			log.Print(color.Red.Sprintf("[!] Failed to push block %s : %s", blockNumber, err.Error()))
+		if _, err := redis.Client.RPush(context.Background(), redis.BlockRetryQueueName, blockNumber).Result(); err != nil {
+			log.Print(color.Red.Sprintf("[!] Failed to push block %s into retry queue : %s", blockNumber, err.Error()))
 		}
 
 	}
 }
 
-// Checks whether block number is already added in Redis backed retry queue or not
+// CheckBlockInRetryQueue - Checks whether block number is already added in
+// Redis backed retry queue or not
 //
 // If yes, it'll not be added again
 //
 // Note: this feature of checking index of value in redis queue,
 // was added in Redis v6.0.6 : https://redis.io/commands/lpos
-func checkExistenceOfBlockNumberInRedisQueue(redis *data.RedisInfo, blockNumber string) bool {
-	if _, err := redis.Client.LPos(context.Background(), redis.QueueName, blockNumber, _redis.LPosArgs{}).Result(); err != nil {
+func CheckBlockInRetryQueue(redis *data.RedisInfo, blockNumber string) bool {
+	if _, err := redis.Client.LPos(context.Background(), redis.BlockRetryQueueName, blockNumber, _redis.LPosArgs{}).Result(); err != nil {
 		return false
 	}
 
 	return true
 }
 
-// Returns redis backed retry queue length
-func getRetryQueueLength(redis *data.RedisInfo) int64 {
+// GetRetryQueueLength - Returns redis backed retry queue length
+func GetRetryQueueLength(redis *data.RedisInfo) int64 {
 
-	blockCount, err := redis.Client.LLen(context.Background(), redis.QueueName).Result()
+	blockCount, err := redis.Client.LLen(context.Background(), redis.BlockRetryQueueName).Result()
 	if err != nil {
-		log.Printf(color.Red.Sprintf("[!] Failed to determine Redis queue length : %s", err.Error()))
+		log.Printf(color.Red.Sprintf("[!] Failed to determine retry queue length : %s", err.Error()))
 	}
 
 	return blockCount

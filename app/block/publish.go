@@ -12,6 +12,10 @@ import (
 // PublishBlock - Attempts to publish block data to Redis pubsub channel
 func PublishBlock(block *db.PackedBlock, redis *d.RedisInfo) {
 
+	if block == nil {
+		return
+	}
+
 	if err := redis.Client.Publish(context.Background(), "block", &d.Block{
 		Hash:                block.Block.Hash,
 		Number:              block.Block.Number,

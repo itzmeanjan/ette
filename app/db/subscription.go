@@ -147,6 +147,19 @@ func CheckSubscriptionPlanDetailsByAddress(_db *gorm.DB, address common.Address)
 	return &plan
 }
 
+// GetAllowedDeliveryCountByAddress - Returns how many deliveries can be made to user
+// in 24 hours, as per plan they're subscribed to
+func GetAllowedDeliveryCountByAddress(_db *gorm.DB, address common.Address) uint64 {
+
+	plan := CheckSubscriptionPlanDetailsByAddress(_db, address)
+	if plan == nil {
+		return 0
+	}
+
+	return plan.DeliveryCount
+
+}
+
 // IsValidSubscriptionPlan - Given subscription plan id, checking against
 // database whether it's a valid one or not
 func IsValidSubscriptionPlan(_db *gorm.DB, id uint32) bool {

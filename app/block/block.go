@@ -1,6 +1,7 @@
 package block
 
 import (
+	"fmt"
 	"log"
 	"runtime"
 
@@ -13,6 +14,14 @@ import (
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
+
+// HasBlockFinalized - Checking whether block under processing i.e. `number`
+// has `N` confirmations on top of it or not
+func HasBlockFinalized(status *d.StatusHolder, number uint64) bool {
+
+	return status.GetLatestBlockNumber()-cfg.GetBlockConfirmations() >= number
+
+}
 
 // ProcessBlockContent - Processes everything inside this block i.e. block data, tx data, event data
 func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, status *d.StatusHolder) {
@@ -40,11 +49,24 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		// This is what we just published on pubsub channel
 		packedBlock := pubsubWorker(nil)
 
+		if !HasBlockFinalized(status, packedBlock.Block.Number) {
+
+			log.Print(color.LightRed.Sprintf("[x] Non-final block %d with 0 tx(s) [ Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+
+			// Pushing into unfinalized block queue, to be picked up only when
+			// finality for this block has been achieved
+			PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", packedBlock.Block.Number))
+			return
+
+		}
+
 		// If block doesn't contain any tx, we'll attempt to persist only block
 		if err := db.StoreBlock(_db, packedBlock, status); err != nil {
 
+			log.Print(color.Red.Sprintf("[+] Failed to process block %d with 0 tx(s) : %s", block.NumberU64(), err.Error()))
+
 			// If failed to persist, we'll put it in retry queue
-			pushBlockHashIntoRedisQueue(redis, block.Number().String())
+			PushBlockIntoRetryQueue(redis, block.Number().String())
 			return
 
 		}
@@ -127,8 +149,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	// we're exiting from this context, while putting this block number in retry queue
 	if !(result.Failure == 0) {
 
-		// If failed to persist, we'll put it in retry queue
-		pushBlockHashIntoRedisQueue(redis, block.Number().String())
+		PushBlockIntoRetryQueue(redis, block.Number().String())
 		return
 
 	}
@@ -138,11 +159,24 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	// This is what we just published on pubsub channel
 	packedBlock := pubsubWorker(packedTxs)
 
+	if !HasBlockFinalized(status, packedBlock.Block.Number) {
+
+		log.Print(color.LightRed.Sprintf("[x] Non-final block %d with %d tx(s) [ Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, block.Transactions().Len(), status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+
+		// Pushing into unfinalized block queue, to be picked up only when
+		// finality for this block has been achieved
+		PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", packedBlock.Block.Number))
+		return
+
+	}
+
 	// If block doesn't contain any tx, we'll attempt to persist only block
 	if err := db.StoreBlock(_db, packedBlock, status); err != nil {
 
+		log.Print(color.Red.Sprintf("[+] Failed to process block %d with %d tx(s) : %s", block.NumberU64(), block.Transactions().Len(), err.Error()))
+
 		// If failed to persist, we'll put it in retry queue
-		pushBlockHashIntoRedisQueue(redis, block.Number().String())
+		PushBlockIntoRetryQueue(redis, block.Number().String())
 		return
 
 	}

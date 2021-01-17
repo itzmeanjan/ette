@@ -48,6 +48,11 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			log.Fatal(color.Red.Sprintf("[!] Listener stopped : %s", err.Error()))
 			break
 		case header := <-headerChan:
+
+			// Latest block number seen, is getting safely updated, as
+			// soon as new block mined data gets propagated to network
+			status.SetLatestBlockNumber(header.Number.Uint64())
+
 			if first {
 
 				// Starting now, to be used for calculating system performance, uptime etc.
@@ -60,19 +65,13 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 					// blocks from highest block number it fetched last time to current network block number
 					// i.e. trying to fill up gap, which was caused when `ette` was offline
 					//
-					// But in reverse direction i.e. from 100 to 50, where `ette` fetched upto 50 last time & 100
-					// is latest block, got mined in network
-					//
-					// Yes it's going refetch 50, due to the fact, some portions of 50 might be missed in last try
-					// So, it'll check & decide whether persisting again is required or not
-					//
-					// This backward traversal mechanism gives us more recent blockchain happenings to cover
+					// Backward traversal mechanism gives us more recent blockchain happenings to cover
 					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, currentHighestBlockNumber, status)
 
 					// Starting go routine for fetching blocks `ette` failed to process in previous attempt
 					//
 					// Uses Redis backed queue for fetching pending block hash & retries
-					go retryBlockFetching(connection.RPC, _db, redis, status)
+					go RetryQueueManager(connection.RPC, _db, redis, status)
 
 					// Making sure on when next latest block header is received, it'll not
 					// start another syncer
@@ -92,6 +91,41 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// Though it'll be picked up sometime in future ( by missing block finder ), but it can be safely handled now
 			// so that it gets processed immediately
 			func(blockHash common.Hash, blockNumber string) {
+
+				// Attempting to submit all blocks to job processor queue
+				// if more blocks are present in non-final queue, than actually
+				// should be
+				for GetUnfinalizedQueueLength(redis) > int64(cfg.GetBlockConfirmations()) {
+
+					// Before submitting new block processing job
+					// checking whether there exists any block in unfinalized
+					// block queue or not
+					//
+					// If yes, we're attempting to process it, because it has now
+					// achieved enough confirmations
+					if CheckIfOldestBlockIsConfirmed(redis, status) {
+
+						oldest := PopOldestBlockFromUnfinalizedQueue(redis)
+
+						log.Print(color.Yellow.Sprintf("[*] Attempting to process finalised block %d [ Latest Block : %d | In Queue : %d ]", oldest, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+
+						wp.Submit(func() {
+
+							FetchBlockByNumber(connection.RPC,
+								oldest,
+								_db,
+								redis,
+								status)
+
+						})
+
+					} else {
+						// If oldest block is not finalized, no meaning
+						// staying here, we'll revisit it some time in future
+						break
+					}
+
+				}
 
 				wp.Submit(func() {
 
