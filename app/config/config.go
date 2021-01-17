@@ -34,10 +34,6 @@ func GetConcurrencyFactor() uint64 {
 		return 1
 	}
 
-	if !(parsedFactor > 0) {
-		return 1
-	}
-
 	return parsedFactor
 }
 
@@ -57,10 +53,25 @@ func GetBlockConfirmations() uint64 {
 		return 0
 	}
 
-	if !(parsedConfirmationCount > 0) {
-		return 0
+	return parsedConfirmationCount
+
+}
+
+// GetBlockNumberRange - Returns how many blocks can be queried at a time
+// when performing range based queries from client side
+func GetBlockNumberRange() uint64 {
+
+	blockRange := Get("BlockRange")
+	if blockRange == "" {
+		return 100
 	}
 
-	return parsedConfirmationCount
+	parsedBlockRange, err := strconv.ParseUint(blockRange, 10, 64)
+	if err != nil {
+		log.Printf("[!] Failed to parse block range : %s\n", err.Error())
+		return 100
+	}
+
+	return parsedBlockRange
 
 }
