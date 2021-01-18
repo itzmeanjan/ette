@@ -2,10 +2,8 @@ proto_clean:
 	rm -rfv app/pb
 
 proto_gen:
-	cd app
-	mkdir pb
-	protoc -I proto/ --go_out=paths=source_relative:pb proto/*.proto
-	cd ..
+	mkdir app/pb
+	protoc -I app/proto/ --go_out=paths=source_relative:app/pb app/proto/*.proto
 
 build:
 	go build -o ette
