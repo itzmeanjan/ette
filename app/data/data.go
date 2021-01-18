@@ -270,6 +270,34 @@ func (t *Transaction) ToJSON() []byte {
 
 }
 
+// ToProtoBuf - Creating proto buffer compatible data
+// format, which can be easily serialized & deserialized
+func (t *Transaction) ToProtoBuf(events *Events) *pb.Transaction {
+
+	tx := &pb.Transaction{
+		Hash:      t.Hash,
+		From:      t.From,
+		To:        t.To,
+		Contract:  t.Contract,
+		Value:     t.Contract,
+		Data:      t.Data,
+		Gas:       t.Gas,
+		GasPrice:  t.GasPrice,
+		Cost:      t.Cost,
+		Nonce:     t.Nonce,
+		State:     t.State,
+		BlockHash: t.BlockHash,
+	}
+
+	if events == nil {
+		return tx
+	}
+
+	tx.Events = events.ToProtoBuf()
+	return tx
+
+}
+
 // Transactions - Multiple transactions holder struct
 type Transactions struct {
 	Transactions []*Transaction `json:"transactions"`
