@@ -367,3 +367,17 @@ func (e *Events) ToJSON() []byte {
 	return data
 
 }
+
+// ToProtoBuf - Creating new proto buffer compatible data type
+// for events data, helpful in serializing & deserializing this type
+func (e *Events) ToProtoBuf() []*pb.Event {
+
+	events := make([]*pb.Event, len(e.Events))
+
+	for i := 0; i < len(e.Events); i++ {
+		events[i] = e.Events[i].ToProtoBuf()
+	}
+
+	return events
+
+}
