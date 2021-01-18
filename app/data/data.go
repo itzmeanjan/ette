@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
+	pb "github.com/itzmeanjan/ette/app/pb"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
@@ -331,6 +332,21 @@ func (e *Event) ToJSON() []byte {
 	}
 
 	return data
+
+}
+
+// ToProtoBuf - Creating proto buffer compatible data
+// format, which can be easily serialized & deserialized
+func (e *Event) ToProtoBuf() *pb.Event {
+
+	return &pb.Event{
+		BlockHash:       e.BlockHash,
+		Index:           uint32(e.Index),
+		Origin:          e.Origin,
+		Topics:          strings.Fields(fmt.Sprintf("%q", e.Topics)),
+		Data:            e.Data,
+		TransactionHash: e.TransactionHash,
+	}
 
 }
 
