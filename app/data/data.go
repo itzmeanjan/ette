@@ -316,6 +316,20 @@ func (t *Transactions) ToJSON() []byte {
 
 }
 
+// ToProtoBuf - Creating new proto buffer compatible data type
+// for events data, helpful in serializing & deserializing this type
+func (t *Transactions) ToProtoBuf() []*pb.Transaction {
+
+	txs := make([]*pb.Transaction, len(t.Transactions))
+
+	for i := 0; i < len(t.Transactions); i++ {
+		txs[i] = t.Transactions[i].ToProtoBuf(nil)
+	}
+
+	return txs
+
+}
+
 // Event - Single event entity holder, extracted from db
 type Event struct {
 	Origin          string         `gorm:"column:origin"`
@@ -363,21 +377,6 @@ func (e *Event) ToJSON() []byte {
 
 }
 
-// ToProtoBuf - Creating proto buffer compatible data
-// format, which can be easily serialized & deserialized
-func (e *Event) ToProtoBuf() *pb.Event {
-
-	return &pb.Event{
-		BlockHash:       e.BlockHash,
-		Index:           uint32(e.Index),
-		Origin:          e.Origin,
-		Topics:          strings.Fields(fmt.Sprintf("%q", e.Topics)),
-		Data:            e.Data,
-		TransactionHash: e.TransactionHash,
-	}
-
-}
-
 // Events - A collection of event holder, to be delivered to client in this form
 type Events struct {
 	Events []*Event `json:"events"`
@@ -393,19 +392,5 @@ func (e *Events) ToJSON() []byte {
 	}
 
 	return data
-
-}
-
-// ToProtoBuf - Creating new proto buffer compatible data type
-// for events data, helpful in serializing & deserializing this type
-func (e *Events) ToProtoBuf() []*pb.Event {
-
-	events := make([]*pb.Event, len(e.Events))
-
-	for i := 0; i < len(e.Events); i++ {
-		events[i] = e.Events[i].ToProtoBuf()
-	}
-
-	return events
 
 }
