@@ -11,7 +11,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-redis/redis/v8"
-	pb "github.com/itzmeanjan/ette/app/pb"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
@@ -270,34 +269,6 @@ func (t *Transaction) ToJSON() []byte {
 
 }
 
-// ToProtoBuf - Creating proto buffer compatible data
-// format, which can be easily serialized & deserialized
-func (t *Transaction) ToProtoBuf(events *Events) *pb.Transaction {
-
-	tx := &pb.Transaction{
-		Hash:      t.Hash,
-		From:      t.From,
-		To:        t.To,
-		Contract:  t.Contract,
-		Value:     t.Contract,
-		Data:      t.Data,
-		Gas:       t.Gas,
-		GasPrice:  t.GasPrice,
-		Cost:      t.Cost,
-		Nonce:     t.Nonce,
-		State:     t.State,
-		BlockHash: t.BlockHash,
-	}
-
-	if events == nil {
-		return tx
-	}
-
-	tx.Events = events.ToProtoBuf()
-	return tx
-
-}
-
 // Transactions - Multiple transactions holder struct
 type Transactions struct {
 	Transactions []*Transaction `json:"transactions"`
@@ -313,20 +284,6 @@ func (t *Transactions) ToJSON() []byte {
 	}
 
 	return data
-
-}
-
-// ToProtoBuf - Creating new proto buffer compatible data type
-// for events data, helpful in serializing & deserializing this type
-func (t *Transactions) ToProtoBuf() []*pb.Transaction {
-
-	txs := make([]*pb.Transaction, len(t.Transactions))
-
-	for i := 0; i < len(t.Transactions); i++ {
-		txs[i] = t.Transactions[i].ToProtoBuf(nil)
-	}
-
-	return txs
 
 }
 

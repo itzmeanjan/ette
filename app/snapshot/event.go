@@ -10,7 +10,7 @@ import (
 
 // EventToProtoBuf - Creating proto buffer compatible data
 // format for event data, which can be easily serialized & deserialized
-// for taking snapshot and restoring from
+// for taking snapshot and restoring from it
 func EventToProtoBuf(event *data.Event) *pb.Event {
 
 	return &pb.Event{
@@ -26,7 +26,7 @@ func EventToProtoBuf(event *data.Event) *pb.Event {
 
 // EventsToProtoBuf - Creating proto buffer compatible data
 // format for events data, which can be easily serialized & deserialized
-// for taking snapshot and restoring from
+// for taking snapshot and restoring from it
 func EventsToProtoBuf(events *data.Events) []*pb.Event {
 
 	_events := make([]*pb.Event, len(events.Events))
