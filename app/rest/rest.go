@@ -917,6 +917,33 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			blockHash := c.Query("blockHash")
 			txHash := c.Query("txHash")
 
+			// specific event log which under is requesting
+			logIndex := c.Query("logIndex")
+
+			// Given block hash and log index in block attempts to find out event
+			// which satisfies that criteria
+			if logIndex != "" && strings.HasPrefix(blockHash, "0x") && len(blockHash) == 66 {
+
+				_logIndex, err := strconv.ParseUint(logIndex, 10, 64)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad log index",
+					})
+					return
+				}
+
+				if event := db.GetEventByBlockHashAndLogIndex(_db, common.HexToHash(blockHash), uint(_logIndex)); event != nil {
+					respondWithJSON(event.ToJSON(), c)
+					return
+				}
+
+				c.JSON(http.StatusNotFound, gin.H{
+					"msg": "Not found",
+				})
+				return
+
+			}
+
 			// Given blockhash, retrieves all events emitted by tx present in block
 			if strings.HasPrefix(blockHash, "0x") && len(blockHash) == 66 {
 
