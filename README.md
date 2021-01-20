@@ -386,6 +386,8 @@ type Transaction {
   from: String!
   to: String!
   contract: String!
+  value: String!
+  data: String!
   gas: String!
   gasPrice: String!
   cost: String!
