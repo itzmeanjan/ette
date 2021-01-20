@@ -63,4 +63,6 @@ type Query {
   eventsFromContractWithTopicsByNumberRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
   eventsFromContractWithTopicsByTimeRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
   lastXEventsFromContract(contract: String!, x: Int!): [Event!]!
+  eventByBlockHashAndLogIndex(hash: String!, index: String!): Event!
+  eventByBlockNumberAndLogIndex(number: String!, index: String!): Event!
 }
