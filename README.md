@@ -304,6 +304,8 @@ Query Params | Method | Description
 Query Params | Method | Description
 --- | --- | ---
 `blockHash=0x...` | GET | Given blockhash, retrieves all events emitted by tx(s) present in block
+`blockHash=0x...&logIndex=1` | GET | Given blockhash and log index in block, attempts to retrieve associated event
+`blockNumber=123456&logIndex=2` | GET | Given block number and log index in block, attempts to retrieve associated event
 `txHash=0x...` | GET | Given txhash, retrieves all events emitted during execution of this transaction
 `count=50&contract=0x...` | GET | Returns last **x** _( <=50 )_ events emitted by this contract
 `fromBlock=1&toBlock=10&contract=0x...&topic0=0x...&topic1=0x...&topic2=0x...&topic3=0x...` | GET | Finding event(s) emitted from contract within given block range & also matching topic signatures _{0, 1, 2, 3}_
@@ -414,6 +416,8 @@ type Query {
     eventsFromContractWithTopicsByNumberRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
     eventsFromContractWithTopicsByTimeRange(contract: String!, from: String!, to: String!, topics: [String!]!): [Event!]!
     lastXEventsFromContract(contract: String!, x: Int!): [Event!]!
+    eventByBlockHashAndLogIndex(hash: String!, index: String!): Event!
+    eventByBlockNumberAndLogIndex(number: String!, index: String!): Event!
 }
 ```
 
