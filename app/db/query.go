@@ -428,3 +428,17 @@ func GetLastXEventsFromContract(db *gorm.DB, contract common.Address, x int) *da
 	}
 
 }
+
+// GetEventByBlockHashAndLogIndex - Given block hash and log index in block
+// return respective event log, if any exists
+func GetEventByBlockHashAndLogIndex(db *gorm.DB, hash common.Hash, index uint) *data.Event {
+
+	var event data.Event
+
+	if err := db.Model(&Events{}).Where("blockhash = ? and index = ?", hash.Hex(), index).First(&event).Error; err != nil {
+		return nil
+	}
+
+	return &event
+
+}
