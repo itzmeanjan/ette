@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -77,7 +78,7 @@ func Run(configFile, subscriptionPlansFile string) {
 	// Attempting to listen to Ctrl+C signal
 	// and when received gracefully shutting down `ette`
 	interruptChan := make(chan os.Signal, 1)
-	signal.Notify(interruptChan, os.Interrupt)
+	signal.Notify(interruptChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 
 	// All resources being used gets cleaned up
 	// when we're returning from this function scope
