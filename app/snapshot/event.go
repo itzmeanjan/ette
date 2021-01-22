@@ -54,3 +54,19 @@ func ProtoBufToEvent(event *pb.Event) *db.Events {
 	}
 
 }
+
+// ProtoBufToEvents - Will be helpful while deserializing from snapshot
+// and attempting to restore into DB
+func ProtoBufToEvents(events []*pb.Event) []*db.Events {
+
+	_events := make([]*db.Events, len(events))
+
+	for k, v := range events {
+
+		_events[k] = ProtoBufToEvent(v)
+
+	}
+
+	return _events
+
+}
