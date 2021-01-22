@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/itzmeanjan/ette/app/data"
+	"github.com/itzmeanjan/ette/app/db"
 	pb "github.com/itzmeanjan/ette/app/pb"
 )
 
@@ -36,5 +37,20 @@ func EventsToProtoBuf(events *data.Events) []*pb.Event {
 	}
 
 	return _events
+
+}
+
+// ProtoBufToEvent - This function will be helpful in constructing
+// struct, which can be used for recovering from snapshotted data
+func ProtoBufToEvent(event *pb.Event) *db.Events {
+
+	return &db.Events{
+		BlockHash:       event.BlockHash,
+		Index:           uint(event.Index),
+		Origin:          event.Origin,
+		Topics:          event.Topics,
+		Data:            event.Data,
+		TransactionHash: event.TransactionHash,
+	}
 
 }
