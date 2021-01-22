@@ -59,7 +59,7 @@ func TakeSnapshot(_db *gorm.DB, file string, count uint64) bool {
 			_block := db.GetBlockByNumber(_db, i)
 			if _block == nil {
 
-				log.Printf("[!] Failed to find block [ %d ] : %s\n", i, err.Error())
+				log.Printf("[!] Failed to find block [ %d ]\n", i)
 				return
 
 			}
