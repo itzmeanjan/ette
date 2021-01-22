@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/itzmeanjan/ette/app/data"
-	"github.com/itzmeanjan/ette/app/db"
+	_db "github.com/itzmeanjan/ette/app/db"
 	pb "github.com/itzmeanjan/ette/app/pb"
 )
 
@@ -40,11 +40,11 @@ func EventsToProtoBuf(events *data.Events) []*pb.Event {
 
 }
 
-// ProtoBufToEvent - This function will be helpful in constructing
-// struct, which can be used for recovering from snapshotted data
-func ProtoBufToEvent(event *pb.Event) *db.Events {
+// ProtoBufToEvent - Required while restoring from snapshot i.e. attempting to put
+// whole block data into database
+func ProtoBufToEvent(event *pb.Event) *_db.Events {
 
-	return &db.Events{
+	return &_db.Events{
 		BlockHash:       event.BlockHash,
 		Index:           uint(event.Index),
 		Origin:          event.Origin,
@@ -55,11 +55,11 @@ func ProtoBufToEvent(event *pb.Event) *db.Events {
 
 }
 
-// ProtoBufToEvents - Will be helpful while deserializing from snapshot
-// and attempting to restore into DB
-func ProtoBufToEvents(events []*pb.Event) []*db.Events {
+// ProtoBufToEvents - Required while restoring from snapshot i.e. attempting to put
+// whole block data into database
+func ProtoBufToEvents(events []*pb.Event) []*_db.Events {
 
-	_events := make([]*db.Events, len(events))
+	_events := make([]*_db.Events, len(events))
 
 	for k, v := range events {
 

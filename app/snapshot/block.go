@@ -37,3 +37,35 @@ func BlockToProtoBuf(block *data.Block, db *gorm.DB) *pb.Block {
 	return _block
 
 }
+
+// ProtoBufToBlock - Required while restoring from snapshot i.e. attempting to put
+// whole block data into database
+func ProtoBufToBlock(block *pb.Block) *_db.PackedBlock {
+
+	_block := &_db.Blocks{
+		Hash:                block.Hash,
+		Number:              block.Number,
+		Time:                block.Time,
+		ParentHash:          block.ParentHash,
+		Difficulty:          block.Difficulty,
+		GasUsed:             block.GasUsed,
+		GasLimit:            block.GasLimit,
+		Nonce:               block.Nonce,
+		Miner:               block.Miner,
+		Size:                block.Size,
+		TransactionRootHash: block.TransactionRootHash,
+		ReceiptRootHash:     block.ReceiptRootHash,
+	}
+
+	if block.Transactions == nil {
+		return &_db.PackedBlock{
+			Block: _block,
+		}
+	}
+
+	return &_db.PackedBlock{
+		Block:        _block,
+		Transactions: ProtoBufToTransactions(block.Transactions),
+	}
+
+}

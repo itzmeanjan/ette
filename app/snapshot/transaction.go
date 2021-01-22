@@ -53,7 +53,7 @@ func TransactionsToProtoBuf(txs *data.Transactions, db *gorm.DB) []*pb.Transacti
 
 }
 
-// ProtoBufToTransaction - Required while restoring from snapshot, attempting to put
+// ProtoBufToTransaction - Required while restoring from snapshot i.e. attempting to put
 // whole block data into database
 func ProtoBufToTransaction(tx *pb.Transaction) *_db.PackedTransaction {
 
@@ -85,7 +85,7 @@ func ProtoBufToTransaction(tx *pb.Transaction) *_db.PackedTransaction {
 
 }
 
-// ProtoBufToTransactions - Required while restoring from snapshot, attempting to put
+// ProtoBufToTransactions - Required while restoring from snapshot i.e. attempting to put
 // whole block data into database
 func ProtoBufToTransactions(txs []*pb.Transaction) []*_db.PackedTransaction {
 
