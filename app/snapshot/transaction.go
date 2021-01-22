@@ -52,3 +52,51 @@ func TransactionsToProtoBuf(txs *data.Transactions, db *gorm.DB) []*pb.Transacti
 	return _txs
 
 }
+
+// ProtoBufToTransaction - Required while restoring from snapshot, attempting to put
+// whole block data into database
+func ProtoBufToTransaction(tx *pb.Transaction) *_db.PackedTransaction {
+
+	_tx := &_db.Transactions{
+		Hash:      tx.Hash,
+		From:      tx.From,
+		To:        tx.To,
+		Contract:  tx.Contract,
+		Value:     tx.Contract,
+		Data:      tx.Data,
+		Gas:       tx.Gas,
+		GasPrice:  tx.GasPrice,
+		Cost:      tx.Cost,
+		Nonce:     tx.Nonce,
+		State:     tx.State,
+		BlockHash: tx.BlockHash,
+	}
+
+	if tx.Events == nil {
+		return &_db.PackedTransaction{
+			Tx: _tx,
+		}
+	}
+
+	return &_db.PackedTransaction{
+		Tx:     _tx,
+		Events: ProtoBufToEvents(tx.Events),
+	}
+
+}
+
+// ProtoBufToTransactions - Required while restoring from snapshot, attempting to put
+// whole block data into database
+func ProtoBufToTransactions(txs []*pb.Transaction) []*_db.PackedTransaction {
+
+	_txs := make([]*_db.PackedTransaction, len(txs))
+
+	for k, v := range txs {
+
+		_txs[k] = ProtoBufToTransaction(v)
+
+	}
+
+	return _txs
+
+}
