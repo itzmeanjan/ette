@@ -116,12 +116,14 @@ func Run(configFile, subscriptionPlansFile string) {
 			return
 		}
 
+		// this is the file snapshot to be taken
+		_snapshotFile := cfg.GetSnapshotFile()
 		_start := time.Now().UTC()
-		log.Printf("[*] Starting snapshotting at : %s\n", _start)
+
+		log.Printf("[*] Starting snapshotting at : %s [ Sink : %s ]\n", _start, _snapshotFile)
 
 		// taking snapshot, this might take some time
-		_ret := ss.TakeSnapshot(_db, cfg.Get("SnapshotFile"), _status.BlockCountInDB())
-
+		_ret := ss.TakeSnapshot(_db, _snapshotFile, _status.BlockCountInDB())
 		if _ret {
 			log.Printf("[+] Snapshotted in : %s\n", time.Now().UTC().Sub(_start))
 		} else {
