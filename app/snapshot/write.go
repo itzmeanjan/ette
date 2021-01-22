@@ -56,29 +56,23 @@ func TakeSnapshot(_db *gorm.DB, file string, count uint64) bool {
 
 		pool.Submit(func() {
 
-			// getting a local copy of block number which
-			// needs to be processed by this worker
-			func(num uint64) {
+			_block := db.GetBlockByNumber(_db, i)
+			if _block == nil {
 
-				_block := db.GetBlockByNumber(_db, num)
-				if _block == nil {
+				log.Printf("[!] Failed to find block [ %d ] : %s\n", i, err.Error())
+				return
 
-					log.Printf("[!] Failed to find block [ %d ] : %s\n", num, err.Error())
-					return
+			}
 
-				}
+			_protocolBufferedBlock, err := proto.Marshal(BlockToProtoBuf(_block, _db))
+			if err != nil {
 
-				_protocolBufferedBlock, err := proto.Marshal(BlockToProtoBuf(_block, _db))
-				if err != nil {
+				log.Printf("[!] Failed to serialize block : %s\n", err.Error())
+				return
 
-					log.Printf("[!] Failed to serialize block : %s\n", err.Error())
-					return
+			}
 
-				}
-
-				data <- _protocolBufferedBlock
-
-			}(i)
+			data <- _protocolBufferedBlock
 
 		})
 
