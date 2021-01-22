@@ -22,7 +22,7 @@ import (
 // This kind of encoding mechanism helps us in encoding & decoding efficiently while
 // gracefully using resources i.e. buffered processing, we get to snapshot very large datasets
 // while consuming too much memory.
-func TakeSnapshot(_db *gorm.DB, file string, count uint64) bool {
+func TakeSnapshot(_db *gorm.DB, file string, start uint64, end uint64, count uint64) bool {
 
 	// Truncating/ opening for write/ creating data file, where to store protocol buffer encoded data
 	fd, err := os.OpenFile(file, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
@@ -49,10 +49,10 @@ func TakeSnapshot(_db *gorm.DB, file string, count uint64) bool {
 	// starting writer go routine
 	go PutIntoSink(fd, count, data, done)
 
-	// block number
-	var i uint64
+	// start block number
+	i := start
 
-	for ; i < count; i++ {
+	for ; i <= end; i++ {
 
 		pool.Submit(func() {
 
@@ -60,10 +60,7 @@ func TakeSnapshot(_db *gorm.DB, file string, count uint64) bool {
 
 				_block := db.GetBlockByNumber(_db, num)
 				if _block == nil {
-
-					log.Printf("[!] Failed to find block [ %d ]\n", num)
 					return
-
 				}
 
 				_protocolBufferedBlock, err := proto.Marshal(BlockToProtoBuf(_block, _db))

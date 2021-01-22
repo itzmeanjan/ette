@@ -123,7 +123,7 @@ func Run(configFile, subscriptionPlansFile string) {
 		log.Printf("[*] Starting snapshotting at : %s [ Sink : %s ]\n", _start, _snapshotFile)
 
 		// taking snapshot, this might take some time
-		_ret := ss.TakeSnapshot(_db, _snapshotFile, _status.BlockCountInDB())
+		_ret := ss.TakeSnapshot(_db, _snapshotFile, db.GetCurrentOldestBlockNumber(_db), db.GetCurrentBlockNumber(_db), _status.BlockCountInDB())
 		if _ret {
 			log.Printf("[+] Snapshotted in : %s\n", time.Now().UTC().Sub(_start))
 		} else {
