@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gookit/color"
@@ -15,6 +16,7 @@ import (
 	"github.com/itzmeanjan/ette/app/db"
 	"github.com/itzmeanjan/ette/app/rest"
 	"github.com/itzmeanjan/ette/app/rest/graph"
+	ss "github.com/itzmeanjan/ette/app/snapshot"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +27,7 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
 	}
 
-	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3") {
+	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3" || cfg.Get("EtteMode") == "4") {
 		log.Fatalf("[!] Failed to find `EtteMode` in configuration file\n")
 	}
 
@@ -104,6 +106,31 @@ func Run(configFile, subscriptionPlansFile string) {
 		os.Exit(0)
 
 	}()
+
+	// User has requested `ette` to take a snapshot of current database state
+	if cfg.Get("EtteMode") == "4" {
+
+		// checking if there's anything to snapshot or not
+		if _status.BlockCountInDB() == 0 {
+			log.Printf("[*] Nothing to snapshot\n")
+			return
+		}
+
+		_start := time.Now().UTC()
+		log.Printf("[*] Starting snapshotting at : %s\n", _start)
+
+		// taking snapshot, this might take some time
+		_ret := ss.TakeSnapshot(_db, cfg.Get("SnapshotFile"), _status.BlockCountInDB())
+
+		if _ret {
+			log.Printf("[+] Snapshotted in : %s\n", time.Now().UTC().Sub(_start))
+		} else {
+			log.Printf("[!] Snapshotting failed in : %s\n", time.Now().UTC().Sub(_start))
+		}
+
+		return
+
+	}
 
 	// Pushing block header propagation listener to another thread of execution
 	go blk.SubscribeToNewBlocks(_connection, _db, _status, &_redisInfo)
