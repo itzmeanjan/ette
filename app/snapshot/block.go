@@ -37,20 +37,3 @@ func BlockToProtoBuf(block *data.Block, db *gorm.DB) *pb.Block {
 	return _block
 
 }
-
-// BlocksToProtoBuf - Creating proto buffer compatible data
-// format for blocks data, which can be easily serialized & deserialized
-// for taking snapshot and restoring from it
-func BlocksToProtoBuf(blocks *data.Blocks, db *gorm.DB) *pb.Blocks {
-
-	_blocks := &pb.Blocks{
-		Blocks: make([]*pb.Block, len(blocks.Blocks)),
-	}
-
-	for i := 0; i < len(blocks.Blocks); i++ {
-		_blocks.Blocks[i] = BlockToProtoBuf(blocks.Blocks[i], db)
-	}
-
-	return _blocks
-
-}
