@@ -24,6 +24,14 @@ import (
 // while consuming too much memory.
 func TakeSnapshot(_db *gorm.DB, file string, start uint64, end uint64, count uint64) bool {
 
+	// checking given block number range correctness
+	if !(start <= end) {
+
+		log.Printf("[!] Ascending block number range required\n")
+		return false
+
+	}
+
 	// Truncating/ opening for write/ creating data file, where to store protocol buffer encoded data
 	fd, err := os.OpenFile(file, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
@@ -49,33 +57,47 @@ func TakeSnapshot(_db *gorm.DB, file string, start uint64, end uint64, count uin
 	// starting writer go routine
 	go PutIntoSink(fd, count, data, done)
 
-	// start block number
-	i := start
+	// attempting to fetch X blocks ( max ) at a time, by range
+	var step uint64 = 10000
 
-	for ; i <= end; i++ {
+	// stepping through blocks present in DB
+	// and attempting to process them by block number range
+	for i := start; i <= end; i += step {
 
-		func(num uint64) {
+		// fetch block numbers, given range & attempt to process them concurrently
+		blocks := db.GetAllBlockNumbersInRange(_db, i, i+step-1)
+		if blocks == nil {
+			continue
+		}
 
-			pool.Submit(func() {
+		for _, b := range blocks {
 
-				_block := db.GetBlockByNumber(_db, num)
-				if _block == nil {
-					return
-				}
+			// taking block number to be processed by this job
+			// inside function's local scope, so that a copy stays in closure
+			func(num uint64) {
 
-				_protocolBufferedBlock, err := proto.Marshal(BlockToProtoBuf(_block, _db))
-				if err != nil {
+				pool.Submit(func() {
 
-					log.Printf("[!] Failed to serialize block : %s\n", err.Error())
-					return
+					_block := db.GetBlockByNumber(_db, num)
+					if _block == nil {
+						return
+					}
 
-				}
+					_protocolBufferedBlock, err := proto.Marshal(BlockToProtoBuf(_block, _db))
+					if err != nil {
 
-				data <- _protocolBufferedBlock
+						log.Printf("[!] Failed to serialize block : %s\n", err.Error())
+						return
 
-			})
+					}
 
-		}(i)
+					data <- _protocolBufferedBlock
+
+				})
+
+			}(b)
+
+		}
 
 	}
 
