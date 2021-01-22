@@ -54,9 +54,9 @@ func TakeSnapshot(_db *gorm.DB, file string, start uint64, end uint64, count uin
 
 	for ; i <= end; i++ {
 
-		pool.Submit(func() {
+		func(num uint64) {
 
-			func(num uint64) {
+			pool.Submit(func() {
 
 				_block := db.GetBlockByNumber(_db, num)
 				if _block == nil {
@@ -73,9 +73,9 @@ func TakeSnapshot(_db *gorm.DB, file string, start uint64, end uint64, count uin
 
 				data <- _protocolBufferedBlock
 
-			}(i)
+			})
 
-		})
+		}(i)
 
 	}
 
