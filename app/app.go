@@ -28,7 +28,7 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
 	}
 
-	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3" || cfg.Get("EtteMode") == "4") {
+	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3" || cfg.Get("EtteMode") == "4" || cfg.Get("EtteMode") == "5") {
 		log.Fatalf("[!] Failed to find `EtteMode` in configuration file\n")
 	}
 
@@ -126,10 +126,28 @@ func Run(configFile, subscriptionPlansFile string) {
 		// taking snapshot, this might take some time
 		_ret := ss.TakeSnapshot(_db, _snapshotFile, db.GetCurrentOldestBlockNumber(_db), db.GetCurrentBlockNumber(_db), _status.BlockCountInDB())
 		if _ret {
-			log.Printf("[+] Snapshotted in : %s\n", time.Now().UTC().Sub(_start))
+			log.Printf(color.Green.Sprintf("[+] Snapshotted in : %s [ Count : %d ]", time.Now().UTC().Sub(_start), _status.BlockCountInDB()))
 		} else {
-			log.Printf("[!] Snapshotting failed in : %s\n", time.Now().UTC().Sub(_start))
+			log.Printf(color.Red.Sprintf("[!] Snapshotting failed in : %s", time.Now().UTC().Sub(_start)))
 		}
+
+		return
+
+	}
+
+	// User has asked `ette` to attempt to restore from snapshotted data
+	// where data file is `snapshot.bin` in current working directory,
+	// if nothing specified for `SnapshotFile` variable in `.env`
+	if cfg.Get("EtteMode") == "5" {
+
+		_snapshotFile := cfg.GetSnapshotFile()
+		_start := time.Now().UTC()
+
+		log.Printf("[*] Starting snapshot restoring at : %s [ Sink : %s ]\n", _start, _snapshotFile)
+
+		_, _count := ss.RestoreFromSnapshot(_db, _snapshotFile)
+
+		log.Printf(color.Green.Sprintf("[+] Restored from snapshot in : %s [ Count : %d ]", time.Now().UTC().Sub(_start), _count))
 
 		return
 
