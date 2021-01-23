@@ -27,6 +27,9 @@ EVM-based Blockchain Indexer, with historical data query & real-time notificatio
         - [Real-time block mining notification](#real-time-notification-for-mined-blocks-)
         - [Real-time transaction notification ( 🤩 Filters Added ) ](#real-time-notification-for-transactions-%EF%B8%8F)
         - [Real-time log event notification ( 🤩 Filters Added ) ](#real-time-notification-for-events-)
+    - Snapshotting
+        - [Take snapshot](#take-snapshot-of-existing-data-store)
+        - [Restore from snapshot]()
 
 ## Inspiration 🤔
 
@@ -216,9 +219,9 @@ curl -s localhost:7000/v1/synced | jq
 
 `ette` is supposed to be deployed by anyone, interested in running a historical data query & real-time notification service for EVM-based blockchain(s).
 
-All client requests are rate limited _( 50k requests/ day )_. This rate limit is enforced on all `APIKey`(s) created by any single Ethereum Address. You can create multiple `APIKey`(s) from your account & accumulated requests made from those keys to be considered before dropping your requests.
+All client requests are by default rate limited _( 50k requests/ day )_. This rate limit is enforced on all `APIKey`(s) created by any single Ethereum Address. You can create multiple `APIKey`(s) from your account & accumulated requests made from those keys to be considered before dropping your requests.
 
-> So, it'll be helpful for protecting from spam attacks.
+If you need more requests per day, you can always asked your `ette` administrator to manually increase that from database table. _[ **Risky operation, needs to be done carefully. This is not recommended.** ]_
 
 **More features coming here, soon**
 
@@ -728,5 +731,21 @@ You'll receive 👇 response, confirming unsubscription
 ```
 
 > Note: If graceful unsubscription not done, when `ette` finds client unreachable, it'll remove client subscription
+
+### Take snapshot of existing data store ➡️
+
+Assuming you've already a running instance of `ette` for some EVM compatible chain, you can always attempt to take snapshot of whole backing data store, so that if you need to spin up another instance of `ette`, you won't require to sync whole chain data, rather you use this binary data file, which can be used by `ette` for restoring from snapshot data.
+
+Setting `EtteMode` = 4, attempts to take snapshot of DB. 
+
+![taking-snapshot](./sc/taking-snapshot.png)
+
+### Restore data from snapshot ⬅️
+
+Once you've snapshotted binary encoded data file, you can attempt to restore from this & rebuild whole data store, with out syncing whole chain data.
+
+![restoring-from-snapshot](./sc/restoring-from-snapshot.png)
+
+Once that's done, consider restarting `ette` in desired mode so that it can keep itself in sync with latest chain happenings.
 
 **More coming soon**
