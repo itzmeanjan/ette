@@ -59,6 +59,8 @@ It's not that I was unable find any solution, but wasn't fully satisfied with th
 
 - For snapshotting purposes, you can always set sink/ source data file in `SnapshotFile` in `.env`.
 
+- 👆 snapshotting feature is helpful, if you're willing migrate `ette` to different machine or setting up new instance of `ette`. If you want to avoid a lengthy whole chain data syncing, you must take snapshot from existing instance of `ette` & attempt to restore from binary snapshot file in new `ette` instance.
+
 And that's `ette`
 
 ## Prerequisite 👍
@@ -94,13 +96,15 @@ cd ette
     - `Admin` is ethereum address who will be able to administer `ette` using webUI. _[ **This feature is not yet implemented, but please put `Admin` in config file** ]_
     - Replace `Domain` with your domain name i.e. `ette.company.com`
     - Set `Production` to `yes` before running it in production; otherwise you can simply skip it
-    - `ette` can be run in any of 3 possible modes, which can be set by `EtteMode`
+    - `ette` can be run in any of 5 possible modes, which can be set by `EtteMode`
 
     ```json
     {
         "1": "Only Historical Data Query Allowed",
-        "2": "Only Real-time Event Subscription Allowed",
-        "3": "Both Historical Data Query & Real-time Event Subscription Allowed"
+        "2": "Only Real-time Subscription Allowed",
+        "3": "Both Historical Data Query & Real-time Subscription Allowed",
+        "4": "Attempt to take snapshot from data in backing DB",
+        "5": "Attempt to restore data from snapshot file"
     }
     ```
 
@@ -114,6 +118,7 @@ cd ette
     - Skipping `RedisPassword` is absolutely fine, if you don't want to use any password in Redis instance. [ **Not recommended** ]
     - For range based queries `BlockRange` can be set to limit how many blocks can be queried by client in a single go. Default value 100.
     - For time span based queries `TimeRange` can be set to put limit on max time span _( in terms of second )_, can be used by clients. Default value 3600 i.e. 1 hour.
+    - If you're attempting to take snapshot/ restore from binary snapshot file, you can set `SnapshotFile` in `.env` file, to set sink/ source file name, respectively. Default file name `echo $(echo $(pwd)/snapshot.bin)` in i.e. from where `ette` gets invoked. Consider setting `EtteMode` correctly, depending upon what you want to attain.
 
 ```
 RPCUrl=https://<domain-name>
@@ -136,6 +141,7 @@ ConcurrencyFactor=2
 BlockConfirmations=20
 BlockRange=1000
 TimeRange=21600
+SnapshotFile=snapshot.bin
 ```
 
 - Create another file in same directory, named `.plans.json`, whose content will look like 👇.
