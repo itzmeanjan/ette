@@ -9,7 +9,7 @@ import (
 
 	wp "github.com/gammazero/workerpool"
 	cfg "github.com/itzmeanjan/ette/app/config"
-	"github.com/itzmeanjan/ette/app/db"
+	_db "github.com/itzmeanjan/ette/app/db"
 	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 )
@@ -22,7 +22,7 @@ import (
 // This kind of encoding mechanism helps us in encoding & decoding efficiently while
 // gracefully using resources i.e. buffered processing, we get to snapshot very large datasets
 // while consuming too much memory.
-func TakeSnapshot(_db *gorm.DB, file string, start uint64, end uint64, count uint64) bool {
+func TakeSnapshot(db *gorm.DB, file string, start uint64, end uint64, count uint64) bool {
 
 	// checking given block number range correctness
 	if !(start <= end) {
@@ -65,7 +65,7 @@ func TakeSnapshot(_db *gorm.DB, file string, start uint64, end uint64, count uin
 	for i := start; i <= end; i += step {
 
 		// fetch block numbers, given range & attempt to process them concurrently
-		blocks := db.GetAllBlockNumbersInRange(_db, i, i+step-1)
+		blocks := _db.GetAllBlockNumbersInRange(db, i, i+step-1)
 		if blocks == nil {
 			continue
 		}
@@ -78,12 +78,12 @@ func TakeSnapshot(_db *gorm.DB, file string, start uint64, end uint64, count uin
 
 				pool.Submit(func() {
 
-					_block := db.GetBlockByNumber(_db, num)
+					_block := _db.GetBlockByNumber(db, num)
 					if _block == nil {
 						return
 					}
 
-					_protocolBufferedBlock, err := proto.Marshal(BlockToProtoBuf(_block, _db))
+					_protocolBufferedBlock, err := proto.Marshal(BlockToProtoBuf(_block, db))
 					if err != nil {
 
 						log.Printf("[!] Failed to serialize block : %s\n", err.Error())
