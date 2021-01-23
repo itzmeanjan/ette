@@ -28,8 +28,8 @@ EVM-based Blockchain Indexer, with historical data query & real-time notificatio
         - [Real-time transaction notification ( 🤩 Filters Added ) ](#real-time-notification-for-transactions-%EF%B8%8F)
         - [Real-time log event notification ( 🤩 Filters Added ) ](#real-time-notification-for-events-)
     - Snapshotting
-        - [Take snapshot](#take-snapshot-of-existing-data-store)
-        - [Restore from snapshot]()
+        - [Take snapshot](#take-snapshot-of-existing-data-store-%EF%B8%8F)
+        - [Restore from snapshot](#restore-data-from-snapshot-%EF%B8%8F)
 
 ## Inspiration 🤔
 
@@ -742,7 +742,7 @@ Setting `EtteMode` = 4, attempts to take snapshot of DB.
 
 ### Restore data from snapshot ⬅️
 
-Once you've snapshotted binary encoded data file, you can attempt to restore from this & rebuild whole data store, with out syncing whole chain data.
+Once you've snapshotted binary encoded data file, you can attempt to restore from this & rebuild whole data store, with out syncing whole chain data. `EtteMode` = 5, attempts to do 👇.
 
 ![restoring-from-snapshot](./sc/restoring-from-snapshot.png)
 
