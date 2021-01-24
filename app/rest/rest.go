@@ -1305,22 +1305,32 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		}
 	})
 
-	router.POST("/v1/graphql", validateAPIKey, func(c *gin.Context) {
+	router.POST("/v1/graphql", validateAPIKey,
+		// Attempting to pass router context, which holds `APIKey`
+		// to graphql handler, so that some accounting job can
+		// be done, before delivering requested piece of data to client
+		func(c *gin.Context) {
+			ctx := context.WithValue(c.Request.Context(), "RouterContextInGraphQL", c)
+			c.Request = c.Request.WithContext(ctx)
+			c.Next()
+		},
 
-		gql := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
-			Resolvers: &graph.Resolver{},
-		}))
+		func(c *gin.Context) {
 
-		if gql == nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"msg": "Failed to handle graphQL query",
-			})
-			return
-		}
+			gql := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+				Resolvers: &graph.Resolver{},
+			}))
 
-		gql.ServeHTTP(c.Writer, c.Request)
+			if gql == nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"msg": "Failed to handle graphQL query",
+				})
+				return
+			}
 
-	})
+			gql.ServeHTTP(c.Writer, c.Request)
+
+		})
 
 	router.GET("/v1/graphql-playground", func(c *gin.Context) {
 

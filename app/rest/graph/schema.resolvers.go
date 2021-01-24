@@ -21,7 +21,7 @@ func (r *queryResolver) BlockByHash(ctx context.Context, hash string) (*model.Bl
 		return nil, errors.New("Bad Block Hash")
 	}
 
-	return getGraphQLCompatibleBlock(_db.GetBlockByHash(db, common.HexToHash(hash)))
+	return getGraphQLCompatibleBlock(ctx, _db.GetBlockByHash(db, common.HexToHash(hash)), true)
 }
 
 func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*model.Block, error) {
@@ -30,7 +30,7 @@ func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*mode
 		return nil, errors.New("Bad Block Number")
 	}
 
-	return getGraphQLCompatibleBlock(_db.GetBlockByNumber(db, _number))
+	return getGraphQLCompatibleBlock(ctx, _db.GetBlockByNumber(db, _number), true)
 }
 
 func (r *queryResolver) BlocksByNumberRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
@@ -39,7 +39,7 @@ func (r *queryResolver) BlocksByNumberRange(ctx context.Context, from string, to
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	return getGraphQLCompatibleBlocks(_db.GetBlocksByNumberRange(db, _from, _to))
+	return getGraphQLCompatibleBlocks(ctx, _db.GetBlocksByNumberRange(db, _from, _to))
 }
 
 func (r *queryResolver) BlocksByTimeRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
@@ -48,7 +48,7 @@ func (r *queryResolver) BlocksByTimeRange(ctx context.Context, from string, to s
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	return getGraphQLCompatibleBlocks(_db.GetBlocksByTimeRange(db, _from, _to))
+	return getGraphQLCompatibleBlocks(ctx, _db.GetBlocksByTimeRange(db, _from, _to))
 }
 
 func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string) ([]*model.Transaction, error) {
@@ -56,7 +56,7 @@ func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string
 		return nil, errors.New("Bad Block Hash")
 	}
 
-	return getGraphQLCompatibleTransactions(_db.GetTransactionsByBlockHash(db, common.HexToHash(hash)))
+	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsByBlockHash(db, common.HexToHash(hash)))
 }
 
 func (r *queryResolver) TransactionsByBlockNumber(ctx context.Context, number string) ([]*model.Transaction, error) {
@@ -65,7 +65,7 @@ func (r *queryResolver) TransactionsByBlockNumber(ctx context.Context, number st
 		return nil, errors.New("Bad Block Number")
 	}
 
-	return getGraphQLCompatibleTransactions(_db.GetTransactionsByBlockNumber(db, _number))
+	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsByBlockNumber(db, _number))
 }
 
 func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Transaction, error) {
@@ -73,7 +73,7 @@ func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Tr
 		return nil, errors.New("Bad Transaction Hash")
 	}
 
-	return getGraphQLCompatibleTransaction(_db.GetTransactionByHash(db, common.HexToHash(hash)))
+	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionByHash(db, common.HexToHash(hash)), true)
 }
 
 func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -86,7 +86,7 @@ func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	return getGraphQLCompatibleTransactions(_db.GetTransactionsFromAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
+	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsFromAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
 }
 
 func (r *queryResolver) TransactionsFromAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -99,7 +99,7 @@ func (r *queryResolver) TransactionsFromAccountByTimeRange(ctx context.Context, 
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	return getGraphQLCompatibleTransactions(_db.GetTransactionsFromAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
+	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsFromAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
 }
 
 func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -112,7 +112,7 @@ func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, 
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	return getGraphQLCompatibleTransactions(_db.GetTransactionsToAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
+	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsToAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
 }
 
 func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -125,7 +125,7 @@ func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, ac
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	return getGraphQLCompatibleTransactions(_db.GetTransactionsToAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
+	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsToAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
 }
 
 func (r *queryResolver) TransactionsBetweenAccountsByNumberRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error) {
@@ -142,7 +142,7 @@ func (r *queryResolver) TransactionsBetweenAccountsByNumberRange(ctx context.Con
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	return getGraphQLCompatibleTransactions(_db.GetTransactionsBetweenAccountsByBlockNumberRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to))
+	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsBetweenAccountsByBlockNumberRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to))
 }
 
 func (r *queryResolver) TransactionsBetweenAccountsByTimeRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error) {
@@ -159,7 +159,7 @@ func (r *queryResolver) TransactionsBetweenAccountsByTimeRange(ctx context.Conte
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	return getGraphQLCompatibleTransactions(_db.GetTransactionsBetweenAccountsByBlockTimeRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to))
+	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsBetweenAccountsByBlockTimeRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to))
 }
 
 func (r *queryResolver) ContractsCreatedFromAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -172,7 +172,7 @@ func (r *queryResolver) ContractsCreatedFromAccountByNumberRange(ctx context.Con
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	return getGraphQLCompatibleTransactions(_db.GetContractCreationTransactionsFromAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
+	return getGraphQLCompatibleTransactions(ctx, _db.GetContractCreationTransactionsFromAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
 }
 
 func (r *queryResolver) ContractsCreatedFromAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -185,7 +185,7 @@ func (r *queryResolver) ContractsCreatedFromAccountByTimeRange(ctx context.Conte
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	return getGraphQLCompatibleTransactions(_db.GetContractCreationTransactionsFromAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
+	return getGraphQLCompatibleTransactions(ctx, _db.GetContractCreationTransactionsFromAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
 }
 
 func (r *queryResolver) TransactionFromAccountWithNonce(ctx context.Context, account string, nonce string) (*model.Transaction, error) {
@@ -198,7 +198,7 @@ func (r *queryResolver) TransactionFromAccountWithNonce(ctx context.Context, acc
 		return nil, errors.New("Bad Account Nonce")
 	}
 
-	return getGraphQLCompatibleTransaction(_db.GetTransactionFromAccountWithNonce(db, common.HexToAddress(account), _nonce))
+	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionFromAccountWithNonce(db, common.HexToAddress(account), _nonce), true)
 }
 
 func (r *queryResolver) EventsFromContractByNumberRange(ctx context.Context, contract string, from string, to string) ([]*model.Event, error) {
@@ -211,7 +211,7 @@ func (r *queryResolver) EventsFromContractByNumberRange(ctx context.Context, con
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	return getGraphQLCompatibleEvents(_db.GetEventsFromContractByBlockNumberRange(db, common.HexToAddress(contract), _from, _to))
+	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractByBlockNumberRange(db, common.HexToAddress(contract), _from, _to))
 }
 
 func (r *queryResolver) EventsFromContractByTimeRange(ctx context.Context, contract string, from string, to string) ([]*model.Event, error) {
@@ -224,7 +224,7 @@ func (r *queryResolver) EventsFromContractByTimeRange(ctx context.Context, contr
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	return getGraphQLCompatibleEvents(_db.GetEventsFromContractByBlockTimeRange(db, common.HexToAddress(contract), _from, _to))
+	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractByBlockTimeRange(db, common.HexToAddress(contract), _from, _to))
 }
 
 func (r *queryResolver) EventsByBlockHash(ctx context.Context, hash string) ([]*model.Event, error) {
@@ -232,7 +232,7 @@ func (r *queryResolver) EventsByBlockHash(ctx context.Context, hash string) ([]*
 		return nil, errors.New("Bad Block Hash")
 	}
 
-	return getGraphQLCompatibleEvents(_db.GetEventsByBlockHash(db, common.HexToHash(hash)))
+	return getGraphQLCompatibleEvents(ctx, _db.GetEventsByBlockHash(db, common.HexToHash(hash)))
 }
 
 func (r *queryResolver) EventsByTxHash(ctx context.Context, hash string) ([]*model.Event, error) {
@@ -240,7 +240,7 @@ func (r *queryResolver) EventsByTxHash(ctx context.Context, hash string) ([]*mod
 		return nil, errors.New("Bad Transaction Hash")
 	}
 
-	return getGraphQLCompatibleEvents(_db.GetEventsByTransactionHash(db, common.HexToHash(hash)))
+	return getGraphQLCompatibleEvents(ctx, _db.GetEventsByTransactionHash(db, common.HexToHash(hash)))
 }
 
 func (r *queryResolver) EventsFromContractWithTopicsByNumberRange(ctx context.Context, contract string, from string, to string, topics []string) ([]*model.Event, error) {
@@ -253,7 +253,7 @@ func (r *queryResolver) EventsFromContractWithTopicsByNumberRange(ctx context.Co
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	return getGraphQLCompatibleEvents(_db.GetEventsFromContractWithTopicsByBlockNumberRange(db, common.HexToAddress(contract), _from, _to, getTopics(topics...)...))
+	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractWithTopicsByBlockNumberRange(db, common.HexToAddress(contract), _from, _to, getTopics(topics...)...))
 }
 
 func (r *queryResolver) EventsFromContractWithTopicsByTimeRange(ctx context.Context, contract string, from string, to string, topics []string) ([]*model.Event, error) {
@@ -266,7 +266,7 @@ func (r *queryResolver) EventsFromContractWithTopicsByTimeRange(ctx context.Cont
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	return getGraphQLCompatibleEvents(_db.GetEventsFromContractWithTopicsByBlockTimeRange(db, common.HexToAddress(contract), _from, _to, getTopics(topics...)...))
+	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractWithTopicsByBlockTimeRange(db, common.HexToAddress(contract), _from, _to, getTopics(topics...)...))
 }
 
 func (r *queryResolver) LastXEventsFromContract(ctx context.Context, contract string, x int) ([]*model.Event, error) {
@@ -278,7 +278,7 @@ func (r *queryResolver) LastXEventsFromContract(ctx context.Context, contract st
 		return nil, errors.New("Too Many Events Requested")
 	}
 
-	return getGraphQLCompatibleEvents(_db.GetLastXEventsFromContract(db, common.HexToAddress(contract), x))
+	return getGraphQLCompatibleEvents(ctx, _db.GetLastXEventsFromContract(db, common.HexToAddress(contract), x))
 }
 
 func (r *queryResolver) EventByBlockHashAndLogIndex(ctx context.Context, hash string, index string) (*model.Event, error) {
@@ -292,7 +292,7 @@ func (r *queryResolver) EventByBlockHashAndLogIndex(ctx context.Context, hash st
 		return nil, errors.New("Bad Log Index")
 	}
 
-	return getGraphQLCompatibleEvent(_db.GetEventByBlockHashAndLogIndex(db, common.HexToHash(hash), uint(_index)))
+	return getGraphQLCompatibleEvent(ctx, _db.GetEventByBlockHashAndLogIndex(db, common.HexToHash(hash), uint(_index)), true)
 
 }
 
@@ -308,7 +308,7 @@ func (r *queryResolver) EventByBlockNumberAndLogIndex(ctx context.Context, numbe
 		return nil, errors.New("Bad Log Index")
 	}
 
-	return getGraphQLCompatibleEvent(_db.GetEventByBlockNumberAndLogIndex(db, _number, uint(_index)))
+	return getGraphQLCompatibleEvent(ctx, _db.GetEventByBlockNumberAndLogIndex(db, _number, uint(_index)), true)
 
 }
 
