@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/itzmeanjan/ette/app/data"
+	_db "github.com/itzmeanjan/ette/app/db"
 	"github.com/itzmeanjan/ette/app/rest/graph/model"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
@@ -49,10 +51,28 @@ func getAPIKey(ctx context.Context) string {
 
 	routerCtx, err := routerContextFromGraphQLContext(ctx)
 	if err != nil {
+
+		log.Printf("[!] Failed to get `APIKey` : %s\n", err.Error())
 		return ""
+
 	}
 
 	return routerCtx.GetHeader("APIKey")
+
+}
+
+// Attempts to recover `APIKey` from router context, which is
+// then used for looking up user, so that data delivery information can
+// be persisted into DB
+func doBookKeeping(ctx context.Context, _data []byte) error {
+
+	user := _db.GetUserFromAPIKey(db, getAPIKey(ctx))
+	if user == nil {
+		return errors.New("Failed to get user from `APIKey`")
+	}
+
+	_db.PutDataDeliveryInfo(db, user.Address, "/v1/graphql", uint64(len(_data)))
+	return nil
 
 }
 
