@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/gin-gonic/gin"
 	"github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/rest/graph/model"
 	"github.com/lib/pq"
@@ -20,6 +22,24 @@ var db *gorm.DB
 // so that it can be used for handling database queries for resolving graphQL queries
 func GetDatabaseConnection(conn *gorm.DB) {
 	db = conn
+}
+
+// Attempting to recover router context i.e. which holds client `APIKey` in request header,
+// in graphql handler context, so that we can do some accounting job
+func ginContextFromContext(ctx context.Context) (*gin.Context, error) {
+
+	ginContext := ctx.Value("RouterContextInGraphQL")
+	if ginContext == nil {
+		return nil, errors.New("Failed to retrieve router context")
+	}
+
+	gc, ok := ginContext.(*gin.Context)
+	if !ok {
+		return nil, errors.New("Type assert of router context failed")
+	}
+
+	return gc, nil
+
 }
 
 // Converting block data to graphQL compatible data structure
