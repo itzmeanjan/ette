@@ -21,7 +21,7 @@ func (r *queryResolver) BlockByHash(ctx context.Context, hash string) (*model.Bl
 		return nil, errors.New("Bad Block Hash")
 	}
 
-	return getGraphQLCompatibleBlock(ctx, _db.GetBlockByHash(db, common.HexToHash(hash)))
+	return getGraphQLCompatibleBlock(ctx, _db.GetBlockByHash(db, common.HexToHash(hash)), true)
 }
 
 func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*model.Block, error) {
@@ -30,7 +30,7 @@ func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*mode
 		return nil, errors.New("Bad Block Number")
 	}
 
-	return getGraphQLCompatibleBlock(ctx, _db.GetBlockByNumber(db, _number))
+	return getGraphQLCompatibleBlock(ctx, _db.GetBlockByNumber(db, _number), true)
 }
 
 func (r *queryResolver) BlocksByNumberRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
@@ -73,7 +73,7 @@ func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Tr
 		return nil, errors.New("Bad Transaction Hash")
 	}
 
-	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionByHash(db, common.HexToHash(hash)))
+	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionByHash(db, common.HexToHash(hash)), true)
 }
 
 func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -198,7 +198,7 @@ func (r *queryResolver) TransactionFromAccountWithNonce(ctx context.Context, acc
 		return nil, errors.New("Bad Account Nonce")
 	}
 
-	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionFromAccountWithNonce(db, common.HexToAddress(account), _nonce))
+	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionFromAccountWithNonce(db, common.HexToAddress(account), _nonce), true)
 }
 
 func (r *queryResolver) EventsFromContractByNumberRange(ctx context.Context, contract string, from string, to string) ([]*model.Event, error) {
@@ -292,7 +292,7 @@ func (r *queryResolver) EventByBlockHashAndLogIndex(ctx context.Context, hash st
 		return nil, errors.New("Bad Log Index")
 	}
 
-	return getGraphQLCompatibleEvent(ctx, _db.GetEventByBlockHashAndLogIndex(db, common.HexToHash(hash), uint(_index)))
+	return getGraphQLCompatibleEvent(ctx, _db.GetEventByBlockHashAndLogIndex(db, common.HexToHash(hash), uint(_index)), true)
 
 }
 
@@ -308,7 +308,7 @@ func (r *queryResolver) EventByBlockNumberAndLogIndex(ctx context.Context, numbe
 		return nil, errors.New("Bad Log Index")
 	}
 
-	return getGraphQLCompatibleEvent(ctx, _db.GetEventByBlockNumberAndLogIndex(db, _number, uint(_index)))
+	return getGraphQLCompatibleEvent(ctx, _db.GetEventByBlockNumberAndLogIndex(db, _number, uint(_index)), true)
 
 }
 

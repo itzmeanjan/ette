@@ -113,7 +113,7 @@ func getGraphQLCompatibleBlock(ctx context.Context, block *data.Block, bookKeepi
 }
 
 // Converting block array to graphQL compatible data structure
-func getGraphQLCompatibleBlocks(ctx context.Context, blocks *data.Blocks, bookKeeping bool) ([]*model.Block, error) {
+func getGraphQLCompatibleBlocks(ctx context.Context, blocks *data.Blocks) ([]*model.Block, error) {
 	if blocks == nil {
 		return nil, errors.New("Found nothing")
 	}
@@ -189,7 +189,7 @@ func getGraphQLCompatibleTransaction(ctx context.Context, tx *data.Transaction, 
 }
 
 // Converting transaction array to graphQL compatible data structure
-func getGraphQLCompatibleTransactions(ctx context.Context, tx *data.Transactions, bookKeeping bool) ([]*model.Transaction, error) {
+func getGraphQLCompatibleTransactions(ctx context.Context, tx *data.Transactions) ([]*model.Transaction, error) {
 	if tx == nil {
 		return nil, errors.New("Found nothing")
 	}
@@ -242,7 +242,7 @@ func getGraphQLCompatibleEvent(ctx context.Context, event *data.Event, bookKeepi
 }
 
 // Converting event array to graphQL compatible data structure
-func getGraphQLCompatibleEvents(ctx context.Context, events *data.Events, bookKeeping bool) ([]*model.Event, error) {
+func getGraphQLCompatibleEvents(ctx context.Context, events *data.Events) ([]*model.Event, error) {
 	if events == nil {
 		return nil, errors.New("Found nothing")
 	}
