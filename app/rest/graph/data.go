@@ -43,7 +43,7 @@ func ginContextFromContext(ctx context.Context) (*gin.Context, error) {
 }
 
 // Converting block data to graphQL compatible data structure
-func getGraphQLCompatibleBlock(block *data.Block) (*model.Block, error) {
+func getGraphQLCompatibleBlock(ctx context.Context, block *data.Block) (*model.Block, error) {
 	if block == nil {
 		return nil, errors.New("Found nothing")
 	}
@@ -65,7 +65,7 @@ func getGraphQLCompatibleBlock(block *data.Block) (*model.Block, error) {
 }
 
 // Converting block array to graphQL compatible data structure
-func getGraphQLCompatibleBlocks(blocks *data.Blocks) ([]*model.Block, error) {
+func getGraphQLCompatibleBlocks(ctx context.Context, blocks *data.Blocks) ([]*model.Block, error) {
 	if blocks == nil {
 		return nil, errors.New("Found nothing")
 	}
@@ -77,7 +77,7 @@ func getGraphQLCompatibleBlocks(blocks *data.Blocks) ([]*model.Block, error) {
 	_blocks := make([]*model.Block, len(blocks.Blocks))
 
 	for k, v := range blocks.Blocks {
-		_v, _ := getGraphQLCompatibleBlock(v)
+		_v, _ := getGraphQLCompatibleBlock(ctx, v)
 		_blocks[k] = _v
 	}
 
@@ -85,7 +85,7 @@ func getGraphQLCompatibleBlocks(blocks *data.Blocks) ([]*model.Block, error) {
 }
 
 // Converting transaction data to graphQL compatible data structure
-func getGraphQLCompatibleTransaction(tx *data.Transaction) (*model.Transaction, error) {
+func getGraphQLCompatibleTransaction(ctx context.Context, tx *data.Transaction) (*model.Transaction, error) {
 	if tx == nil {
 		return nil, errors.New("Found nothing")
 	}
@@ -129,7 +129,7 @@ func getGraphQLCompatibleTransaction(tx *data.Transaction) (*model.Transaction, 
 }
 
 // Converting transaction array to graphQL compatible data structure
-func getGraphQLCompatibleTransactions(tx *data.Transactions) ([]*model.Transaction, error) {
+func getGraphQLCompatibleTransactions(ctx context.Context, tx *data.Transactions) ([]*model.Transaction, error) {
 	if tx == nil {
 		return nil, errors.New("Found nothing")
 	}
@@ -141,7 +141,7 @@ func getGraphQLCompatibleTransactions(tx *data.Transactions) ([]*model.Transacti
 	_tx := make([]*model.Transaction, len(tx.Transactions))
 
 	for k, v := range tx.Transactions {
-		_v, _ := getGraphQLCompatibleTransaction(v)
+		_v, _ := getGraphQLCompatibleTransaction(ctx, v)
 		_tx[k] = _v
 	}
 
@@ -149,7 +149,7 @@ func getGraphQLCompatibleTransactions(tx *data.Transactions) ([]*model.Transacti
 }
 
 // Converting event data to graphQL compatible data structure
-func getGraphQLCompatibleEvent(event *data.Event) (*model.Event, error) {
+func getGraphQLCompatibleEvent(ctx context.Context, event *data.Event) (*model.Event, error) {
 	if event == nil {
 		return nil, errors.New("Found nothing")
 	}
@@ -170,7 +170,7 @@ func getGraphQLCompatibleEvent(event *data.Event) (*model.Event, error) {
 }
 
 // Converting event array to graphQL compatible data structure
-func getGraphQLCompatibleEvents(events *data.Events) ([]*model.Event, error) {
+func getGraphQLCompatibleEvents(ctx context.Context, events *data.Events) ([]*model.Event, error) {
 	if events == nil {
 		return nil, errors.New("Found nothing")
 	}
@@ -182,7 +182,7 @@ func getGraphQLCompatibleEvents(events *data.Events) ([]*model.Event, error) {
 	_events := make([]*model.Event, len(events.Events))
 
 	for k, v := range events.Events {
-		_v, _ := getGraphQLCompatibleEvent(v)
+		_v, _ := getGraphQLCompatibleEvent(ctx, v)
 		_events[k] = _v
 	}
 
