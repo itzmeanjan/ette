@@ -26,7 +26,7 @@ func GetDatabaseConnection(conn *gorm.DB) {
 
 // Attempting to recover router context i.e. which holds client `APIKey` in request header,
 // in graphql handler context, so that we can do some accounting job
-func ginContextFromContext(ctx context.Context) (*gin.Context, error) {
+func routerContextFromGraphQLContext(ctx context.Context) (*gin.Context, error) {
 
 	ginContext := ctx.Value("RouterContextInGraphQL")
 	if ginContext == nil {
@@ -39,6 +39,20 @@ func ginContextFromContext(ctx context.Context) (*gin.Context, error) {
 	}
 
 	return gc, nil
+
+}
+
+// Attempts to extract out `APIKey` used passed along
+// with request, in graphql handler function, to be used for
+// doing some book keeping work
+func getAPIKey(ctx context.Context) string {
+
+	routerCtx, err := routerContextFromGraphQLContext(ctx)
+	if err != nil {
+		return ""
+	}
+
+	return routerCtx.GetHeader("APIKey")
 
 }
 
