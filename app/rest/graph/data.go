@@ -3,6 +3,7 @@ package graph
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -78,11 +79,12 @@ func doBookKeeping(ctx context.Context, _data []byte) error {
 
 // Converting block data to graphQL compatible data structure
 func getGraphQLCompatibleBlock(ctx context.Context, block *data.Block) (*model.Block, error) {
+
 	if block == nil {
 		return nil, errors.New("Found nothing")
 	}
 
-	return &model.Block{
+	_block := &model.Block{
 		Hash:            block.Hash,
 		Number:          fmt.Sprintf("%d", block.Number),
 		Time:            fmt.Sprintf("%d", block.Time),
@@ -95,7 +97,21 @@ func getGraphQLCompatibleBlock(ctx context.Context, block *data.Block) (*model.B
 		Size:            block.Size,
 		TxRootHash:      block.TransactionRootHash,
 		ReceiptRootHash: block.ReceiptRootHash,
-	}, nil
+	}
+
+	// marshalling to JSON, so that length of data can be
+	// computed in bytes, to used for book keeping purposes
+	_data, err := json.Marshal(_block)
+	if err != nil {
+		return nil, errors.New("JSON marshalling failed")
+	}
+
+	if err := doBookKeeping(ctx, _data); err != nil {
+		return nil, errors.New("Book keeping failed")
+	}
+
+	return _block, nil
+
 }
 
 // Converting block array to graphQL compatible data structure
