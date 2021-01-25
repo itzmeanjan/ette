@@ -186,13 +186,16 @@ SnapshotFile=snapshot.bin
 - Now build `ette`
 
 ```bash
-go build
+make build
 ```
 
 - If everything goes as expected, you'll find one binary named, **ette** in this directory. Run it. 
 
 ```bash
 ./ette
+
+# or directly run `ette` using 👇, which will first build, then run
+make run
 ```
 
 - Database migration to be taken care of during application start up.
@@ -213,7 +216,77 @@ curl -s localhost:7000/v1/synced | jq
 }
 ```
 
-> Note: For production, you'll most probably run it using `systemd`
+---
+
+### Production Deployment of `ette` using **systemd**
+
+Here's a systemd unit file which you can create in `/etc/systemd/system`.
+
+```bash
+sudo touch /etc/systemd/system/ette.service # first do it
+```
+
+Now you can paste 👇 content in unit file, given that you've cloned `ette` in **$HOME**.
+
+```bash
+[Unit]
+Description=ette - EVM Blockchain Indexer
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ette
+ExecStart=/home/ubuntu/ette/ette
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Time to load systemd.
+
+```bash
+sudo systemctl daemon-reload
+```
+
+Now you can enable `ette`, so that it can be automatically started after system boot up.
+
+```bash
+sudo systemctl enable ette.service
+```
+
+Finally you can start `ette`.
+
+```bash
+sudo systemctl start ette.service
+```
+
+You can also stop, running `ette` instance.
+
+```bash
+sudo systemctl stop ette.service
+```
+
+Restart an instance.
+
+```bash
+sudo systemctl restart ette.service
+```
+
+All logs `ette` produces can be inspected using 👇
+
+```bash
+sudo journalctl -u ette.service # oldest to newest
+sudo journalctl -u ette.service --reverse # opposite of 👆
+```
+
+Latest log can be followed
+
+```bash
+sudo journalctl -u ette.service -f
+```
+
+---
 
 ## Use Cases 🤯
 
