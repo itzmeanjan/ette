@@ -34,7 +34,8 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		packedBlock := BuildPackedBlock(block, txns)
 
 		// Attempting to publish whole block data to redis pubsub channel
-		if publishable && (cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+		// when eligible `EtteMode` is set
+		if publishable && (cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3") {
 			PublishBlock(packedBlock, redis)
 		}
 
