@@ -50,6 +50,17 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		// This is what we just published on pubsub channel
 		packedBlock := pubsubWorker(nil)
 
+		// If `ette` being run in mode, for only publishing data to
+		// pubsub channel, no need to persist data
+		//
+		// We simply publish & return from execution scope
+		if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+
+			log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s)", block.NumberU64()))
+			return
+
+		}
+
 		if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
 			log.Print(color.LightRed.Sprintf("[x] Non-final block %d with 0 tx(s) [ Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
@@ -159,6 +170,17 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	//
 	// This is what we just published on pubsub channel
 	packedBlock := pubsubWorker(packedTxs)
+
+	// If `ette` being run in mode, for only publishing data to
+	// pubsub channel, no need to persist data
+	//
+	// We simply publish & return from execution scope
+	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+
+		log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s)", block.NumberU64(), block.Transactions().Len()))
+		return
+
+	}
 
 	if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
