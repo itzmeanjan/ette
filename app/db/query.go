@@ -1,10 +1,37 @@
 package db
 
 import (
+	"log"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
 )
+
+// GetAllBlockNumbersInRange - Returns all block numbers in given range, both inclusive
+func GetAllBlockNumbersInRange(db *gorm.DB, from uint64, to uint64) []uint64 {
+
+	var blocks []uint64
+
+	if from < to {
+		if err := db.Model(&Blocks{}).Where("number >= ? and number <= ?", from, to).Select("number").Find(&blocks).Error; err != nil {
+
+			log.Printf("[!] Failed to fetch block numbers by range : %s\n", err.Error())
+			return nil
+
+		}
+	} else {
+		if err := db.Model(&Blocks{}).Where("number >= ? and number <= ?", to, from).Select("number").Find(&blocks).Error; err != nil {
+
+			log.Printf("[!] Failed to fetch block numbers by range : %s\n", err.Error())
+			return nil
+
+		}
+	}
+
+	return blocks
+
+}
 
 // GetCurrentOldestBlockNumber - Fetches what's lowest block number present in database,
 // which denotes if it's not 0, from here we can start syncing again, until we reach 0

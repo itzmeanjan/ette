@@ -1,0 +1,11 @@
+syntax = "proto3";
+option go_package = "github.com/itzmeanjan/ette/app/proto";
+
+message Event {
+    string block_hash = 1;
+    uint32 index = 2;
+    string origin = 3;
+    repeated string topics = 4;
+    bytes data = 5;
+    string transaction_hash = 6;
+}

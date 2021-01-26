@@ -291,13 +291,6 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 			c.SetCookie("SessionID", payload.Signature, 3600, "/v1/dashboard", cfg.Get("Domain"), false, false)
 
-			if payload.IsAdmin(signer) {
-				c.JSON(http.StatusOK, gin.H{
-					"msg": "Success",
-				})
-				return
-			}
-
 			c.JSON(http.StatusOK, gin.H{
 				"msg": "Success",
 			})

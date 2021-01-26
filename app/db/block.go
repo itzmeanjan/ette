@@ -51,7 +51,7 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) err
 
 			// During 👆 flow, if we've really inserted a new block into database,
 			// count will get updated
-			if blockInserted {
+			if blockInserted && status != nil {
 				status.IncrementBlocksInserted()
 			}
 
@@ -77,7 +77,7 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) err
 
 		// During 👆 flow, if we've really inserted a new block into database,
 		// count will get updated
-		if blockInserted {
+		if blockInserted && status != nil {
 			status.IncrementBlocksInserted()
 		}
 

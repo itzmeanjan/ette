@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -24,7 +25,7 @@ func HasBlockFinalized(status *d.StatusHolder, number uint64) bool {
 }
 
 // ProcessBlockContent - Processes everything inside this block i.e. block data, tx data, event data
-func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, status *d.StatusHolder) {
+func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, status *d.StatusHolder, startingAt time.Time) {
 
 	// Closure managing publishing whole block data i.e. block header, txn(s), event logs
 	// on redis pubsub channel
@@ -34,7 +35,8 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		packedBlock := BuildPackedBlock(block, txns)
 
 		// Attempting to publish whole block data to redis pubsub channel
-		if publishable && (cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+		// when eligible `EtteMode` is set
+		if publishable && (cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3") {
 			PublishBlock(packedBlock, redis)
 		}
 
@@ -49,9 +51,22 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		// This is what we just published on pubsub channel
 		packedBlock := pubsubWorker(nil)
 
+		// If `ette` being run in mode, for only publishing data to
+		// pubsub channel, no need to persist data
+		//
+		// We simply publish & return from execution scope
+		if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+
+			log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s) [ Took : %s ]", block.NumberU64(), time.Now().UTC().Sub(startingAt)))
+			status.IncrementBlocksProcessed()
+
+			return
+
+		}
+
 		if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
-			log.Print(color.LightRed.Sprintf("[x] Non-final block %d with 0 tx(s) [ Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+			log.Print(color.LightRed.Sprintf("[x] Non-final block %d with 0 tx(s) [ Took : %s | Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, time.Now().UTC().Sub(startingAt), status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
 
 			// Pushing into unfinalized block queue, to be picked up only when
 			// finality for this block has been achieved
@@ -63,7 +78,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		// If block doesn't contain any tx, we'll attempt to persist only block
 		if err := db.StoreBlock(_db, packedBlock, status); err != nil {
 
-			log.Print(color.Red.Sprintf("[+] Failed to process block %d with 0 tx(s) : %s", block.NumberU64(), err.Error()))
+			log.Print(color.Red.Sprintf("[+] Failed to process block %d with 0 tx(s) : %s [ Took : %s ]", block.NumberU64(), err.Error(), time.Now().UTC().Sub(startingAt)))
 
 			// If failed to persist, we'll put it in retry queue
 			PushBlockIntoRetryQueue(redis, block.Number().String())
@@ -72,7 +87,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		}
 
 		// Successfully processed block
-		log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s)", block.NumberU64()))
+		log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s) [ Took : %s ]", block.NumberU64(), time.Now().UTC().Sub(startingAt)))
 		status.IncrementBlocksProcessed()
 
 		return
@@ -149,6 +164,18 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	// we're exiting from this context, while putting this block number in retry queue
 	if !(result.Failure == 0) {
 
+		// If it's being run in mode 2, no need to put it in retry queue
+		//
+		// We can miss blocks, but will not be able deliver it over websocket channel
+		// to subscribed clients
+		//
+		// @todo This needs to be improved, so that even if we miss a block now
+		// we get to process & publish it over websocket based channel, where
+		// clients subscribe for real-time data
+		if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+			return
+		}
+
 		PushBlockIntoRetryQueue(redis, block.Number().String())
 		return
 
@@ -159,9 +186,22 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	// This is what we just published on pubsub channel
 	packedBlock := pubsubWorker(packedTxs)
 
+	// If `ette` being run in mode, for only publishing data to
+	// pubsub channel, no need to persist data
+	//
+	// We simply publish & return from execution scope
+	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+
+		log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s) [ Took : %s ]", block.NumberU64(), block.Transactions().Len(), time.Now().UTC().Sub(startingAt)))
+		status.IncrementBlocksProcessed()
+
+		return
+
+	}
+
 	if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
-		log.Print(color.LightRed.Sprintf("[x] Non-final block %d with %d tx(s) [ Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, block.Transactions().Len(), status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+		log.Print(color.LightRed.Sprintf("[x] Non-final block %d with %d tx(s) [ Took : %s | Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, block.Transactions().Len(), time.Now().UTC().Sub(startingAt), status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
 
 		// Pushing into unfinalized block queue, to be picked up only when
 		// finality for this block has been achieved
@@ -173,7 +213,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	// If block doesn't contain any tx, we'll attempt to persist only block
 	if err := db.StoreBlock(_db, packedBlock, status); err != nil {
 
-		log.Print(color.Red.Sprintf("[+] Failed to process block %d with %d tx(s) : %s", block.NumberU64(), block.Transactions().Len(), err.Error()))
+		log.Print(color.Red.Sprintf("[+] Failed to process block %d with %d tx(s) : %s [ Took : %s ]", block.NumberU64(), block.Transactions().Len(), err.Error(), time.Now().UTC().Sub(startingAt)))
 
 		// If failed to persist, we'll put it in retry queue
 		PushBlockIntoRetryQueue(redis, block.Number().String())
@@ -182,7 +222,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	}
 
 	// Successfully processed block
-	log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s)", block.NumberU64(), block.Transactions().Len()))
+	log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s) [ Took : %s ]", block.NumberU64(), block.Transactions().Len(), time.Now().UTC().Sub(startingAt)))
 	status.IncrementBlocksProcessed()
 
 }

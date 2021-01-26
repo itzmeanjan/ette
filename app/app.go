@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gookit/color"
@@ -15,6 +17,7 @@ import (
 	"github.com/itzmeanjan/ette/app/db"
 	"github.com/itzmeanjan/ette/app/rest"
 	"github.com/itzmeanjan/ette/app/rest/graph"
+	ss "github.com/itzmeanjan/ette/app/snapshot"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +28,7 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
 	}
 
-	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3") {
+	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3" || cfg.Get("EtteMode") == "4" || cfg.Get("EtteMode") == "5") {
 		log.Fatalf("[!] Failed to find `EtteMode` in configuration file\n")
 	}
 
@@ -75,7 +78,7 @@ func Run(configFile, subscriptionPlansFile string) {
 	// Attempting to listen to Ctrl+C signal
 	// and when received gracefully shutting down `ette`
 	interruptChan := make(chan os.Signal, 1)
-	signal.Notify(interruptChan, os.Interrupt)
+	signal.Notify(interruptChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
 
 	// All resources being used gets cleaned up
 	// when we're returning from this function scope
@@ -104,6 +107,51 @@ func Run(configFile, subscriptionPlansFile string) {
 		os.Exit(0)
 
 	}()
+
+	// User has requested `ette` to take a snapshot of current database state
+	if cfg.Get("EtteMode") == "4" {
+
+		// checking if there's anything to snapshot or not
+		if _status.BlockCountInDB() == 0 {
+			log.Printf("[*] Nothing to snapshot\n")
+			return
+		}
+
+		// this is the file snapshot to be taken
+		_snapshotFile := cfg.GetSnapshotFile()
+		_start := time.Now().UTC()
+
+		log.Printf("[*] Starting snapshotting at : %s [ Sink : %s ]\n", _start, _snapshotFile)
+
+		// taking snapshot, this might take some time
+		_ret := ss.TakeSnapshot(_db, _snapshotFile, db.GetCurrentOldestBlockNumber(_db), db.GetCurrentBlockNumber(_db), _status.BlockCountInDB())
+		if _ret {
+			log.Printf(color.Green.Sprintf("[+] Snapshotted in : %s [ Count : %d ]", time.Now().UTC().Sub(_start), _status.BlockCountInDB()))
+		} else {
+			log.Printf(color.Red.Sprintf("[!] Snapshotting failed in : %s", time.Now().UTC().Sub(_start)))
+		}
+
+		return
+
+	}
+
+	// User has asked `ette` to attempt to restore from snapshotted data
+	// where data file is `snapshot.bin` in current working directory,
+	// if nothing specified for `SnapshotFile` variable in `.env`
+	if cfg.Get("EtteMode") == "5" {
+
+		_snapshotFile := cfg.GetSnapshotFile()
+		_start := time.Now().UTC()
+
+		log.Printf("[*] Starting snapshot restoring at : %s [ Sink : %s ]\n", _start, _snapshotFile)
+
+		_, _count := ss.RestoreFromSnapshot(_db, _snapshotFile)
+
+		log.Printf(color.Green.Sprintf("[+] Restored from snapshot in : %s [ Count : %d ]", time.Now().UTC().Sub(_start), _count))
+
+		return
+
+	}
 
 	// Pushing block header propagation listener to another thread of execution
 	go blk.SubscribeToNewBlocks(_connection, _db, _status, &_redisInfo)
