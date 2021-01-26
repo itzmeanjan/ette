@@ -1,0 +1,20 @@
+syntax = "proto3";
+option go_package = "github.com/itzmeanjan/ette/app/proto";
+
+import 'event.proto';
+
+message Transaction {
+    string hash = 1;
+    string from = 2;
+    string to = 3;
+    string contract = 4;
+    string value = 5;
+    bytes data = 6;
+    uint64 gas = 7;
+    string gas_price = 8;
+    string cost = 9;
+    uint64 nonce = 10;
+    uint64 state = 11;
+    string block_hash = 12;
+    repeated Event events = 13;
+}

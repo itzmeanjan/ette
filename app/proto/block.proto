@@ -1,0 +1,20 @@
+syntax = "proto3";
+option go_package = "github.com/itzmeanjan/ette/app/proto";
+
+import 'transaction.proto';
+
+message Block {
+    string hash = 1;
+    uint64 number = 2;
+    uint64 time = 3;
+    string parent_hash = 4;
+    string difficulty = 5;
+    uint64 gas_used = 6;
+    uint64 gas_limit = 7;
+    uint64 nonce = 8;
+    string miner = 9;
+    double size = 10;
+    string transaction_root_hash = 11;
+    string receipt_root_hash = 12;
+    repeated Transaction transactions = 13;
+}
