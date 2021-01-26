@@ -58,6 +58,8 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
 
 			log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s) [ Took : %s ]", block.NumberU64(), time.Now().UTC().Sub(startingAt)))
+			status.IncrementBlocksProcessed()
+
 			return
 
 		}
@@ -191,6 +193,8 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
 
 		log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s) [ Took : %s ]", block.NumberU64(), block.Transactions().Len(), time.Now().UTC().Sub(startingAt)))
+		status.IncrementBlocksProcessed()
+
 		return
 
 	}
