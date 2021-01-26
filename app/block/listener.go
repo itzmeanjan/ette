@@ -115,15 +115,23 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 							log.Print(color.Yellow.Sprintf("[*] Attempting to process finalised block %d [ Latest Block : %d | In Queue : %d ]", oldest, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
 
-							wp.Submit(func() {
+							// Taking `oldest` variable's copy in local scope of closure, so that during
+							// iteration over queue elements, none of them get missed, becuase we're
+							// dealing with concurrent system, where previous `oldest` can be overwritten
+							// by new `oldest` & we end up missing a block
+							func(_oldestBlock uint64) {
 
-								FetchBlockByNumber(connection.RPC,
-									oldest,
-									_db,
-									redis,
-									status)
+								wp.Submit(func() {
 
-							})
+									FetchBlockByNumber(connection.RPC,
+										_oldestBlock,
+										_db,
+										redis,
+										status)
+
+								})
+
+							}(oldest)
 
 						} else {
 							// If oldest block is not finalized, no meaning
