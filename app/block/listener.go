@@ -92,37 +92,45 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// so that it gets processed immediately
 			func(blockHash common.Hash, blockNumber string) {
 
-				// Attempting to submit all blocks to job processor queue
-				// if more blocks are present in non-final queue, than actually
-				// should be
-				for GetUnfinalizedQueueLength(redis) > int64(cfg.GetBlockConfirmations()) {
+				// When only processing blocks in real-time mode
+				// no need to check what's present in unfinalized block number queue
+				// because no finality feature is provided for blocks on websocket based
+				// real-time subscription mechanism
+				if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
 
-					// Before submitting new block processing job
-					// checking whether there exists any block in unfinalized
-					// block queue or not
-					//
-					// If yes, we're attempting to process it, because it has now
-					// achieved enough confirmations
-					if CheckIfOldestBlockIsConfirmed(redis, status) {
+					// Attempting to submit all blocks to job processor queue
+					// if more blocks are present in non-final queue, than actually
+					// should be
+					for GetUnfinalizedQueueLength(redis) > int64(cfg.GetBlockConfirmations()) {
 
-						oldest := PopOldestBlockFromUnfinalizedQueue(redis)
+						// Before submitting new block processing job
+						// checking whether there exists any block in unfinalized
+						// block queue or not
+						//
+						// If yes, we're attempting to process it, because it has now
+						// achieved enough confirmations
+						if CheckIfOldestBlockIsConfirmed(redis, status) {
 
-						log.Print(color.Yellow.Sprintf("[*] Attempting to process finalised block %d [ Latest Block : %d | In Queue : %d ]", oldest, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+							oldest := PopOldestBlockFromUnfinalizedQueue(redis)
 
-						wp.Submit(func() {
+							log.Print(color.Yellow.Sprintf("[*] Attempting to process finalised block %d [ Latest Block : %d | In Queue : %d ]", oldest, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
 
-							FetchBlockByNumber(connection.RPC,
-								oldest,
-								_db,
-								redis,
-								status)
+							wp.Submit(func() {
 
-						})
+								FetchBlockByNumber(connection.RPC,
+									oldest,
+									_db,
+									redis,
+									status)
 
-					} else {
-						// If oldest block is not finalized, no meaning
-						// staying here, we'll revisit it some time in future
-						break
+							})
+
+						} else {
+							// If oldest block is not finalized, no meaning
+							// staying here, we'll revisit it some time in future
+							break
+						}
+
 					}
 
 				}
