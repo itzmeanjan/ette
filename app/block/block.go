@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -24,7 +25,7 @@ func HasBlockFinalized(status *d.StatusHolder, number uint64) bool {
 }
 
 // ProcessBlockContent - Processes everything inside this block i.e. block data, tx data, event data
-func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, status *d.StatusHolder) {
+func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, status *d.StatusHolder, startingAt time.Time) {
 
 	// Closure managing publishing whole block data i.e. block header, txn(s), event logs
 	// on redis pubsub channel
@@ -56,14 +57,14 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		// We simply publish & return from execution scope
 		if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
 
-			log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s)", block.NumberU64()))
+			log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s) [ Took : %s ]", block.NumberU64(), time.Now().UTC().Sub(startingAt)))
 			return
 
 		}
 
 		if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
-			log.Print(color.LightRed.Sprintf("[x] Non-final block %d with 0 tx(s) [ Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+			log.Print(color.LightRed.Sprintf("[x] Non-final block %d with 0 tx(s) [ Took : %s | Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, time.Now().UTC().Sub(startingAt), status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
 
 			// Pushing into unfinalized block queue, to be picked up only when
 			// finality for this block has been achieved
@@ -75,7 +76,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		// If block doesn't contain any tx, we'll attempt to persist only block
 		if err := db.StoreBlock(_db, packedBlock, status); err != nil {
 
-			log.Print(color.Red.Sprintf("[+] Failed to process block %d with 0 tx(s) : %s", block.NumberU64(), err.Error()))
+			log.Print(color.Red.Sprintf("[+] Failed to process block %d with 0 tx(s) : %s [ Took : %s ]", block.NumberU64(), err.Error(), time.Now().UTC().Sub(startingAt)))
 
 			// If failed to persist, we'll put it in retry queue
 			PushBlockIntoRetryQueue(redis, block.Number().String())
@@ -84,7 +85,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		}
 
 		// Successfully processed block
-		log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s)", block.NumberU64()))
+		log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s) [ Took : %s ]", block.NumberU64(), time.Now().UTC().Sub(startingAt)))
 		status.IncrementBlocksProcessed()
 
 		return
@@ -189,14 +190,14 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	// We simply publish & return from execution scope
 	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
 
-		log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s)", block.NumberU64(), block.Transactions().Len()))
+		log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s) [ Took : %s ]", block.NumberU64(), block.Transactions().Len(), time.Now().UTC().Sub(startingAt)))
 		return
 
 	}
 
 	if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
-		log.Print(color.LightRed.Sprintf("[x] Non-final block %d with %d tx(s) [ Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, block.Transactions().Len(), status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+		log.Print(color.LightRed.Sprintf("[x] Non-final block %d with %d tx(s) [ Took : %s | Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, block.Transactions().Len(), time.Now().UTC().Sub(startingAt), status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
 
 		// Pushing into unfinalized block queue, to be picked up only when
 		// finality for this block has been achieved
@@ -208,7 +209,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	// If block doesn't contain any tx, we'll attempt to persist only block
 	if err := db.StoreBlock(_db, packedBlock, status); err != nil {
 
-		log.Print(color.Red.Sprintf("[+] Failed to process block %d with %d tx(s) : %s", block.NumberU64(), block.Transactions().Len(), err.Error()))
+		log.Print(color.Red.Sprintf("[+] Failed to process block %d with %d tx(s) : %s [ Took : %s ]", block.NumberU64(), block.Transactions().Len(), err.Error(), time.Now().UTC().Sub(startingAt)))
 
 		// If failed to persist, we'll put it in retry queue
 		PushBlockIntoRetryQueue(redis, block.Number().String())
@@ -217,7 +218,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	}
 
 	// Successfully processed block
-	log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s)", block.NumberU64(), block.Transactions().Len()))
+	log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s) [ Took : %s ]", block.NumberU64(), block.Transactions().Len(), time.Now().UTC().Sub(startingAt)))
 	status.IncrementBlocksProcessed()
 
 }

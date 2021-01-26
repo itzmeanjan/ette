@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -18,6 +19,10 @@ import (
 
 // FetchBlockByHash - Fetching block content using blockHash
 func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redis *d.RedisInfo, _status *d.StatusHolder) {
+
+	// Starting block processing at
+	startingAt := time.Now().UTC()
+
 	block, err := client.BlockByHash(context.Background(), hash)
 	if err != nil {
 
@@ -40,11 +45,16 @@ func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 		return
 	}
 
-	ProcessBlockContent(client, block, _db, redis, true, _status)
+	ProcessBlockContent(client, block, _db, redis, true, _status, startingAt)
+
 }
 
 // FetchBlockByNumber - Fetching block content using block number
 func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redis *d.RedisInfo, _status *d.StatusHolder) {
+
+	// Starting block processing at
+	startingAt := time.Now().UTC()
+
 	_num := big.NewInt(0)
 	_num.SetUint64(number)
 
@@ -57,7 +67,8 @@ func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 		return
 	}
 
-	ProcessBlockContent(client, block, _db, redis, false, _status)
+	ProcessBlockContent(client, block, _db, redis, false, _status, startingAt)
+
 }
 
 // FetchTransactionByHash - Fetching specific transaction related data, tries to publish data if required
