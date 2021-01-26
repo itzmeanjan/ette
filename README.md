@@ -68,6 +68,8 @@ And that's `ette`
 
 ## Prerequisite 👍
 
+![running_ette](./sc/running-ette.png)
+
 - Make sure you've Go _( >= 1.15 )_ installed
 - You need to also install & set up PostgreSQL. I found [this](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-20-04) guide helpful.
 - Redis needs to be installed too. Consider following [this](https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-redis-on-ubuntu-20-04) guide.
@@ -95,8 +97,8 @@ cd ette
 - Create a `.env` file in this directory. 
 
     - Make sure PostgreSQL has md5 authentication mechanism enabled.
-    - Please enable password based authentication in Redis Server.
-    - `Admin` is ethereum address who will be able to administer `ette` using webUI. _[ **This feature is not yet implemented, but please put `Admin` in config file** ]_
+    - Please enable password based authentication in Redis Server
+    - Skipping `RedisPassword` is absolutely fine, if you don't want to use any password in Redis instance. [ **Not recommended** ]
     - Replace `Domain` with your domain name i.e. `ette.company.com`
     - Set `Production` to `yes` before running it in production; otherwise you can simply skip it
     - `ette` can be run in any of 5 possible modes, which can be set by `EtteMode`
@@ -118,7 +120,6 @@ cd ette
     - If you want to persist blocks in delayed fashion, you might consider setting `BlockConfirmations` to some _number > 0_.
     - That will make `ette` think you're asking it 80 is latest block, which can be persisted in final data store, when latest mined block number is 100 & `BlockConfirmations` is set to 20.
     - This option is **recommended** to be used, at least in production, to address _chain reorganization issue_.
-    - Skipping `RedisPassword` is absolutely fine, if you don't want to use any password in Redis instance. [ **Not recommended** ]
     - For range based queries `BlockRange` can be set to limit how many blocks can be queried by client in a single go. Default value 100.
     - For time span based queries `TimeRange` can be set to put limit on max time span _( in terms of second )_, can be used by clients. Default value 3600 i.e. 1 hour.
     - If you're attempting to take snapshot/ restore from binary snapshot file, you can set `SnapshotFile` in `.env` file, to set sink/ source file name, respectively. Default file name `echo $(echo $(pwd)/snapshot.bin)` in i.e. from where `ette` gets invoked. Consider setting `EtteMode` correctly, depending upon what you want to attain.
@@ -135,13 +136,12 @@ DB_NAME=ette
 RedisConnection=tcp
 RedisAddress=x.x.x.x:6379
 RedisPassword=password
-Admin=e19b9EB3Bf05F1C8100C9b6E8a3D8A14F6384BFb
 Domain=localhost
 Production=yes
 EtteMode=3
 EtteGraphQLPlayGround=yes
-ConcurrencyFactor=2
-BlockConfirmations=20
+ConcurrencyFactor=5
+BlockConfirmations=200
 BlockRange=1000
 TimeRange=21600
 SnapshotFile=snapshot.bin
@@ -218,7 +218,7 @@ curl -s localhost:7000/v1/synced | jq
 
 ---
 
-### Production Deployment of `ette` using **systemd**
+### Production deployment of `ette` using **systemd**
 
 Here's a systemd unit file which you can create in `/etc/systemd/system`.
 
