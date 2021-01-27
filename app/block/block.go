@@ -164,18 +164,6 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	// we're exiting from this context, while putting this block number in retry queue
 	if !(result.Failure == 0) {
 
-		// If it's being run in mode 2, no need to put it in retry queue
-		//
-		// We can miss blocks, but will not be able deliver it over websocket channel
-		// to subscribed clients
-		//
-		// @todo This needs to be improved, so that even if we miss a block now
-		// we get to process & publish it over websocket based channel, where
-		// clients subscribe for real-time data
-		if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
-			return
-		}
-
 		PushBlockIntoRetryQueue(redis, block.Number().String())
 		return
 
