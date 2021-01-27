@@ -11,7 +11,6 @@ import (
 	"github.com/gookit/color"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
-	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
 
@@ -27,9 +26,6 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	}
 	// Scheduling unsubscribe, to be executed when end of this execution scope is reached
 	defer subs.Unsubscribe()
-
-	// Last time `ette` stopped syncing here
-	currentHighestBlockNumber := db.GetCurrentBlockNumber(_db)
 
 	// Flag to check for whether this is first time block header being received or not
 	//
@@ -66,7 +62,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 					// i.e. trying to fill up gap, which was caused when `ette` was offline
 					//
 					// Backward traversal mechanism gives us more recent blockchain happenings to cover
-					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, currentHighestBlockNumber, status)
+					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, status.MaxBlockNumberAtStartUp(), status)
 
 					// Starting go routine for fetching blocks `ette` failed to process in previous attempt
 					//
@@ -127,6 +123,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 										_oldestBlock,
 										_db,
 										redis,
+										false,
 										status)
 
 								})

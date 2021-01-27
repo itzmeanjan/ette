@@ -83,7 +83,7 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 
 			}
 
-			FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, j.Status)
+			FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, j.Status)
 
 		})
 	}
@@ -154,7 +154,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *data.R
 				block := db.GetBlock(j.DB, j.Block)
 				if block == nil && !CheckBlockInRetryQueue(redis, fmt.Sprintf("%d", j.Block)) {
 					// If not found, block fetching cycle is run, for this block
-					FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, j.Status)
+					FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, j.Status)
 				}
 
 			})
