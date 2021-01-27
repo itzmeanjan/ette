@@ -221,8 +221,8 @@ func (e *EventConsumer) SendData(data interface{}) bool {
 		return false
 	}
 
-	log.Printf("[+] Delivered `event` data to client\n")
 	return true
+
 }
 
 // Unsubscribe - Unsubscribe from event data publishing topic, to be called

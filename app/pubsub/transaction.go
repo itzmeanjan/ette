@@ -237,8 +237,8 @@ func (t *TransactionConsumer) SendData(data interface{}) bool {
 		return false
 	}
 
-	log.Printf("[+] Delivered `transaction` data to client\n")
 	return true
+
 }
 
 // Unsubscribe - Unsubscribe from transactions pubsub topic, which client has subscribed to

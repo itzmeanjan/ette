@@ -17,11 +17,12 @@ import (
 
 // SyncState - Whether `ette` is synced with blockchain or not
 type SyncState struct {
-	Done                uint64
-	StartedAt           time.Time
-	BlockCountAtStartUp uint64
-	NewBlocksInserted   uint64
-	LatestBlockNumber   uint64
+	Done                    uint64
+	StartedAt               time.Time
+	BlockCountAtStartUp     uint64
+	MaxBlockNumberAtStartUp uint64
+	NewBlocksInserted       uint64
+	LatestBlockNumber       uint64
 }
 
 // BlockCountInDB - Blocks currently present in database
@@ -34,6 +35,18 @@ func (s *SyncState) BlockCountInDB() uint64 {
 type StatusHolder struct {
 	State *SyncState
 	Mutex *sync.RWMutex
+}
+
+// MaxBlockNumberAtStartUp - Attempting to safely read latest block number
+// when `ette` was started, will help us in deciding whether a missing
+// block related notification needs to be sent on a pubsub channel or not
+func (s *StatusHolder) MaxBlockNumberAtStartUp() uint64 {
+
+	s.Mutex.RLock()
+	defer s.Mutex.RUnlock()
+
+	return s.State.MaxBlockNumberAtStartUp
+
 }
 
 // SetStartedAt - Sets started at time

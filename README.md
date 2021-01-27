@@ -72,6 +72,13 @@ And that's `ette`
 
 - Make sure you've Go _( >= 1.15 )_ installed
 - You need to also install & set up PostgreSQL. I found [this](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-20-04) guide helpful.
+
+> Make sure you've `pgcrypto` extension enabled on PostgreSQL Database.
+
+> Check existing extensions using : `\dx`
+
+> Create extension using : `create extension pgcrypto;`
+
 - Redis needs to be installed too. Consider following [this](https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-redis-on-ubuntu-20-04) guide.
 
 > Note : Redis **v6.0.6** is required
@@ -101,7 +108,7 @@ cd ette
     - Skipping `RedisPassword` is absolutely fine, if you don't want to use any password in Redis instance. [ **Not recommended** ]
     - Replace `Domain` with your domain name i.e. `ette.company.com`
     - Set `Production` to `yes` before running it in production; otherwise you can simply skip it
-    - `ette` can be run in any of 5 possible modes, which can be set by `EtteMode`
+    - `ette` can be run in any of 👇 5 possible modes, which can be set by `EtteMode`
 
     ```json
     {
@@ -531,6 +538,8 @@ type Event {
 ---
 
 ### Real time notification for mined blocks ⛏
+
+![pubsub-ette](./sc/pubsub-ette.png)
 
 For listening to blocks getting mined, connect to `/v1/ws` endpoint using websocket client library & once connected, you need to send **subscription** request with 👇 payload _( JSON encoded )_
 

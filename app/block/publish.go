@@ -34,6 +34,8 @@ func PublishBlock(block *db.PackedBlock, redis *d.RedisInfo) {
 		return
 	}
 
+	log.Printf(color.LightMagenta.Sprintf("[*] Published block %d", block.Block.Number))
+
 	PublishTxs(block.Block.Number, block.Transactions, redis)
 
 }
@@ -46,9 +48,17 @@ func PublishTxs(blockNumber uint64, txs []*db.PackedTransaction, redis *d.RedisI
 		return
 	}
 
+	var eventCount uint64
+
 	for _, t := range txs {
 		PublishTx(blockNumber, t, redis)
+
+		// how many events are present in this block, in total
+		eventCount += uint64(len(t.Events))
 	}
+
+	log.Printf(color.LightMagenta.Sprintf("[*] Published %d transactions of block %d", len(txs), blockNumber))
+	log.Printf(color.LightMagenta.Sprintf("[*] Published %d events of block %d", eventCount, blockNumber))
 
 }
 

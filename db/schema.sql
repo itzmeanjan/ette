@@ -67,7 +67,7 @@ create table users (
 create index on users(address);
 
 create table delivery_history (
-    id bigserial primary key,
+    id uuid default gen_random_uuid() primary key,
     client char(42) not null,
     ts timestamp not null,
     endpoint varchar(100) not null,

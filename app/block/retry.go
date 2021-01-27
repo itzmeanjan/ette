@@ -54,16 +54,24 @@ func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 		// which will be picked up & processed
 		//
 		// This will stop us from blindly creating too many go routines
-		func(blockNumber uint64) {
+		func(_blockNumber uint64) {
+
 			wp.Submit(func() {
 
-				FetchBlockByNumber(client,
-					parsedBlockNumber,
-					_db,
-					redis,
-					status)
+				// This check helps us in determining whether we should
+				// consider sending notification over pubsub channel for this block
+				// whose processing failed due to some reasons in last attempt
+				if status.MaxBlockNumberAtStartUp() <= _blockNumber {
+
+					FetchBlockByNumber(client, _blockNumber, _db, redis, true, status)
+					return
+
+				}
+
+				FetchBlockByNumber(client, _blockNumber, _db, redis, false, status)
 
 			})
+
 		}(parsedBlockNumber)
 	}
 }

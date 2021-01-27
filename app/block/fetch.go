@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gookit/color"
-	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
@@ -25,19 +24,6 @@ func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 
 	block, err := client.BlockByHash(context.Background(), hash)
 	if err != nil {
-
-		// If it's being run in mode 2, no need to put it in retry queue
-		//
-		// We can miss blocks, but will not be able deliver it over websocket channel
-		// to subscribed clients
-		//
-		// @todo This needs to be improved, so that even if we miss a block now
-		// we get to process & publish it over websocket based channel, where
-		// clients subscribe for real-time data
-		if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
-			return
-		}
-
 		// Pushing block number into Redis queue for retrying later
 		PushBlockIntoRetryQueue(redis, number)
 
@@ -50,7 +36,7 @@ func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 }
 
 // FetchBlockByNumber - Fetching block content using block number
-func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redis *d.RedisInfo, _status *d.StatusHolder) {
+func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redis *d.RedisInfo, publishable bool, _status *d.StatusHolder) {
 
 	// Starting block processing at
 	startingAt := time.Now().UTC()
@@ -67,7 +53,7 @@ func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 		return
 	}
 
-	ProcessBlockContent(client, block, _db, redis, false, _status, startingAt)
+	ProcessBlockContent(client, block, _db, redis, publishable, _status, startingAt)
 
 }
 

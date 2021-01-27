@@ -13,6 +13,5 @@ graphql_gen:
 build:
 	go build -o ette
 
-run:
-	go build -o ette
+run: build
 	./ette

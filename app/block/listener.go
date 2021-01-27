@@ -11,7 +11,6 @@ import (
 	"github.com/gookit/color"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
-	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
 
@@ -27,9 +26,6 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	}
 	// Scheduling unsubscribe, to be executed when end of this execution scope is reached
 	defer subs.Unsubscribe()
-
-	// Last time `ette` stopped syncing here
-	currentHighestBlockNumber := db.GetCurrentBlockNumber(_db)
 
 	// Flag to check for whether this is first time block header being received or not
 	//
@@ -58,24 +54,25 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 				// Starting now, to be used for calculating system performance, uptime etc.
 				status.SetStartedAt()
 
+				// Starting go routine for fetching blocks `ette` failed to process in previous attempt
+				//
+				// Uses Redis backed queue for fetching pending block hash & retries
+				go RetryQueueManager(connection.RPC, _db, redis, status)
+
 				// If historical data query features are enabled
 				// only then we need to sync to latest state of block chain
 				if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
+
 					// Starting syncer in another thread, where it'll keep fetching
 					// blocks from highest block number it fetched last time to current network block number
 					// i.e. trying to fill up gap, which was caused when `ette` was offline
 					//
 					// Backward traversal mechanism gives us more recent blockchain happenings to cover
-					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, currentHighestBlockNumber, status)
+					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, status.MaxBlockNumberAtStartUp(), status)
 
-					// Starting go routine for fetching blocks `ette` failed to process in previous attempt
-					//
-					// Uses Redis backed queue for fetching pending block hash & retries
-					go RetryQueueManager(connection.RPC, _db, redis, status)
-
-					// Making sure on when next latest block header is received, it'll not
-					// start another syncer
 				}
+				// Making sure that when next latest block header is received, it'll not
+				// start another syncer
 				first = false
 
 			}
@@ -127,6 +124,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 										_oldestBlock,
 										_db,
 										redis,
+										false,
 										status)
 
 								})
