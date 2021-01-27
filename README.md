@@ -72,6 +72,13 @@ And that's `ette`
 
 - Make sure you've Go _( >= 1.15 )_ installed
 - You need to also install & set up PostgreSQL. I found [this](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-20-04) guide helpful.
+
+> Make sure you've `pgcrypto` extension enabled on PostgreSQL Database.
+
+> Check existing extensions using : `\dx`
+
+> Create extension using : `create extension pgcrypto;`
+
 - Redis needs to be installed too. Consider following [this](https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-redis-on-ubuntu-20-04) guide.
 
 > Note : Redis **v6.0.6** is required
