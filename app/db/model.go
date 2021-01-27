@@ -134,7 +134,7 @@ func (u *Users) ToJSON() []byte {
 // This is to be used for controlling client application's access
 // to resources they're requesting
 type DeliveryHistory struct {
-	ID         uint64    `gorm:"column:id;type:uuid;default:gen_random_uuid();primaryKey"`
+	ID         string    `gorm:"column:id;type:uuid;default:gen_random_uuid();primaryKey"`
 	Client     string    `gorm:"column:client;type:char(42);not null;index"`
 	TimeStamp  time.Time `gorm:"column:ts;type:timestamp;not null;index:,sort:asc"`
 	EndPoint   string    `gorm:"column:endpoint;type:varchar(100);not null"`
