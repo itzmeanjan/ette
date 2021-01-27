@@ -59,7 +59,10 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 	graph.GetDatabaseConnection(_db)
 
 	_status := &d.StatusHolder{
-		State: &d.SyncState{BlockCountAtStartUp: db.GetBlockCount(_db)},
+		State: &d.SyncState{
+			BlockCountAtStartUp:     db.GetBlockCount(_db),
+			MaxBlockNumberAtStartUp: db.GetCurrentBlockNumber(_db),
+		},
 		Mutex: &sync.RWMutex{},
 	}
 
