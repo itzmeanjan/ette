@@ -42,7 +42,7 @@ func FindMissingBlocksInRange(found []uint64, from uint64, to uint64) []uint64 {
 }
 
 // Syncer - Given ascending block number range i.e. fromBlock <= toBlock
-// fetches blocks in order {fromBlock, toBlock, fromBlock + 1, toBlock - 1, fromBlock + 2, toBlock - 2 ...}
+// attempts to fetch missing blocks in that range
 // while running n workers concurrently, where n = number of cores this machine has
 //
 // Waits for all of them to complete
@@ -53,8 +53,6 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromB
 	}
 
 	wp := workerpool.New(runtime.NumCPU() * int(cfg.GetConcurrencyFactor()))
-	i := fromBlock
-	j := toBlock
 
 	// Jobs need to be submitted using this interface, while
 	// just mentioning which block needs to be fetched
@@ -95,29 +93,11 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromB
 		}
 
 		// Some blocks are missing in range, attempting to find them
-		for index, value := range blocks {
-
-			if value == fromBlock+uint64(index) {
-				continue
-			}
-
-			job(value)
-
+		// and pushing their processing request to job queue
+		for _, v := range FindMissingBlocksInRange(blocks, i, i+step-1) {
+			job(v)
 		}
 
-	}
-
-	for i <= j {
-		// This condition to be arrived at when range has odd number of elements
-		if i == j {
-			job(i)
-		} else {
-			job(i)
-			job(j)
-		}
-
-		i++
-		j--
 	}
 
 	wp.StopWait()
