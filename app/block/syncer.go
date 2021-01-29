@@ -73,7 +73,18 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromB
 
 	for i := fromBlock; i <= toBlock; i += step {
 
-		blocks := db.GetAllBlockNumbersInRange(_db, i, i+step-1)
+		var blocks []uint64
+
+		if i+step-1 >= toBlock {
+
+			blocks = db.GetAllBlockNumbersInRange(_db, i, toBlock)
+
+		} else {
+
+			blocks = db.GetAllBlockNumbersInRange(_db, i, i+step-1)
+
+		}
+
 		// No blocks present in DB, in queried range
 		if blocks == nil || len(blocks) == 0 {
 
@@ -105,10 +116,22 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromB
 			continue
 		}
 
-		// Some blocks are missing in range, attempting to find them
-		// and pushing their processing request to job queue
-		for _, v := range FindMissingBlocksInRange(blocks, i, i+step-1) {
-			job(v)
+		if i+step-1 >= toBlock {
+
+			// Some blocks are missing in range, attempting to find them
+			// and pushing their processing request to job queue
+			for _, v := range FindMissingBlocksInRange(blocks, i, toBlock) {
+				job(v)
+			}
+
+		} else {
+
+			// Some blocks are missing in range, attempting to find them
+			// and pushing their processing request to job queue
+			for _, v := range FindMissingBlocksInRange(blocks, i, i+step-1) {
+				job(v)
+			}
+
 		}
 
 	}
