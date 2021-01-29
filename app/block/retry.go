@@ -115,6 +115,24 @@ func CheckBlockInAttemptCounterTable(redis *data.RedisInfo, blockNumber string) 
 
 }
 
+// GetAttemptCountFromTable - Returns current attempt counter from table
+// for given block number
+func GetAttemptCountFromTable(redis *data.RedisInfo, blockNumber string) uint64 {
+
+	count, err := redis.Client.HGet(context.Background(), redis.BlockRetryCountTable, blockNumber).Result()
+	if err != nil {
+		return 0
+	}
+
+	parsedCount, err := strconv.ParseUint(count, 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return parsedCount
+
+}
+
 // RemoveBlockFromAttemptCountTrackerTable - Attempt to delete block number's
 // associated attempt count, given it already exists in table
 //
