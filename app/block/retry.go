@@ -42,6 +42,14 @@ func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 			continue
 		}
 
+		attemptCount := GetAttemptCountFromTable(redis, blockNumber)
+		if attemptCount != 0 && attemptCount%3 != 0 {
+
+			PushBlockIntoRetryQueue(redis, blockNumber)
+			continue
+
+		}
+
 		// Parsing string blockNumber to uint64
 		parsedBlockNumber, err := strconv.ParseUint(blockNumber, 10, 64)
 		if err != nil {
@@ -95,9 +103,13 @@ func PushBlockIntoRetryQueue(redis *data.RedisInfo, blockNumber string) {
 // of processing this block
 //
 // If block doesn't yet exist in tracker table, it'll be inserted first time & counter to be set to 1
+//
+// It'll be wrapped back to 0 as soon as it reaches 101
 func IncrementAttemptCountOfBlockNumber(redis *data.RedisInfo, blockNumber string) {
 
-	if _, err := redis.Client.HIncrBy(context.Background(), redis.BlockRetryCountTable, blockNumber, 1).Result(); err != nil {
+	wrappedAttemptCount := (GetAttemptCountFromTable(redis, blockNumber) + 1) % 101
+
+	if _, err := redis.Client.HSet(context.Background(), redis.BlockRetryCountTable, blockNumber, wrappedAttemptCount).Result(); err != nil {
 		log.Print(color.Red.Sprintf("[!] Failed to increment attempt count of block %s : %s", blockNumber, err.Error()))
 	}
 
