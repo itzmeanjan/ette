@@ -75,7 +75,7 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromB
 
 		blocks := db.GetAllBlockNumbersInRange(_db, i, i+step-1)
 		// No blocks present in DB, in queried range
-		if blocks == nil {
+		if blocks == nil || len(blocks) == 0 {
 
 			// So submitting all of them to job processor queue
 			for j := i; j <= i+step-1; j++ {
@@ -87,8 +87,21 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromB
 
 		}
 
+		countShouldBe := step
+
+		// Attempting to fix how many block numbers we should be ideally
+		// receiving back in response, sent to DB
+		//
+		// This will only be executed when asked for 10 block numbers ( = `step` )
+		// starting at 1 ( = `fromBlock` ), but actually `toBlock` is set to 5
+		//
+		// In that case, count of blocks received from DB can't be more than 5 at any cost.
+		if i+step-1 > toBlock {
+			countShouldBe = toBlock - i + 1
+		}
+
 		// All blocks in range present in DB ✅
-		if step == uint64(len(blocks)) {
+		if countShouldBe == uint64(len(blocks)) {
 			continue
 		}
 
