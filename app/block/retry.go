@@ -37,7 +37,7 @@ func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 		sleep()
 
 		// Popping oldest element from Redis queue
-		blockNumber, err := redis.Client.LPop(context.Background(), redis.BlockRetryQueueName).Result()
+		blockNumber, err := redis.Client.LPop(context.Background(), redis.BlockRetryQueue).Result()
 		if err != nil {
 			continue
 		}
@@ -82,7 +82,7 @@ func PushBlockIntoRetryQueue(redis *data.RedisInfo, blockNumber string) {
 	// Checking presence first & then deciding whether to add it or not
 	if !CheckBlockInRetryQueue(redis, blockNumber) {
 
-		if _, err := redis.Client.RPush(context.Background(), redis.BlockRetryQueueName, blockNumber).Result(); err != nil {
+		if _, err := redis.Client.RPush(context.Background(), redis.BlockRetryQueue, blockNumber).Result(); err != nil {
 			log.Print(color.Red.Sprintf("[!] Failed to push block %s into retry queue : %s", blockNumber, err.Error()))
 		}
 
@@ -97,7 +97,7 @@ func PushBlockIntoRetryQueue(redis *data.RedisInfo, blockNumber string) {
 // Note: this feature of checking index of value in redis queue,
 // was added in Redis v6.0.6 : https://redis.io/commands/lpos
 func CheckBlockInRetryQueue(redis *data.RedisInfo, blockNumber string) bool {
-	if _, err := redis.Client.LPos(context.Background(), redis.BlockRetryQueueName, blockNumber, _redis.LPosArgs{}).Result(); err != nil {
+	if _, err := redis.Client.LPos(context.Background(), redis.BlockRetryQueue, blockNumber, _redis.LPosArgs{}).Result(); err != nil {
 		return false
 	}
 
@@ -107,7 +107,7 @@ func CheckBlockInRetryQueue(redis *data.RedisInfo, blockNumber string) bool {
 // GetRetryQueueLength - Returns redis backed retry queue length
 func GetRetryQueueLength(redis *data.RedisInfo) int64 {
 
-	blockCount, err := redis.Client.LLen(context.Background(), redis.BlockRetryQueueName).Result()
+	blockCount, err := redis.Client.LLen(context.Background(), redis.BlockRetryQueue).Result()
 	if err != nil {
 		log.Printf(color.Red.Sprintf("[!] Failed to determine retry queue length : %s", err.Error()))
 	}

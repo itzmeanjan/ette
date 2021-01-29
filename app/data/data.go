@@ -135,9 +135,9 @@ func (s *StatusHolder) SetLatestBlockNumber(num uint64) {
 // RedisInfo - Holds redis related information in this struct, to be used
 // when passing to functions as argument
 type RedisInfo struct {
-	Client                     *redis.Client // using this object `ette` will talk to Redis
-	BlockRetryQueueName        string        // retry queue name, for storing block numbers
-	UnfinalizedBlocksQueueName string        // stores unfinalized block numbers, processes
+	Client                 *redis.Client // using this object `ette` will talk to Redis
+	BlockRetryQueue        string        // retry queue name, for storing block numbers
+	UnfinalizedBlocksQueue string        // stores unfinalized block numbers, processes
 	// them later after reaching finality ( as set by deployer of `ette` )
 }
 
