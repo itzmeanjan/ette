@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"sort"
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -15,6 +16,27 @@ import (
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
 )
+
+// FindMissingBlocksInRange - Given ascending ordered block numbers read from DB
+// attempts to find out which numbers are missing in [from, to] range
+// where both ends are inclusive
+func FindMissingBlocksInRange(found []uint64, shouldBeFrom uint64, shouldBeTo uint64) []uint64 {
+
+	absent := make([]uint64, 0)
+
+	for b := shouldBeFrom; b <= shouldBeTo; b++ {
+
+		_i := sort.Search(len(found), func(j int) bool { return found[j] >= b })
+
+		if !(_i < len(found) && found[_i] == b) {
+			absent = append(absent, b)
+		}
+
+	}
+
+	return absent
+
+}
 
 // Syncer - Given ascending block number range i.e. fromBlock <= toBlock
 // fetches blocks in order {fromBlock, toBlock, fromBlock + 1, toBlock - 1, fromBlock + 2, toBlock - 2 ...}
@@ -41,6 +63,45 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromB
 			Block:  num,
 			Status: status,
 		})
+	}
+
+	// attempting to fetch X blocks ( max ) at a time, by range
+	//
+	// @note This can be improved
+	var step uint64 = 10000
+
+	for i := fromBlock; i <= toBlock; i += step {
+
+		blocks := db.GetAllBlockNumbersInRange(_db, i, i+step-1)
+		// No blocks present in DB, in queried range
+		if blocks == nil {
+
+			// So submitting all of them to job processor queue
+			for j := i; j <= i+step-1; j++ {
+
+				job(j)
+
+			}
+			continue
+
+		}
+
+		// All blocks in range present in DB ✅
+		if step == uint64(len(blocks)) {
+			continue
+		}
+
+		// Some blocks are missing in range, attempting to find them
+		for index, value := range blocks {
+
+			if value == fromBlock+uint64(index) {
+				continue
+			}
+
+			job(value)
+
+		}
+
 	}
 
 	for i <= j {
