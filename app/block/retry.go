@@ -86,7 +86,49 @@ func PushBlockIntoRetryQueue(redis *data.RedisInfo, blockNumber string) {
 			log.Print(color.Red.Sprintf("[!] Failed to push block %s into retry queue : %s", blockNumber, err.Error()))
 		}
 
+		IncrementAttemptCountOfBlockNumber(redis, blockNumber)
+
 	}
+}
+
+// IncrementAttemptCountOfBlockNumber - Given block number, increments failed attempt count
+// of processing this block
+//
+// If block doesn't yet exist in tracker table, it'll be inserted first time & counter to be set to 1
+func IncrementAttemptCountOfBlockNumber(redis *data.RedisInfo, blockNumber string) {
+
+	if _, err := redis.Client.HIncrBy(context.Background(), redis.BlockRetryCountTable, blockNumber, 1).Result(); err != nil {
+		log.Print(color.Red.Sprintf("[!] Failed to increment attempt count of block %s : %s", blockNumber, err.Error()))
+	}
+
+}
+
+// CheckBlockInAttemptCounterTable - Checks whether given block number already exist in
+// attempt count tracker table
+func CheckBlockInAttemptCounterTable(redis *data.RedisInfo, blockNumber string) bool {
+
+	if _, err := redis.Client.HGet(context.Background(), redis.BlockRetryCountTable, blockNumber).Result(); err != nil {
+		return false
+	}
+
+	return true
+
+}
+
+// RemoveBlockFromAttemptCountTrackerTable - Attempt to delete block number's
+// associated attempt count, given it already exists in table
+//
+// This is supposed to be invoked when a block is considered to be successfully processed
+func RemoveBlockFromAttemptCountTrackerTable(redis *data.RedisInfo, blockNumber string) {
+
+	if CheckBlockInAttemptCounterTable(redis, blockNumber) {
+
+		if _, err := redis.Client.HDel(context.Background(), redis.BlockRetryCountTable, blockNumber).Result(); err != nil {
+			log.Print(color.Red.Sprintf("[!] Failed to delete attempt count of successful block %s : %s", blockNumber, err.Error()))
+		}
+
+	}
+
 }
 
 // CheckBlockInRetryQueue - Checks whether block number is already added in
@@ -97,11 +139,13 @@ func PushBlockIntoRetryQueue(redis *data.RedisInfo, blockNumber string) {
 // Note: this feature of checking index of value in redis queue,
 // was added in Redis v6.0.6 : https://redis.io/commands/lpos
 func CheckBlockInRetryQueue(redis *data.RedisInfo, blockNumber string) bool {
+
 	if _, err := redis.Client.LPos(context.Background(), redis.BlockRetryQueue, blockNumber, _redis.LPosArgs{}).Result(); err != nil {
 		return false
 	}
 
 	return true
+
 }
 
 // GetRetryQueueLength - Returns redis backed retry queue length
