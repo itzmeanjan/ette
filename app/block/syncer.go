@@ -20,15 +20,18 @@ import (
 // FindMissingBlocksInRange - Given ascending ordered block numbers read from DB
 // attempts to find out which numbers are missing in [from, to] range
 // where both ends are inclusive
-func FindMissingBlocksInRange(found []uint64, shouldBeFrom uint64, shouldBeTo uint64) []uint64 {
+func FindMissingBlocksInRange(found []uint64, from uint64, to uint64) []uint64 {
 
-	absent := make([]uint64, 0)
+	// creating slice with backing array of larger size
+	// to avoid potential memory allocation during iteration
+	// over loop
+	absent := make([]uint64, 0, to-from+1)
 
-	for b := shouldBeFrom; b <= shouldBeTo; b++ {
+	for b := from; b <= to; b++ {
 
-		_i := sort.Search(len(found), func(j int) bool { return found[j] >= b })
+		idx := sort.Search(len(found), func(j int) bool { return found[j] >= b })
 
-		if !(_i < len(found) && found[_i] == b) {
+		if !(idx < len(found) && found[idx] == b) {
 			absent = append(absent, b)
 		}
 
