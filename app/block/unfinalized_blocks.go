@@ -77,6 +77,8 @@ func PushBlockIntoUnfinalizedQueue(redis *data.RedisInfo, blockNumber string) {
 // MoveUnfinalizedOldestBlockToEnd - Attempts to pop oldest block ( i.e. left most block )
 // from unfinalized queue & pushes it back to end of queue, so that other blocks waiting after
 // this one can get be attempted to be processed by workers
+//
+// @note This can be improved using `LMOVE` command of Redis ( >= 6.2.0 )
 func MoveUnfinalizedOldestBlockToEnd(redis *data.RedisInfo) {
 
 	PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", PopOldestBlockFromUnfinalizedQueue(redis)))
