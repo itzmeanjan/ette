@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 
@@ -71,6 +72,15 @@ func PushBlockIntoUnfinalizedQueue(redis *data.RedisInfo, blockNumber string) {
 		}
 
 	}
+}
+
+// MoveUnfinalizedOldestBlockToEnd - Attempts to pop oldest block ( i.e. left most block )
+// from unfinalized queue & pushes it back to end of queue, so that other blocks waiting after
+// this one can get be attempted to be processed by workers
+func MoveUnfinalizedOldestBlockToEnd(redis *data.RedisInfo) {
+
+	PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", PopOldestBlockFromUnfinalizedQueue(redis)))
+
 }
 
 // CheckBlockInUnfinalizedQueue - Checks whether block number is already added in
