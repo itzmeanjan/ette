@@ -53,7 +53,14 @@ func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 		return
 	}
 
-	ProcessBlockContent(client, block, _db, redis, publishable, _status, startingAt)
+	// If attempt to process block by number went successful
+	// we can consider removing this block number's entry from
+	// attempt count tracker table
+	if ProcessBlockContent(client, block, _db, redis, publishable, _status, startingAt) {
+
+		RemoveBlockFromAttemptCountTrackerTable(redis, fmt.Sprintf("%d", number))
+
+	}
 
 }
 

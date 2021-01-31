@@ -25,7 +25,7 @@ func HasBlockFinalized(status *d.StatusHolder, number uint64) bool {
 }
 
 // ProcessBlockContent - Processes everything inside this block i.e. block data, tx data, event data
-func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, status *d.StatusHolder, startingAt time.Time) {
+func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, status *d.StatusHolder, startingAt time.Time) bool {
 
 	// Closure managing publishing whole block data i.e. block header, txn(s), event logs
 	// on redis pubsub channel
@@ -60,7 +60,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 			log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s) [ Took : %s ]", block.NumberU64(), time.Now().UTC().Sub(startingAt)))
 			status.IncrementBlocksProcessed()
 
-			return
+			return true
 
 		}
 
@@ -71,7 +71,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 			// Pushing into unfinalized block queue, to be picked up only when
 			// finality for this block has been achieved
 			PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", packedBlock.Block.Number))
-			return
+			return true
 
 		}
 
@@ -82,7 +82,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 			// If failed to persist, we'll put it in retry queue
 			PushBlockIntoRetryQueue(redis, block.Number().String())
-			return
+			return false
 
 		}
 
@@ -90,7 +90,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		log.Print(color.Green.Sprintf("[+] Block %d with 0 tx(s) [ Took : %s ]", block.NumberU64(), time.Now().UTC().Sub(startingAt)))
 		status.IncrementBlocksProcessed()
 
-		return
+		return true
 
 	}
 
@@ -165,7 +165,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	if !(result.Failure == 0) {
 
 		PushBlockIntoRetryQueue(redis, block.Number().String())
-		return
+		return false
 
 	}
 
@@ -183,7 +183,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s) [ Took : %s ]", block.NumberU64(), block.Transactions().Len(), time.Now().UTC().Sub(startingAt)))
 		status.IncrementBlocksProcessed()
 
-		return
+		return true
 
 	}
 
@@ -194,7 +194,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		// Pushing into unfinalized block queue, to be picked up only when
 		// finality for this block has been achieved
 		PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", packedBlock.Block.Number))
-		return
+		return true
 
 	}
 
@@ -205,12 +205,14 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 		// If failed to persist, we'll put it in retry queue
 		PushBlockIntoRetryQueue(redis, block.Number().String())
-		return
+		return false
 
 	}
 
 	// Successfully processed block
 	log.Print(color.Green.Sprintf("[+] Block %d with %d tx(s) [ Took : %s ]", block.NumberU64(), block.Transactions().Len(), time.Now().UTC().Sub(startingAt)))
+
 	status.IncrementBlocksProcessed()
+	return true
 
 }

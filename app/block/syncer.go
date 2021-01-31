@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"sort"
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -16,8 +17,32 @@ import (
 	"gorm.io/gorm"
 )
 
+// FindMissingBlocksInRange - Given ascending ordered block numbers read from DB
+// attempts to find out which numbers are missing in [from, to] range
+// where both ends are inclusive
+func FindMissingBlocksInRange(found []uint64, from uint64, to uint64) []uint64 {
+
+	// creating slice with backing array of larger size
+	// to avoid potential memory allocation during iteration
+	// over loop
+	absent := make([]uint64, 0, to-from+1)
+
+	for b := from; b <= to; b++ {
+
+		idx := sort.Search(len(found), func(j int) bool { return found[j] >= b })
+
+		if !(idx < len(found) && found[idx] == b) {
+			absent = append(absent, b)
+		}
+
+	}
+
+	return absent
+
+}
+
 // Syncer - Given ascending block number range i.e. fromBlock <= toBlock
-// fetches blocks in order {fromBlock, toBlock, fromBlock + 1, toBlock - 1, fromBlock + 2, toBlock - 2 ...}
+// attempts to fetch missing blocks in that range
 // while running n workers concurrently, where n = number of cores this machine has
 //
 // Waits for all of them to complete
@@ -28,8 +53,6 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromB
 	}
 
 	wp := workerpool.New(runtime.NumCPU() * int(cfg.GetConcurrencyFactor()))
-	i := fromBlock
-	j := toBlock
 
 	// Jobs need to be submitted using this interface, while
 	// just mentioning which block needs to be fetched
@@ -43,17 +66,44 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromB
 		})
 	}
 
-	for i <= j {
-		// This condition to be arrived at when range has odd number of elements
-		if i == j {
-			job(i)
-		} else {
-			job(i)
-			job(j)
+	// attempting to fetch X blocks ( max ) at a time, by range
+	//
+	// @note This can be improved
+	var step uint64 = 10000
+
+	for i := fromBlock; i <= toBlock; i += step {
+
+		toShouldbe := i + step - 1
+		if toShouldbe > toBlock {
+			toShouldbe = toBlock
 		}
 
-		i++
-		j--
+		blocks := db.GetAllBlockNumbersInRange(_db, i, toShouldbe)
+
+		// No blocks present in DB, in queried range
+		if blocks == nil || len(blocks) == 0 {
+
+			// So submitting all of them to job processor queue
+			for j := i; j <= toShouldbe; j++ {
+
+				job(j)
+
+			}
+			continue
+
+		}
+
+		// All blocks in range present in DB ✅
+		if toShouldbe-i+1 == uint64(len(blocks)) {
+			continue
+		}
+
+		// Some blocks are missing in range, attempting to find them
+		// and pushing their processing request to job queue
+		for _, v := range FindMissingBlocksInRange(blocks, i, toShouldbe) {
+			job(v)
+		}
+
 	}
 
 	wp.StopWait()

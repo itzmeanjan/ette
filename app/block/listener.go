@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"runtime"
 
@@ -87,7 +88,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			//
 			// Though it'll be picked up sometime in future ( by missing block finder ), but it can be safely handled now
 			// so that it gets processed immediately
-			func(blockHash common.Hash, blockNumber string) {
+			func(blockHash common.Hash, blockNumber uint64) {
 
 				// When only processing blocks in real-time mode
 				// no need to check what's present in unfinalized block number queue
@@ -132,9 +133,15 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 							}(oldest)
 
 						} else {
-							// If oldest block is not finalized, no meaning
-							// staying here, we'll revisit it some time in future
-							break
+
+							// If left most block is not yet finalized, it'll attempt to
+							// reorganize that queue so that other blocks waiting to be processed
+							// can get that opportunity
+							//
+							// This situation generally occurs due to concurrent pattern implemented
+							// in block processor
+							MoveUnfinalizedOldestBlockToEnd(redis)
+
 						}
 
 					}
@@ -145,14 +152,14 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 					FetchBlockByHash(connection.RPC,
 						blockHash,
-						blockNumber,
+						fmt.Sprintf("%d", blockNumber),
 						_db,
 						redis,
 						status)
 
 				})
 
-			}(header.Hash(), header.Number.String())
+			}(header.Hash(), header.Number.Uint64())
 
 		}
 	}

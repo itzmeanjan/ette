@@ -14,14 +14,14 @@ func GetAllBlockNumbersInRange(db *gorm.DB, from uint64, to uint64) []uint64 {
 	var blocks []uint64
 
 	if from < to {
-		if err := db.Model(&Blocks{}).Where("number >= ? and number <= ?", from, to).Select("number").Find(&blocks).Error; err != nil {
+		if err := db.Model(&Blocks{}).Where("number >= ? and number <= ?", from, to).Order("number asc").Select("number").Find(&blocks).Error; err != nil {
 
 			log.Printf("[!] Failed to fetch block numbers by range : %s\n", err.Error())
 			return nil
 
 		}
 	} else {
-		if err := db.Model(&Blocks{}).Where("number >= ? and number <= ?", to, from).Select("number").Find(&blocks).Error; err != nil {
+		if err := db.Model(&Blocks{}).Where("number >= ? and number <= ?", to, from).Order("number asc").Select("number").Find(&blocks).Error; err != nil {
 
 			log.Printf("[!] Failed to fetch block numbers by range : %s\n", err.Error())
 			return nil

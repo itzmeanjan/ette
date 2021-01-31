@@ -58,6 +58,8 @@ func TakeSnapshot(db *gorm.DB, file string, start uint64, end uint64, count uint
 	go PutIntoSink(fd, count, data, done)
 
 	// attempting to fetch X blocks ( max ) at a time, by range
+	//
+	// @note This can be improved
 	var step uint64 = 10000
 
 	// stepping through blocks present in DB
