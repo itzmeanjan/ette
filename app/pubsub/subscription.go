@@ -1,6 +1,7 @@
 package pubsub
 
 import (
+	"fmt"
 	"log"
 	"regexp"
 	"strings"
@@ -154,6 +155,20 @@ func (s *SubscriptionRequest) GetTransactionFilters() []string {
 
 	matches := pattern.FindStringSubmatch(s.Name)
 	return []string{matches[4], matches[6]}
+}
+
+// CheckSimilarity - Performing case insensitive matching between two
+// strings
+func CheckSimilarity(first string, second string) bool {
+
+	reg, err := regexp.Compile(fmt.Sprintf("(?i)^(%s)$", first))
+	if err != nil {
+		log.Printf("[!] Failed to parse regex pattern : %s\n", err.Error())
+		return false
+	}
+
+	return reg.MatchString(second)
+
 }
 
 // DoesMatchWithPublishedTransactionData - All `transaction` topic listeners i.e. subscribers are
