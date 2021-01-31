@@ -97,12 +97,12 @@ func (s *SubscriptionRequest) DoesMatchWithPublishedEventData(event *data.Event)
 	// --- Matching specific topic signature provided by client
 	// application with received event data, published by
 	// redis pub-sub
-	matchTopicXInEvent := func(topic string, x int) bool {
+	matchTopicXInEvent := func(topic string, x uint8) bool {
 		// Not all topics will have 4 elements in topics array
 		//
 		// For those cases, if topic signature for that index is {"", "*"}
 		// provided by consumer, then we're safely going to say it's a match
-		if !(x < len(event.Topics)) {
+		if !(int(x) < len(event.Topics)) {
 			return topic == "" || topic == "*"
 		}
 
@@ -114,7 +114,7 @@ func (s *SubscriptionRequest) DoesMatchWithPublishedEventData(event *data.Event)
 			status = true
 		// match with specific `topic` signature
 		default:
-			status = topic == event.Topics[x]
+			status = CheckSimilarity(topic, event.Topics[x])
 		}
 
 		return status
@@ -135,7 +135,7 @@ func (s *SubscriptionRequest) DoesMatchWithPublishedEventData(event *data.Event)
 		status = matchTopicXInEvent(filters[1], 0) && matchTopicXInEvent(filters[2], 1) && matchTopicXInEvent(filters[3], 2) && matchTopicXInEvent(filters[4], 3)
 	// match with provided `contract` address
 	default:
-		if filters[0] == event.Origin {
+		if CheckSimilarity(filters[0], event.Origin) {
 			status = matchTopicXInEvent(filters[1], 0) && matchTopicXInEvent(filters[2], 1) && matchTopicXInEvent(filters[3], 2) && matchTopicXInEvent(filters[4], 3)
 		}
 	}
@@ -191,7 +191,7 @@ func (s *SubscriptionRequest) DoesMatchWithPublishedTransactionData(tx *data.Tra
 			status = true
 		// match with specific `to` address
 		default:
-			status = to == tx.To
+			status = CheckSimilarity(to, tx.To)
 		}
 
 		return status
@@ -211,7 +211,7 @@ func (s *SubscriptionRequest) DoesMatchWithPublishedTransactionData(tx *data.Tra
 		status = matchToFieldInTx(filters[1])
 	// match with provided `from` address
 	default:
-		if filters[0] == tx.From {
+		if CheckSimilarity(filters[0], tx.From) {
 			status = matchToFieldInTx(filters[1])
 		}
 	}
