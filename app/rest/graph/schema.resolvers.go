@@ -282,7 +282,6 @@ func (r *queryResolver) LastXEventsFromContract(ctx context.Context, contract st
 }
 
 func (r *queryResolver) EventByBlockHashAndLogIndex(ctx context.Context, hash string, index string) (*model.Event, error) {
-
 	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
 		return nil, errors.New("Bad Block Hash")
 	}
@@ -293,11 +292,9 @@ func (r *queryResolver) EventByBlockHashAndLogIndex(ctx context.Context, hash st
 	}
 
 	return getGraphQLCompatibleEvent(ctx, _db.GetEventByBlockHashAndLogIndex(db, common.HexToHash(hash), uint(_index)), true)
-
 }
 
 func (r *queryResolver) EventByBlockNumberAndLogIndex(ctx context.Context, number string, index string) (*model.Event, error) {
-
 	_number, err := strconv.ParseUint(number, 10, 64)
 	if err != nil {
 		return nil, errors.New("Bad Block Number")
@@ -309,7 +306,6 @@ func (r *queryResolver) EventByBlockNumberAndLogIndex(ctx context.Context, numbe
 	}
 
 	return getGraphQLCompatibleEvent(ctx, _db.GetEventByBlockNumberAndLogIndex(db, _number, uint(_index)), true)
-
 }
 
 // Query returns generated.QueryResolver implementation.

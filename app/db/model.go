@@ -25,8 +25,11 @@ type Blocks struct {
 	Nonce               string       `gorm:"column:nonce;type:varchar;not null"`
 	Miner               string       `gorm:"column:miner;type:char(42);not null"`
 	Size                float64      `gorm:"column:size;type:float(8);not null"`
+	StateRootHash       string       `gorm:"column:stateroothash;type:char(66);not null"`
+	UncleHash           string       `gorm:"column:unclehash;type:char(66);not null"`
 	TransactionRootHash string       `gorm:"column:txroothash;type:char(66);not null"`
 	ReceiptRootHash     string       `gorm:"column:receiptroothash;type:char(66);not null"`
+	ExtraData           []byte       `gorm:"column:extradata;type:bytea"`
 	Transactions        Transactions `gorm:"foreignKey:blockhash"`
 	Events              Events       `gorm:"foreignKey:blockhash"`
 }

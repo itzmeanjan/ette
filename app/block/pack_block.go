@@ -23,8 +23,11 @@ func BuildPackedBlock(block *types.Block, txs []*db.PackedTransaction) *db.Packe
 		Nonce:               hexutil.EncodeUint64(block.Nonce()),
 		Miner:               block.Coinbase().Hex(),
 		Size:                float64(block.Size()),
+		StateRootHash:       block.Root().Hex(),
+		UncleHash:           block.UncleHash().Hex(),
 		TransactionRootHash: block.TxHash().Hex(),
 		ReceiptRootHash:     block.ReceiptHash().Hex(),
+		ExtraData:           block.Extra(),
 	}
 	packedBlock.Transactions = txs
 

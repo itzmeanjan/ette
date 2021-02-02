@@ -95,6 +95,11 @@ func getGraphQLCompatibleBlock(ctx context.Context, block *data.Block, bookKeepi
 		}
 	}
 
+	extraData := ""
+	if _h := hex.EncodeToString(block.ExtraData); _h != "" {
+		extraData = fmt.Sprintf("0x%s", _h)
+	}
+
 	return &model.Block{
 		Hash:            block.Hash,
 		Number:          fmt.Sprintf("%d", block.Number),
@@ -106,8 +111,11 @@ func getGraphQLCompatibleBlock(ctx context.Context, block *data.Block, bookKeepi
 		Nonce:           block.Nonce,
 		Miner:           block.Miner,
 		Size:            block.Size,
+		StateRootHash:   block.StateRootHash,
+		UncleHash:       block.UncleHash,
 		TxRootHash:      block.TransactionRootHash,
 		ReceiptRootHash: block.ReceiptRootHash,
+		ExtraData:       extraData,
 	}, nil
 
 }
@@ -142,17 +150,17 @@ func getGraphQLCompatibleTransaction(ctx context.Context, tx *data.Transaction, 
 		return nil, errors.New("Found nothing")
 	}
 
-	data := ""
-	if _h := hex.EncodeToString(tx.Data); _h != "" {
-		data = fmt.Sprintf("0x%s", _h)
-	}
-
 	// to be `false` when calling from `getGraphQLCompatibleTransactions(...)`
 	// because that function will then take care of it's own book keeping logic
 	if bookKeeping {
 		if err := doBookKeeping(ctx, tx.ToJSON()); err != nil {
 			return nil, errors.New("Book keeping failed")
 		}
+	}
+
+	data := ""
+	if _h := hex.EncodeToString(tx.Data); _h != "" {
+		data = fmt.Sprintf("0x%s", _h)
 	}
 
 	if !strings.HasPrefix(tx.Contract, "0x") {
@@ -218,17 +226,17 @@ func getGraphQLCompatibleEvent(ctx context.Context, event *data.Event, bookKeepi
 		return nil, errors.New("Found nothing")
 	}
 
-	data := ""
-	if _h := hex.EncodeToString(event.Data); _h != "" && _h != strings.Repeat("0", 64) {
-		data = fmt.Sprintf("0x%s", _h)
-	}
-
 	// to be `false` when calling from `getGraphQLCompatibleEvents(...)`
 	// because that function will then take care of it's own book keeping logic
 	if bookKeeping {
 		if err := doBookKeeping(ctx, event.ToJSON()); err != nil {
 			return nil, errors.New("Book keeping failed")
 		}
+	}
+
+	data := ""
+	if _h := hex.EncodeToString(event.Data); _h != "" && _h != strings.Repeat("0", 64) {
+		data = fmt.Sprintf("0x%s", _h)
 	}
 
 	return &model.Event{
