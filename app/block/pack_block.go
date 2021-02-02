@@ -1,8 +1,7 @@
 package block
 
 import (
-	"fmt"
-
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/itzmeanjan/ette/app/db"
 )
@@ -21,7 +20,7 @@ func BuildPackedBlock(block *types.Block, txs []*db.PackedTransaction) *db.Packe
 		Difficulty:          block.Difficulty().String(),
 		GasUsed:             block.GasUsed(),
 		GasLimit:            block.GasLimit(),
-		Nonce:               fmt.Sprintf("%d", block.Nonce()),
+		Nonce:               hexutil.EncodeUint64(block.Nonce()),
 		Miner:               block.Coinbase().Hex(),
 		Size:                float64(block.Size()),
 		TransactionRootHash: block.TxHash().Hex(),
