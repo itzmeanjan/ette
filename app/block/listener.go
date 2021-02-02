@@ -51,7 +51,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// should be greater than max block number obtained from DB
 			if first && !(header.Number.Uint64() > status.MaxBlockNumberAtStartUp()) {
 
-				log.Fatal(color.Red.Sprintf("[!] Bad block number received\n"))
+				log.Fatal(color.Red.Sprintf("[!] Bad block received : expected > `%d`\n", status.MaxBlockNumberAtStartUp()))
 
 			}
 
@@ -59,7 +59,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// should be strictly 1 greater than previous one it processed
 			if !first && !(header.Number.Uint64() == status.GetLatestBlockNumber()+1) {
 
-				log.Fatal(color.Red.Sprintf("[!] Bad block number received\n"))
+				log.Fatal(color.Red.Sprintf("[!] Bad block received : expected `%d`, received : `%d`\n", status.GetLatestBlockNumber()+1, header.Number.Uint64()))
 
 			}
 
