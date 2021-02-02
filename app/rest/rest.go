@@ -465,7 +465,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		// For checking `ette`'s syncing status
 		grp.GET("/synced", func(c *gin.Context) {
 
-			currentBlockNumber := db.GetCurrentBlockNumber(_db)
+			currentBlockNumber := _status.GetLatestBlockNumber()
 			blockCountInDB := _status.BlockCountInDB()
 			remaining := (currentBlockNumber + 1) - blockCountInDB
 			elapsed := _status.ElapsedTime()
