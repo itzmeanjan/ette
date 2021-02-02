@@ -27,8 +27,11 @@ func PublishBlock(block *db.PackedBlock, redis *d.RedisInfo) {
 		Nonce:               block.Block.Nonce,
 		Miner:               block.Block.Miner,
 		Size:                block.Block.Size,
+		StateRootHash:       block.Block.StateRootHash,
+		UncleHash:           block.Block.UncleHash,
 		TransactionRootHash: block.Block.TransactionRootHash,
 		ReceiptRootHash:     block.Block.ReceiptRootHash,
+		ExtraData:           block.Block.ExtraData,
 	}).Err(); err != nil {
 		log.Print(color.Red.Sprintf("[!] Failed to publish block %d in channel : %s", block.Block.Number, err.Error()))
 		return
