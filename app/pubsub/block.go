@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 
-	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 )
 
@@ -148,7 +147,23 @@ func (b *BlockConsumer) Send(msg string) bool {
 
 	}
 
-	var block d.Block
+	var block struct {
+		Hash                string  `json:"hash"`
+		Number              uint64  `json:"number"`
+		Time                uint64  `json:"time"`
+		ParentHash          string  `json:"parentHash"`
+		Difficulty          string  `json:"difficulty"`
+		GasUsed             uint64  `json:"gasUsed"`
+		GasLimit            uint64  `json:"gasLimit"`
+		Nonce               string  `json:"nonce"`
+		Miner               string  `json:"miner"`
+		Size                float64 `json:"size"`
+		StateRootHash       string  `json:"stateRootHash"`
+		UncleHash           string  `json:"uncleHash"`
+		TransactionRootHash string  `json:"txRootHash"`
+		ReceiptRootHash     string  `json:"receiptRootHash"`
+		ExtraData           string  `json:"extraData"`
+	}
 
 	_msg := []byte(msg)
 
