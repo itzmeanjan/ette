@@ -11,7 +11,7 @@ message Block {
     string difficulty = 5;
     uint64 gas_used = 6;
     uint64 gas_limit = 7;
-    uint64 nonce = 8;
+    string nonce = 8;
     string miner = 9;
     double size = 10;
     string transaction_root_hash = 11;

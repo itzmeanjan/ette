@@ -1,6 +1,8 @@
 package block
 
 import (
+	"fmt"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/itzmeanjan/ette/app/db"
 )
@@ -19,7 +21,7 @@ func BuildPackedBlock(block *types.Block, txs []*db.PackedTransaction) *db.Packe
 		Difficulty:          block.Difficulty().String(),
 		GasUsed:             block.GasUsed(),
 		GasLimit:            block.GasLimit(),
-		Nonce:               block.Nonce(),
+		Nonce:               fmt.Sprintf("%d", block.Nonce()),
 		Miner:               block.Coinbase().Hex(),
 		Size:                float64(block.Size()),
 		TransactionRootHash: block.TxHash().Hex(),

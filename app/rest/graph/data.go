@@ -103,7 +103,7 @@ func getGraphQLCompatibleBlock(ctx context.Context, block *data.Block, bookKeepi
 		Difficulty:      block.Difficulty,
 		GasUsed:         fmt.Sprintf("%d", block.GasUsed),
 		GasLimit:        fmt.Sprintf("%d", block.GasLimit),
-		Nonce:           fmt.Sprintf("%d", block.Nonce),
+		Nonce:           block.Nonce,
 		Miner:           block.Miner,
 		Size:            block.Size,
 		TxRootHash:      block.TransactionRootHash,

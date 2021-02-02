@@ -186,7 +186,7 @@ type Block struct {
 	Difficulty          string  `json:"difficulty" gorm:"column:difficulty"`
 	GasUsed             uint64  `json:"gasUsed" gorm:"column:gasused"`
 	GasLimit            uint64  `json:"gasLimit" gorm:"column:gaslimit"`
-	Nonce               uint64  `json:"nonce" gorm:"column:nonce"`
+	Nonce               string  `json:"nonce" gorm:"column:nonce"`
 	Miner               string  `json:"miner" gorm:"column:miner"`
 	Size                float64 `json:"size" gorm:"column:size"`
 	TransactionRootHash string  `json:"txRootHash" gorm:"column:txroothash"`
