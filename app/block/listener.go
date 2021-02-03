@@ -55,21 +55,11 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 			}
 
-			// For every iteration other than first one, newly mined block number
-			// should be strictly 1 greater than previous one it processed
-			if !first && !(header.Number.Uint64() == status.GetLatestBlockNumber()+1) {
+			if !first && header.Number.Uint64() > status.GetLatestBlockNumber() {
 
-				log.Fatal(color.Red.Sprintf("[!] Bad block received : expected `%d`, received : `%d`\n", status.GetLatestBlockNumber()+1, header.Number.Uint64()))
+				status.SetLatestBlockNumber(header.Number.Uint64())
 
 			}
-
-			// If any of 👆 two conditions fail, it'll crash system intentionally
-			// to denote it's connected to a bad RPC node
-			// @note This behaviour can be improved
-
-			// Latest block number seen, is getting safely updated, as
-			// soon as new block mined data gets propagated to network
-			status.SetLatestBlockNumber(header.Number.Uint64())
 
 			if first {
 
