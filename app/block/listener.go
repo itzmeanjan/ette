@@ -55,11 +55,34 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 			}
 
-			if !first && header.Number.Uint64() > status.GetLatestBlockNumber() {
+			// At any iteration other than first one, if received block number
+			// is more than latest block number + 1, it's definite that we've some
+			// block (  >=1 ) missed & the RPC node we're relying on might be feeding us with
+			// wrong data
+			//
+			// It's better stop relying on it, we crash the program
+			// @note This is not the state-of-the art solution, but this is it, as of now
+			// It can be improved.
+			if !first && header.Number.Uint64() > status.GetLatestBlockNumber()+1 {
 
-				status.SetLatestBlockNumber(header.Number.Uint64())
+				log.Fatal(color.Red.Sprintf("[!] Bad block received %d, expected %d", header.Number.Uint64(), status.GetLatestBlockNumber()))
 
 			}
+
+			// At any iteration other than first one, if received block number
+			// not exactly current latest block number + 1, then we're probably attempting
+			// to process some block which has already been processed, so it's better to just drop
+			// that block
+			if !first && !(header.Number.Uint64() == status.GetLatestBlockNumber()+1) {
+
+				log.Printf("[*] Received block %d again, expected %d, dropping\n", header.Number.Uint64(), status.GetLatestBlockNumber()+1)
+				break
+
+			}
+
+			// We get to arrive here only if current block number received is strictly
+			// previous latest block number + 1
+			status.SetLatestBlockNumber(header.Number.Uint64())
 
 			if first {
 
