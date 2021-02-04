@@ -1137,10 +1137,13 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 	upgrader := websocket.Upgrader{}
 
 	router.GET("/v1/ws", func(c *gin.Context) {
+
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
+
 			log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
 			return
+
 		}
 
 		// Registering websocket connection closing, to be executed when leaving
@@ -1151,44 +1154,35 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			return
 		}
 
-		// Keeping track of which topics this client has subscribed to
-		topics := make(map[string]ps.Consumer)
-		lock := sync.Mutex{}
+		// To be used for concurrent safe access of
+		// underlying network socket
+		connLock := sync.Mutex{}
+		// To be used for concurrent safe access of subscribed
+		// topic's associative array
+		topicLock := sync.RWMutex{}
 
-		// When returning from this execution scope, unsubscribing client
-		// from all topics it might have subscribed to during it's life time
-		//
-		// Just attempting to do a graceful unsubscription
-		defer func() {
-
-			for _, v := range topics {
-
-				if v, ok := v.(*ps.BlockConsumer); ok {
-					v.Request.Type = "unsubscribe"
-					continue
-				}
-
-				if v, ok := v.(*ps.TransactionConsumer); ok {
-					v.Request.Type = "unsubscribe"
-					continue
-				}
-
-				if v, ok := v.(*ps.EventConsumer); ok {
-					v.Request.Type = "unsubscribe"
-					continue
-				}
-
-			}
-
-		}()
+		// All topic subscription/ unsubscription requests
+		// to handled by this higher layer abstraction
+		pubsubManager := ps.SubscriptionManager{
+			Topics:     make(map[string]map[string]bool),
+			Consumers:  make(map[string]ps.Consumer),
+			Client:     _redisClient,
+			Connection: conn,
+			DB:         _db,
+			ConnLock:   &connLock,
+			TopicLock:  &topicLock,
+		}
 
 		// Client communication handling logic
 		for {
+
 			var req ps.SubscriptionRequest
 
 			if err := conn.ReadJSON(&req); err != nil {
+
 				log.Printf("[!] Failed to read message : %s\n", err.Error())
 				break
+
 			}
 
 			// Validating client provided API key, if fails, we return
@@ -1198,13 +1192,13 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 				// -- Critical section of code begins
 				//
 				// Attempting to write to shared network connection
-				lock.Lock()
+				connLock.Lock()
 
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
 
-				lock.Unlock()
+				connLock.Unlock()
 				// -- ends here
 				break
 			}
@@ -1214,13 +1208,13 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 				// -- Critical section of code begins
 				//
 				// Attempting to write to shared network connection
-				lock.Lock()
+				connLock.Lock()
 
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
 
-				lock.Unlock()
+				connLock.Unlock()
 				// -- ends here
 				break
 			}
@@ -1232,70 +1226,48 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 				// -- Critical section of code begins
 				//
 				// Attempting to write to shared network connection
-				lock.Lock()
+				connLock.Lock()
 
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Crossed Allowed Rate Limit"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
 
-				lock.Unlock()
+				connLock.Unlock()
 				// -- ends here
 				break
 			}
 
+			// As soon as we're able to find out who this user is
+			// we're going to attach their address in pubsub manager
+			pubsubManager.UserAddress = userAddress
+
 			// Validating incoming request on websocket subscription channel
-			if !req.Validate(topics) {
+			if !req.Validate(&pubsubManager) {
 				// -- Critical section of code begins
 				//
 				// Attempting to write to shared network connection
-				lock.Lock()
+				connLock.Lock()
 
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
 
-				lock.Unlock()
+				connLock.Unlock()
 				// -- ends here
 				break
 			}
 
+			// Attempting to subscribe to/ unsubscribe from this topic
 			switch req.Type {
+
 			case "subscribe":
-				switch req.Topic() {
-
-				case "block":
-					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
-
-				case "transaction":
-					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
-
-				case "event":
-					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
-
-				}
+				pubsubManager.Subscribe(&req)
 			case "unsubscribe":
-				switch req.Topic() {
-
-				case "block":
-					if v, ok := topics[req.Name].(*ps.BlockConsumer); ok {
-						v.Request.Type = req.Type
-					}
-
-				case "transaction":
-					if v, ok := topics[req.Name].(*ps.TransactionConsumer); ok {
-						v.Request.Type = req.Type
-					}
-
-				case "event":
-					if v, ok := topics[req.Name].(*ps.EventConsumer); ok {
-						v.Request.Type = req.Type
-					}
-
-				}
-
-				delete(topics, req.Name)
+				pubsubManager.Unsubscribe(&req)
 			}
+
 		}
+
 	})
 
 	router.POST("/v1/graphql", validateAPIKey,
