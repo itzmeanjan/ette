@@ -82,3 +82,41 @@ func (s *SubscriptionManager) Subscribe(req *SubscriptionRequest) {
 		})
 
 }
+
+// Unsubscribe - Websocket connection manager can reliably call
+// this to unsubscribe from topic for this client
+//
+// If all subtopics for `block`/ `transaction`/ `event` are
+// unsubscribed from, entry to be removed from associative array
+// and pubsub to be unsubscribed
+//
+// Otherwise, we simply remove this specific topic from associative array
+// holding subtopics for any of `block`/ `transaction`/ `event` root topics
+func (s *SubscriptionManager) Unsubscribe(req *SubscriptionRequest) {
+
+	s.TopicLock.Lock()
+	defer s.TopicLock.Unlock()
+
+	_, ok := s.Topics[req.Topic()]
+	if !ok {
+		return
+	}
+
+	delete(s.Topics[req.Topic()], req.Name)
+
+	if len(s.Topics[req.Topic()]) > 0 {
+
+		s.Consumers[req.Topic()].SendData(
+			&SubscriptionResponse{
+				Code:    1,
+				Message: fmt.Sprintf("Unsubscribed to `%s`", req.Topic()),
+			})
+		return
+
+	}
+
+	s.Consumers[req.Topic()].Unsubscribe()
+	delete(s.Topics, req.Topic())
+	delete(s.Consumers, req.Topic())
+
+}
