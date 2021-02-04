@@ -30,10 +30,9 @@ type SubscriptionManager struct {
 	Topics      map[string]map[string]bool
 	Consumers   map[string]Consumer
 	Client      *redis.Client
-	UserAddress common.Address
 	Connection  *websocket.Conn
-	PubSub      *redis.PubSub
 	DB          *gorm.DB
+	UserAddress common.Address
 	ConnLock    *sync.Mutex
 	TopicLock   *sync.RWMutex
 }
