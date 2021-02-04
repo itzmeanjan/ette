@@ -231,17 +231,21 @@ func (s *SubscriptionRequest) IsValidTopic() bool {
 }
 
 // Validate - Validates request from client for subscription/ unsubscription
-func (s *SubscriptionRequest) Validate(topics map[string]map[string]bool) bool {
+func (s *SubscriptionRequest) Validate(pubsubManager *SubscriptionManager) bool {
 
 	// --- Closure definition
 	// Given associative array for subscribed topics, check whether entry exists or not
 	checkEntryInAssociativeArray := func() bool {
-		v, ok := topics[s.Topic()]
+
+		pubsubManager.TopicLock.RLock()
+		defer pubsubManager.TopicLock.RUnlock()
+
+		_, ok := pubsubManager.Topics[s.Topic()]
 		if !ok {
 			return false
 		}
 
-		_v, ok := v[s.Name]
+		_v, ok := pubsubManager.Topics[s.Topic()][s.Name]
 		if !ok {
 			return false
 		}
