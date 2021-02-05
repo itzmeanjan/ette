@@ -237,6 +237,11 @@ func (s *SubscriptionRequest) Validate(pubsubManager *SubscriptionManager) bool 
 	// Given associative array for subscribed topics, check whether entry exists or not
 	checkEntryInAssociativeArray := func() bool {
 
+		// -- Attempting to read shared variable
+		// which is why acquiring read only lock
+		//
+		// To be released as soon as returning from this
+		// closure's execution scope
 		pubsubManager.TopicLock.RLock()
 		defer pubsubManager.TopicLock.RUnlock()
 
@@ -250,7 +255,8 @@ func (s *SubscriptionRequest) Validate(pubsubManager *SubscriptionManager) bool 
 			return false
 		}
 
-		return _v
+		return _v != nil
+
 	}
 	// ---
 

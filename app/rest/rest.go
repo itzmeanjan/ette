@@ -1164,7 +1164,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		// All topic subscription/ unsubscription requests
 		// to handled by this higher layer abstraction
 		pubsubManager := ps.SubscriptionManager{
-			Topics:     make(map[string]map[string]bool),
+			Topics:     make(map[string]map[string]*ps.SubscriptionRequest),
 			Consumers:  make(map[string]ps.Consumer),
 			Client:     _redisClient,
 			Connection: conn,
@@ -1236,10 +1236,6 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 				// -- ends here
 				break
 			}
-
-			// As soon as we're able to find out who this user is
-			// we're going to attach their address in pubsub manager
-			pubsubManager.UserAddress = userAddress
 
 			// Validating incoming request on websocket subscription channel
 			if !req.Validate(&pubsubManager) {

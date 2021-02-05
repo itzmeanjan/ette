@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
@@ -24,13 +23,12 @@ import (
 // of information, which is to be required when delivering data & checking whether this connection
 // has really requested notification for this event or not
 type EventConsumer struct {
-	Client      *redis.Client
-	Request     *SubscriptionRequest
-	UserAddress common.Address
-	Connection  *websocket.Conn
-	PubSub      *redis.PubSub
-	DB          *gorm.DB
-	Lock        *sync.Mutex
+	Client     *redis.Client
+	Request    *SubscriptionRequest
+	Connection *websocket.Conn
+	PubSub     *redis.PubSub
+	DB         *gorm.DB
+	Lock       *sync.Mutex
 }
 
 // Subscribe - Event consumer is subscribing to `event` topic,
@@ -134,7 +132,7 @@ func (e *EventConsumer) Send(msg string) bool {
 
 	// Don't deliver data & close underlying connection
 	// if client has crossed it's allowed data delivery limit
-	if !db.IsUnderRateLimit(e.DB, e.UserAddress.Hex()) {
+	if !db.IsUnderRateLimit(e.DB, user.Address) {
 
 		// -- Critical section of code begins
 		//
@@ -196,7 +194,7 @@ func (e *EventConsumer) Send(msg string) bool {
 	}
 
 	if e.SendData(&event) {
-		db.PutDataDeliveryInfo(e.DB, e.UserAddress.Hex(), "/v1/ws/event", uint64(len(msg)))
+		db.PutDataDeliveryInfo(e.DB, user.Address, "/v1/ws/event", uint64(len(msg)))
 		return true
 	}
 

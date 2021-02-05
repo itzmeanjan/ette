@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	d "github.com/itzmeanjan/ette/app/data"
@@ -23,13 +22,12 @@ import (
 //
 // If yes, also deliver data to client application, connected over websocket
 type TransactionConsumer struct {
-	Client      *redis.Client
-	Request     *SubscriptionRequest
-	UserAddress common.Address
-	Connection  *websocket.Conn
-	PubSub      *redis.PubSub
-	DB          *gorm.DB
-	Lock        *sync.Mutex
+	Client     *redis.Client
+	Request    *SubscriptionRequest
+	Connection *websocket.Conn
+	PubSub     *redis.PubSub
+	DB         *gorm.DB
+	Lock       *sync.Mutex
 }
 
 // Subscribe - Subscribe to `transaction` topic, under which all transaction related data to be published
@@ -129,7 +127,7 @@ func (t *TransactionConsumer) Send(msg string) bool {
 
 	// Don't deliver data & close underlying connection
 	// if client has crossed it's allowed data delivery limit
-	if !db.IsUnderRateLimit(t.DB, t.UserAddress.Hex()) {
+	if !db.IsUnderRateLimit(t.DB, user.Address) {
 
 		// -- Critical section of code begins
 		//
@@ -212,7 +210,7 @@ func (t *TransactionConsumer) Send(msg string) bool {
 	}
 
 	if t.SendData(&transaction) {
-		db.PutDataDeliveryInfo(t.DB, t.UserAddress.Hex(), "/v1/ws/transaction", uint64(len(msg)))
+		db.PutDataDeliveryInfo(t.DB, user.Address, "/v1/ws/transaction", uint64(len(msg)))
 		return true
 	}
 

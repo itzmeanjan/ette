@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
@@ -19,13 +18,12 @@ import (
 // BlockConsumer - To be subscribed to `block` topic using this consumer handle
 // and client connected using websocket needs to be delivered this piece of data
 type BlockConsumer struct {
-	Client      *redis.Client
-	Request     *SubscriptionRequest
-	UserAddress common.Address
-	Connection  *websocket.Conn
-	PubSub      *redis.PubSub
-	DB          *gorm.DB
-	Lock        *sync.Mutex
+	Client     *redis.Client
+	Request    *SubscriptionRequest
+	Connection *websocket.Conn
+	PubSub     *redis.PubSub
+	DB         *gorm.DB
+	Lock       *sync.Mutex
 }
 
 // Subscribe - Subscribe to `block` channel
@@ -61,13 +59,22 @@ func (b *BlockConsumer) Listen() {
 		status := true
 
 		switch m := msg.(type) {
+
 		case *redis.Subscription:
+
+			if m.Kind == "unsubscribe" {
+				status = false
+				break
+			}
+
 			status = b.SendData(&SubscriptionResponse{
 				Code:    1,
 				Message: "Subscribed to `block`",
 			})
+
 		case *redis.Message:
 			status = b.Send(m.Payload)
+
 		}
 
 		if !status {
@@ -126,7 +133,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 
 	// Don't deliver data & close underlying connection
 	// if client has crossed it's allowed data delivery limit
-	if !db.IsUnderRateLimit(b.DB, b.UserAddress.Hex()) {
+	if !db.IsUnderRateLimit(b.DB, user.Address) {
 
 		// -- Critical section of code begins
 		//
@@ -174,7 +181,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 	}
 
 	if b.SendData(&block) {
-		db.PutDataDeliveryInfo(b.DB, b.UserAddress.Hex(), "/v1/ws/block", uint64(len(msg)))
+		db.PutDataDeliveryInfo(b.DB, user.Address, "/v1/ws/block", uint64(len(msg)))
 		return true
 	}
 
