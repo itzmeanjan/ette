@@ -3,7 +3,6 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -29,40 +28,35 @@ type BlockConsumer struct {
 
 // Subscribe - Subscribe to `block` channel
 func (b *BlockConsumer) Subscribe() {
-	b.PubSub = b.Client.Subscribe(context.Background(), b.Request.Topic())
+	b.PubSub = b.Client.Subscribe(context.Background(), "block")
 }
 
 // Listen - Listener function, which keeps looping in infinite loop
 // and reads data from subcribed channel, which also gets delivered to client application
 func (b *BlockConsumer) Listen() {
 
-	// When ever returning from this function's
-	// execution context, client will be unsubscribed from
-	// pubsub topic i.e. `block` topic in this case
+	// Schduling unsubscription with pubsub broker
+	// call from now, to be executed when returning from
+	// this scope
 	defer b.Unsubscribe()
 
 	for {
-
-		// Checking if client is still subscribed to this topic
-		// or not
-		//
-		// If not, we're cancelling this subscription
-		if b.Request.Type == "unsubscribe" {
-			break
-		}
 
 		msg, err := b.PubSub.ReceiveTimeout(context.Background(), time.Second)
 		if err != nil {
 			continue
 		}
 
-		// To be used for checking whether delivering data to client went successful or not
+		// To be used for checking whether delivering
+		// data to client went successful or not
 		status := true
 
 		switch m := msg.(type) {
 
 		case *redis.Subscription:
 
+			// Pubsub broker informed we've been unsubscribed from
+			// this topic
 			if m.Kind == "unsubscribe" {
 				status = false
 				break
@@ -78,6 +72,7 @@ func (b *BlockConsumer) Listen() {
 
 		}
 
+		// check whether we can get out of this loop or not
 		if !status {
 			break
 		}
@@ -89,14 +84,28 @@ func (b *BlockConsumer) Listen() {
 // connected over websocket
 func (b *BlockConsumer) Send(msg string) bool {
 
-	user := db.GetUserFromAPIKey(b.DB, b.Request.APIKey)
+	// -- Shared memory being read from concurrently
+	// running thread of execution, with lock
+	b.TopicLock.RLock()
+
+	// Attempting to read APIKey passed by used
+	// with block subscription request
+	request, ok := b.Requests["block"]
+	if !ok {
+		return false
+	}
+
+	b.TopicLock.RUnlock()
+	// -- Shared memory reading done, lock released
+
+	user := db.GetUserFromAPIKey(b.DB, request.APIKey)
 	if user == nil {
 
 		// -- Critical section of code begins
 		//
 		// Attempting to write to a network resource,
 		// shared among multiple go routines
-		b.Lock.Lock()
+		b.ConnLock.Lock()
 
 		if err := b.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
@@ -105,7 +114,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
 		}
 
-		b.Lock.Unlock()
+		b.ConnLock.Unlock()
 		// -- ends here
 		return false
 
@@ -117,7 +126,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 		//
 		// Attempting to write to a network resource,
 		// shared among multiple go routines
-		b.Lock.Lock()
+		b.ConnLock.Lock()
 
 		if err := b.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
@@ -126,7 +135,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
 		}
 
-		b.Lock.Unlock()
+		b.ConnLock.Unlock()
 		// -- ends here
 		return false
 
@@ -140,7 +149,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 		//
 		// Attempting to write to a network resource,
 		// shared among multiple go routines
-		b.Lock.Lock()
+		b.ConnLock.Lock()
 
 		if err := b.Connection.WriteJSON(&SubscriptionResponse{
 			Code:    0,
@@ -149,7 +158,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
 		}
 
-		b.Lock.Unlock()
+		b.ConnLock.Unlock()
 		// -- ends here
 		return false
 
@@ -200,8 +209,8 @@ func (b *BlockConsumer) SendData(data interface{}) bool {
 	//
 	// Attempting to write to a network resource,
 	// shared among multiple go routines
-	b.Lock.Lock()
-	defer b.Lock.Unlock()
+	b.ConnLock.Lock()
+	defer b.ConnLock.Unlock()
 
 	if err := b.Connection.WriteJSON(data); err != nil {
 		log.Printf("[!] Failed to deliver `block` data to client : %s\n", err.Error())
@@ -216,29 +225,29 @@ func (b *BlockConsumer) SendData(data interface{}) bool {
 func (b *BlockConsumer) Unsubscribe() {
 
 	if b.PubSub == nil {
-		log.Printf("[!] Bad attempt to unsubscribe from `%s` topic\n", b.Request.Topic())
+		log.Printf("[!] Bad attempt to unsubscribe from `block` topic\n")
 		return
 	}
 
-	if err := b.PubSub.Unsubscribe(context.Background(), b.Request.Topic()); err != nil {
-		log.Printf("[!] Failed to unsubscribe from `%s` topic : %s\n", b.Request.Topic(), err.Error())
+	if err := b.PubSub.Unsubscribe(context.Background(), "block"); err != nil {
+		log.Printf("[!] Failed to unsubscribe from `block` topic : %s\n", err.Error())
 		return
 	}
 
 	resp := &SubscriptionResponse{
 		Code:    1,
-		Message: fmt.Sprintf("Unsubscribed from `%s`", b.Request.Topic()),
+		Message: "Unsubscribed from `block`",
 	}
 
 	// -- Critical section of code begins
 	//
 	// Attempting to write to a network resource,
 	// shared among multiple go routines
-	b.Lock.Lock()
-	defer b.Lock.Unlock()
+	b.ConnLock.Lock()
+	defer b.ConnLock.Unlock()
 
 	if err := b.Connection.WriteJSON(resp); err != nil {
-		log.Printf("[!] Failed to deliver `%s` unsubscription confirmation to client : %s\n", b.Request.Topic(), err.Error())
+		log.Printf("[!] Failed to deliver `block` unsubscription confirmation to client : %s\n", err.Error())
 	}
 
 }
