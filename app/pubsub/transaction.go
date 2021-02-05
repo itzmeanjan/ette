@@ -23,11 +23,12 @@ import (
 // If yes, also deliver data to client application, connected over websocket
 type TransactionConsumer struct {
 	Client     *redis.Client
-	Request    *SubscriptionRequest
+	Requests   map[string]*SubscriptionRequest
 	Connection *websocket.Conn
 	PubSub     *redis.PubSub
 	DB         *gorm.DB
-	Lock       *sync.Mutex
+	ConnLock   *sync.Mutex
+	TopicLock  *sync.RWMutex
 }
 
 // Subscribe - Subscribe to `transaction` topic, under which all transaction related data to be published

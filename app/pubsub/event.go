@@ -24,11 +24,12 @@ import (
 // has really requested notification for this event or not
 type EventConsumer struct {
 	Client     *redis.Client
-	Request    *SubscriptionRequest
+	Requests   map[string]*SubscriptionRequest
 	Connection *websocket.Conn
 	PubSub     *redis.PubSub
 	DB         *gorm.DB
-	Lock       *sync.Mutex
+	ConnLock   *sync.Mutex
+	TopicLock  *sync.RWMutex
 }
 
 // Subscribe - Event consumer is subscribing to `event` topic,

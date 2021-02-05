@@ -19,11 +19,12 @@ import (
 // and client connected using websocket needs to be delivered this piece of data
 type BlockConsumer struct {
 	Client     *redis.Client
-	Request    *SubscriptionRequest
+	Requests   map[string]*SubscriptionRequest
 	Connection *websocket.Conn
 	PubSub     *redis.PubSub
 	DB         *gorm.DB
-	Lock       *sync.Mutex
+	ConnLock   *sync.Mutex
+	TopicLock  *sync.RWMutex
 }
 
 // Subscribe - Subscribe to `block` channel
