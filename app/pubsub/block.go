@@ -76,6 +76,7 @@ func (b *BlockConsumer) Listen() {
 		if !status {
 			break
 		}
+
 	}
 
 }
@@ -84,15 +85,23 @@ func (b *BlockConsumer) Listen() {
 // connected over websocket
 func (b *BlockConsumer) Send(msg string) bool {
 
+	var request *SubscriptionRequest
+
 	// -- Shared memory being read from concurrently
 	// running thread of execution, with lock
 	b.TopicLock.RLock()
 
-	// Attempting to read APIKey passed by used
-	// with block subscription request
-	request, ok := b.Requests["block"]
-	if !ok {
+	if len(b.Requests) == 0 {
+		b.TopicLock.RUnlock()
+		// -- Release lock & return from this execution scope
 		return false
+	}
+
+	for _, v := range b.Requests {
+
+		request = v
+		break
+
 	}
 
 	b.TopicLock.RUnlock()
