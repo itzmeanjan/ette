@@ -1173,6 +1173,16 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			TopicLock:  &topicLock,
 		}
 
+		// Unsubscribe from all pubsub topics ( 3 at max ) when returning from
+		// this execution scope
+		defer func() {
+
+			for _, v := range pubsubManager.Consumers {
+				v.Unsubscribe()
+			}
+
+		}()
+
 		// Client communication handling logic
 		for {
 
