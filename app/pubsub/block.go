@@ -35,21 +35,12 @@ func (b *BlockConsumer) Subscribe() {
 // and reads data from subcribed channel, which also gets delivered to client application
 func (b *BlockConsumer) Listen() {
 
-	// Schduling unsubscription with pubsub broker
-	// call from now, to be executed when returning from
-	// this scope
-	defer b.Unsubscribe()
-
 	for {
 
 		msg, err := b.PubSub.ReceiveTimeout(context.Background(), time.Second)
 		if err != nil {
 			continue
 		}
-
-		// To be used for checking whether delivering
-		// data to client went successful or not
-		status := true
 
 		switch m := msg.(type) {
 
@@ -58,23 +49,17 @@ func (b *BlockConsumer) Listen() {
 			// Pubsub broker informed we've been unsubscribed from
 			// this topic
 			if m.Kind == "unsubscribe" {
-				status = false
-				break
+				return
 			}
 
-			status = b.SendData(&SubscriptionResponse{
+			b.SendData(&SubscriptionResponse{
 				Code:    1,
 				Message: "Subscribed to `block`",
 			})
 
 		case *redis.Message:
-			status = b.Send(m.Payload)
+			b.Send(m.Payload)
 
-		}
-
-		// check whether we can get out of this loop or not
-		if !status {
-			break
 		}
 
 	}
@@ -83,19 +68,13 @@ func (b *BlockConsumer) Listen() {
 
 // Send - Tries to deliver subscribed block data to client application
 // connected over websocket
-func (b *BlockConsumer) Send(msg string) bool {
+func (b *BlockConsumer) Send(msg string) {
 
 	var request *SubscriptionRequest
 
 	// -- Shared memory being read from concurrently
 	// running thread of execution, with lock
 	b.TopicLock.RLock()
-
-	if len(b.Requests) == 0 {
-		b.TopicLock.RUnlock()
-		// -- Release lock & return from this execution scope
-		return false
-	}
 
 	for _, v := range b.Requests {
 
@@ -106,6 +85,12 @@ func (b *BlockConsumer) Send(msg string) bool {
 
 	b.TopicLock.RUnlock()
 	// -- Shared memory reading done, lock released
+
+	// Can't proceed with this anymore, because failed to find
+	// respective subscription request
+	if request == nil {
+		return
+	}
 
 	user := db.GetUserFromAPIKey(b.DB, request.APIKey)
 	if user == nil {
@@ -125,7 +110,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 
 		b.ConnLock.Unlock()
 		// -- ends here
-		return false
+		return
 
 	}
 
@@ -146,7 +131,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 
 		b.ConnLock.Unlock()
 		// -- ends here
-		return false
+		return
 
 	}
 
@@ -169,7 +154,7 @@ func (b *BlockConsumer) Send(msg string) bool {
 
 		b.ConnLock.Unlock()
 		// -- ends here
-		return false
+		return
 
 	}
 
@@ -196,15 +181,12 @@ func (b *BlockConsumer) Send(msg string) bool {
 	err := json.Unmarshal(_msg, &block)
 	if err != nil {
 		log.Printf("[!] Failed to decode published block data to JSON : %s\n", err.Error())
-		return true
+		return
 	}
 
 	if b.SendData(&block) {
 		db.PutDataDeliveryInfo(b.DB, user.Address, "/v1/ws/block", uint64(len(msg)))
-		return true
 	}
-
-	return false
 
 }
 

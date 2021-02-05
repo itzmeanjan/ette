@@ -12,7 +12,7 @@ import (
 type Consumer interface {
 	Subscribe()
 	Listen()
-	Send(msg string) bool
+	Send(msg string)
 	SendData(data interface{}) bool
 	Unsubscribe()
 }
