@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 
+	"github.com/ethereum/go-ethereum/common"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -21,5 +22,13 @@ func UpsertEvent(dbWTx *gorm.DB, event *Events) error {
 	}
 
 	return dbWTx.Clauses(clause.OnConflict{UpdateAll: true}).Create(event).Error
+
+}
+
+// RemoveEventsByBlockHash - All events emitted by tx(s) packed in block, to be
+// removed from DB
+func RemoveEventsByBlockHash(dbWTx *gorm.DB, blockHash common.Hash) error {
+
+	return dbWTx.Delete(&Events{BlockHash: blockHash.Hex()}).Error
 
 }
