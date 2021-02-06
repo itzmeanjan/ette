@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"log"
 
 	d "github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
@@ -40,6 +41,20 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) err
 			blockInserted = true
 
 		} else if !persistedBlock.SimilarTo(block.Block) {
+
+			log.Printf("[!] Block %d already present in DB, similarity match failed\n", block.Block.Number)
+
+			// -- If block is going to be updated, it's better
+			// we also remove associated entries for that block
+			// i.e. transactions, events
+			if err := RemoveEventsByBlockHash(dbWTx, block.Block.Hash); err != nil {
+				return err
+			}
+
+			if err := RemoveTransactionsByBlockHash(dbWTx, block.Block.Hash); err != nil {
+				return err
+			}
+			// -- block data clean up ends here
 
 			if err := UpdateBlock(dbWTx, block.Block); err != nil {
 				return err
