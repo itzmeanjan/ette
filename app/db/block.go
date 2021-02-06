@@ -42,7 +42,7 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) err
 
 		} else if !persistedBlock.SimilarTo(block.Block) {
 
-			log.Printf("[!] Block %d already present in DB, similarity match failed\n", block.Block.Number)
+			log.Printf("[!] Block %d already present in DB, similar ❌\n", block.Block.Number)
 
 			// -- If block is going to be updated, it's better
 			// we also remove associated entries for that block
@@ -59,6 +59,11 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) err
 			if err := UpdateBlock(dbWTx, block.Block); err != nil {
 				return err
 			}
+
+		} else {
+
+			log.Printf("[+] Block %d already present in DB, similar ✅\n", block.Block.Number)
+			return nil
 
 		}
 
@@ -115,11 +120,30 @@ func GetBlock(_db *gorm.DB, number uint64) *Blocks {
 }
 
 // PutBlock - Persisting fetched block
-func PutBlock(tx *gorm.DB, block *Blocks) error {
-	return tx.Create(block).Error
+func PutBlock(dbWTx *gorm.DB, block *Blocks) error {
+
+	return dbWTx.Create(block).Error
+
 }
 
 // UpdateBlock - Updating already existing block
-func UpdateBlock(tx *gorm.DB, block *Blocks) error {
-	return tx.Where("number = ?", block.Number).Updates(block).Error
+func UpdateBlock(dbWTx *gorm.DB, block *Blocks) error {
+
+	return dbWTx.Model(&Blocks{}).Where("number = ?", block.Number).Updates(map[string]interface{}{
+		"hash":            block.Hash,
+		"time":            block.Time,
+		"parenthash":      block.ParentHash,
+		"difficulty":      block.Difficulty,
+		"gasused":         block.GasUsed,
+		"gaslimit":        block.GasLimit,
+		"nonce":           block.Nonce,
+		"miner":           block.Miner,
+		"size":            block.Size,
+		"stateroothash":   block.StateRootHash,
+		"unclehash":       block.UncleHash,
+		"txroothash":      block.TransactionRootHash,
+		"receiptroothash": block.ReceiptRootHash,
+		"extradata":       block.ExtraData,
+	}).Error
+
 }
