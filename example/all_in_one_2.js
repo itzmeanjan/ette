@@ -21,9 +21,9 @@ _client.on('connect', c => {
     // periodic subscription & unsubscription request performed
     handler = _ => {
 
-        c.send(JSON.stringify({ name: 'block', type: state ? 'subscribe' : 'unsubscribe', apiKey: '0x43ee4523fc8cc569b492fcda6f32e07d90d2afdf7a8a02b5e74c933be1785487' }))
-        c.send(JSON.stringify({ name: 'transaction/*/*', type: state ? 'subscribe' : 'unsubscribe', apiKey: '0x43ee4523fc8cc569b492fcda6f32e07d90d2afdf7a8a02b5e74c933be1785487' }))
-        c.send(JSON.stringify({ name: 'event/*/*/*/*/*', type: state ? 'subscribe' : 'unsubscribe', apiKey: '0x43ee4523fc8cc569b492fcda6f32e07d90d2afdf7a8a02b5e74c933be1785487' }))
+        c.send(JSON.stringify({ name: 'transaction/*/*', type: state ? 'subscribe' : 'unsubscribe', apiKey: '0xab84c27c721f54ef3ea63f1f75ee70f1f0a2863ec30df5a9f1f057ccbba5d4c3' }))
+        c.send(JSON.stringify({ name: 'transaction/0x78566ED47127e2F08EB4DD03F89a03e996e6Fcca/*', type: state ? 'subscribe' : 'unsubscribe', apiKey: '0xab84c27c721f54ef3ea63f1f75ee70f1f0a2863ec30df5a9f1f057ccbba5d4c3' }))
+        c.send(JSON.stringify({ name: 'transaction/*/0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff', type: state ? 'subscribe' : 'unsubscribe', apiKey: '0xab84c27c721f54ef3ea63f1f75ee70f1f0a2863ec30df5a9f1f057ccbba5d4c3' }))
 
         state = !state
 
