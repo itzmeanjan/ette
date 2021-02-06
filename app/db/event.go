@@ -29,6 +29,6 @@ func UpsertEvent(dbWTx *gorm.DB, event *Events) error {
 // removed from DB
 func RemoveEventsByBlockHash(dbWTx *gorm.DB, blockHash common.Hash) error {
 
-	return dbWTx.Delete(&Events{BlockHash: blockHash.Hex()}).Error
+	return dbWTx.Where("blockhash = ?", blockHash.Hex()).Delete(&Events{}).Error
 
 }
