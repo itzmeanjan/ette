@@ -47,11 +47,11 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) err
 			// -- If block is going to be updated, it's better
 			// we also remove associated entries for that block
 			// i.e. transactions, events
-			if err := RemoveEventsByBlockHash(dbWTx, block.Block.Hash); err != nil {
+			if err := RemoveEventsByBlockHash(dbWTx, persistedBlock.Hash); err != nil {
 				return err
 			}
 
-			if err := RemoveTransactionsByBlockHash(dbWTx, block.Block.Hash); err != nil {
+			if err := RemoveTransactionsByBlockHash(dbWTx, persistedBlock.Hash); err != nil {
 				return err
 			}
 			// -- block data clean up ends here
