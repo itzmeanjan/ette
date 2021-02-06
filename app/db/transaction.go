@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 
+	"github.com/ethereum/go-ethereum/common"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -21,5 +22,12 @@ func UpsertTransaction(dbWTx *gorm.DB, tx *Transactions) error {
 	}
 
 	return dbWTx.Clauses(clause.OnConflict{UpdateAll: true}).Create(tx).Error
+
+}
+
+// RemoveTransactionsByBlockHash - Remove all tx(s) packed in this block from DB
+func RemoveTransactionsByBlockHash(dbWTx *gorm.DB, blockHash common.Hash) error {
+
+	return dbWTx.Where("blockhash = ?", blockHash.Hex()).Delete(&Transactions{}).Error
 
 }
