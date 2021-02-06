@@ -74,7 +74,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// reorganization, we'll attempt to process this new one
 			if !first && !(header.Number.Uint64() == status.GetLatestBlockNumber()+1) {
 
-				log.Printf("[*] Received block %d again, expected %d, attempting to process\n", header.Number.Uint64(), status.GetLatestBlockNumber()+1)
+				log.Printf(color.Blue.Sprintf("[*] Received block %d again, expected %d, attempting to process", header.Number.Uint64(), status.GetLatestBlockNumber()+1))
 
 			}
 
@@ -101,7 +101,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 					// i.e. trying to fill up gap, which was caused when `ette` was offline
 					//
 					// Backward traversal mechanism gives us more recent blockchain happenings to cover
-					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, status.MaxBlockNumberAtStartUp(), status)
+					// go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, status.MaxBlockNumberAtStartUp(), status)
 
 				}
 				// Making sure that when next latest block header is received, it'll not
