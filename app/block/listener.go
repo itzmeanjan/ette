@@ -70,13 +70,11 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			}
 
 			// At any iteration other than first one, if received block number
-			// not exactly current latest block number + 1, then we're probably attempting
-			// to process some block which has already been processed, so it's better to just drop
-			// that block
+			// not exactly current latest block number + 1, then it's probably one
+			// reorganization, we'll attempt to process this new one
 			if !first && !(header.Number.Uint64() == status.GetLatestBlockNumber()+1) {
 
-				log.Printf("[*] Received block %d again, expected %d, dropping\n", header.Number.Uint64(), status.GetLatestBlockNumber()+1)
-				break
+				log.Printf("[*] Received block %d again, expected %d, attempting to process\n", header.Number.Uint64(), status.GetLatestBlockNumber()+1)
 
 			}
 
