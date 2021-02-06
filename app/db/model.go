@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"time"
@@ -51,8 +52,11 @@ func (b *Blocks) SimilarTo(_b *Blocks) bool {
 		b.Nonce == _b.Nonce &&
 		b.Miner == _b.Miner &&
 		b.Size == _b.Size &&
+		b.StateRootHash == _b.StateRootHash &&
+		b.UncleHash == _b.UncleHash &&
 		b.TransactionRootHash == _b.TransactionRootHash &&
-		b.ReceiptRootHash == _b.ReceiptRootHash
+		b.ReceiptRootHash == _b.ReceiptRootHash &&
+		bytes.Compare(b.ExtraData, _b.ExtraData) == 0
 }
 
 // Transactions - Blockchain transaction holder table model
