@@ -31,7 +31,7 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) err
 
 		blockInserted := false
 
-		persistedBlock := GetBlock(dbWOTx, block.Block.Number)
+		persistedBlock := GetBlock(dbWTx, block.Block.Number)
 		if persistedBlock == nil {
 
 			if err := PutBlock(dbWTx, block.Block); err != nil {
