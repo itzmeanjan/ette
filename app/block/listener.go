@@ -76,6 +76,10 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 				log.Printf(color.Blue.Sprintf("[*] Received block %d again, expected %d, attempting to process", header.Number.Uint64(), status.GetLatestBlockNumber()+1))
 
+			} else {
+
+				log.Printf(color.Blue.Sprintf("[*] Received block %d, attempting to process", header.Number.Uint64()))
+
 			}
 
 			// We get to arrive here only if current block number received is strictly
