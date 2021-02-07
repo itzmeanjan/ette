@@ -1177,6 +1177,9 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		// this execution scope
 		defer func() {
 
+			topicLock.Lock()
+			defer topicLock.Unlock()
+
 			for _, v := range pubsubManager.Consumers {
 				v.Unsubscribe()
 			}
