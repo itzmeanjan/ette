@@ -423,7 +423,7 @@ func GetEventsFromContractWithTopicsByBlockNumberRange(db *gorm.DB, contract com
 	var events []*data.Event
 
 	if err := db.Raw(fmt.Sprintf(
-		"select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e"+
+		"select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e "+
 			"left join blocks as b on e.blockhash = b.hash where e.origin = '%s' and b.number >= %d and b.number <= %d and '{%s}' <@ e.topics",
 		contract.Hex(), from, to, EventTopicsAsString(topics))).Scan(&events).Error; err != nil {
 		return nil
@@ -444,7 +444,7 @@ func GetEventsFromContractWithTopicsByBlockTimeRange(db *gorm.DB, contract commo
 	var events []*data.Event
 
 	if err := db.Raw(fmt.Sprintf(
-		"select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e"+
+		"select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e "+
 			"left join blocks as b on e.blockhash = b.hash where e.origin = '%s' and b.time >= %d and b.time <= %d and '{%s}' <@ e.topics",
 		contract.Hex(), from, to, EventTopicsAsString(topics))).Scan(&events).Error; err != nil {
 		return nil
@@ -463,7 +463,10 @@ func GetLastXEventsFromContract(db *gorm.DB, contract common.Address, x int) *da
 
 	var events []*data.Event
 
-	if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = '%s' order by b.number desc limit %d", contract.Hex(), x)).Scan(&events).Error; err != nil {
+	if err := db.Raw(fmt.Sprintf(
+		"select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e "+
+			"left join blocks as b on e.blockhash = b.hash where e.origin = '%s' order by b.number desc limit %d",
+		contract.Hex(), x)).Scan(&events).Error; err != nil {
 		return nil
 	}
 
