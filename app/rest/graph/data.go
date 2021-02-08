@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/itzmeanjan/ette/app/data"
 	_db "github.com/itzmeanjan/ette/app/db"
@@ -271,26 +270,6 @@ func getGraphQLCompatibleEvents(ctx context.Context, events *data.Events) ([]*mo
 	}
 
 	return _events, nil
-}
-
-func getTopics(topics ...string) []common.Hash {
-	if topics[0] != "" && topics[1] != "" && topics[2] != "" && topics[3] != "" {
-		return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2]), common.HexToHash(topics[3])}
-	}
-
-	if topics[0] != "" && topics[1] != "" && topics[2] != "" {
-		return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2])}
-	}
-
-	if topics[0] != "" && topics[1] != "" {
-		return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1])}
-	}
-
-	if topics[0] != "" {
-		return []common.Hash{common.HexToHash(topics[0])}
-	}
-
-	return nil
 }
 
 func getTopicSignaturesAsStringSlice(topics pq.StringArray) []string {
