@@ -67,25 +67,29 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 	}
 
 	// Return topics to be used for finding out events in hex form
-	// topics are extracted out from query params in string form
-	getTopics := func(topics ...string) []common.Hash {
-		if topics[0] != "" && topics[1] != "" && topics[2] != "" && topics[3] != "" {
-			return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2]), common.HexToHash(topics[3])}
-		}
+	// topics are extracted out from query params
+	getTopics := func(topics ...string) map[uint8]string {
 
-		if topics[0] != "" && topics[1] != "" && topics[2] != "" {
-			return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2])}
-		}
-
-		if topics[0] != "" && topics[1] != "" {
-			return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1])}
-		}
+		_topics := make(map[uint8]string)
 
 		if topics[0] != "" {
-			return []common.Hash{common.HexToHash(topics[0])}
+			_topics[0] = topics[0]
 		}
 
-		return nil
+		if topics[1] != "" {
+			_topics[1] = topics[1]
+		}
+
+		if topics[2] != "" {
+			_topics[2] = topics[2]
+		}
+
+		if topics[3] != "" {
+			_topics[3] = topics[3]
+		}
+
+		return _topics
+
 	}
 
 	respondWithJSON := func(data []byte, c *gin.Context) {
