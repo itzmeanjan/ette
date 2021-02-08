@@ -301,3 +301,28 @@ func rangeChecker(from string, to string, limit uint64) (uint64, uint64, error) 
 
 	return _from, _to, nil
 }
+
+// FillUpTopicArray - Creates a topic signature array of length
+// 4, while putting all elements passed from graphQL query & appending
+// empty strings, in remaining places
+func FillUpTopicArray(topics []string) []string {
+
+	if len(topics) == 4 {
+		return topics
+	}
+
+	result := make([]string, 4)
+	result = append(result, topics...)
+
+	var i int
+
+	for i < 4-len(topics) {
+
+		result[i+len(topics)] = ""
+		i++
+
+	}
+
+	return result
+
+}
