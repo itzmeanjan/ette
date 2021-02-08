@@ -361,12 +361,26 @@ func GetEventsByTransactionHash(db *gorm.DB, txHash common.Hash) *data.Events {
 	}
 }
 
-// ExtractOutOnlyValidEvents - ...
-func ExtractOutOnlyValidEvents(events []*data.Event, topics ...common.Hash) *data.Events {
+// DoesItMatch - Given one event emitted by some contract & topic
+// signature against which we're attempting to match the event
+// it'll return boolean depending upon whether it's satisfying
+// all conditions or not
+func DoesItMatch(event *data.Event, topics map[uint8]string) bool {
 
-	if events == nil || len(events) == 0 {
-		return nil
+	for k, v := range topics {
+
+		if !(len(event.Topics) > int(k) && event.Topics[k] == v) {
+			return false
+		}
+
 	}
+
+	return true
+
+}
+
+// ExtractOutOnlyMatchingEvents - ...
+func ExtractOutOnlyMatchingEvents(events []*data.Event, topics map[uint8]string) *data.Events {
 
 	sink := make([]*data.Event, len(events))
 
