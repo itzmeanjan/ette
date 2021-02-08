@@ -61,15 +61,16 @@ func ParseNumber(number string) (uint64, error) {
 
 }
 
-// RangeChecker - ...
+// RangeChecker - Checks whether given number range is at max
+// `limit` far away
 func RangeChecker(from string, to string, limit uint64) (uint64, uint64, error) {
 
-	_from, err := strconv.ParseUint(from, 10, 64)
+	_from, err := ParseNumber(from)
 	if err != nil {
 		return 0, 0, errors.New("Failed to parse integer")
 	}
 
-	_to, err := strconv.ParseUint(to, 10, 64)
+	_to, err := ParseNumber(to)
 	if err != nil {
 		return 0, 0, errors.New("Failed to parse integer")
 	}
