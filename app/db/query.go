@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/itzmeanjan/ette/app/data"
@@ -360,9 +361,55 @@ func GetEventsByTransactionHash(db *gorm.DB, txHash common.Hash) *data.Events {
 	}
 }
 
+// ExtractOutOnlyValidEvents - ...
+func ExtractOutOnlyValidEvents(events []*data.Event, topics ...common.Hash) *data.Events {
+
+	if events == nil || len(events) == 0 {
+		return nil
+	}
+
+	sink := make([]*data.Event, len(events))
+
+	for _, e := range events {
+
+		switch len(topics) {
+
+		case 1:
+
+			if len(e.Topics) > 0 && e.Topics[0] == topics[0].Hex() {
+
+			}
+
+		}
+
+	}
+
+	return &data.Events{
+		Events: sink,
+	}
+
+}
+
+// EventTopicsAsString - Given event topic signatures as map,
+// returns these topics as string, seperated by `,` i.e. comma
+// to be used for forming DB raw query
+func EventTopicsAsString(topics map[uint8]string) string {
+
+	_topics := make([]string, len(topics))
+
+	for _, v := range topics {
+
+		_topics = append(_topics, v)
+
+	}
+
+	return strings.Join(_topics, ", ")
+
+}
+
 // GetEventsFromContractWithTopicsByBlockNumberRange - Given block number range, contract address & topics ( var arg topic, at max 4 ) of event log, extracts out all
 // events emitted by this contract during block span with topic signatures matching
-func GetEventsFromContractWithTopicsByBlockNumberRange(db *gorm.DB, contract common.Address, from uint64, to uint64, topics ...common.Hash) *data.Events {
+func GetEventsFromContractWithTopicsByBlockNumberRange(db *gorm.DB, contract common.Address, from uint64, to uint64, topics map[uint8]string) *data.Events {
 
 	if topics == nil {
 		return nil
@@ -401,7 +448,7 @@ func GetEventsFromContractWithTopicsByBlockNumberRange(db *gorm.DB, contract com
 
 // GetEventsFromContractWithTopicsByBlockTimeRange - Given time range, contract address & topics ( var arg topic, at max 4 ) of event log, extracts out all
 // events emitted by this contract during block span with topic signatures matching
-func GetEventsFromContractWithTopicsByBlockTimeRange(db *gorm.DB, contract common.Address, from uint64, to uint64, topics ...common.Hash) *data.Events {
+func GetEventsFromContractWithTopicsByBlockTimeRange(db *gorm.DB, contract common.Address, from uint64, to uint64, topics map[uint8]string) *data.Events {
 
 	if topics == nil {
 		return nil
@@ -426,6 +473,7 @@ func GetEventsFromContractWithTopicsByBlockTimeRange(db *gorm.DB, contract commo
 		if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.time >= %d and b.time <= %d and {%s, %s, %s, %s} <@ e.topics", contract.Hex(), from, to, topics[0].Hex(), topics[1].Hex(), topics[2].Hex(), topics[3].Hex())).Scan(events).Error; err != nil {
 			return nil
 		}
+	}
 
 	if len(events) == 0 {
 		return nil
