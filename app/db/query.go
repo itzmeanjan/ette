@@ -430,9 +430,7 @@ func GetEventsFromContractWithTopicsByBlockNumberRange(db *gorm.DB, contract com
 		return nil
 	}
 
-	return &data.Events{
-		Events: events,
-	}
+	return ExtractOutOnlyMatchingEvents(events, topics)
 
 }
 
@@ -450,9 +448,7 @@ func GetEventsFromContractWithTopicsByBlockTimeRange(db *gorm.DB, contract commo
 		return nil
 	}
 
-	return &data.Events{
-		Events: events,
-	}
+	return ExtractOutOnlyMatchingEvents(events, topics)
 
 }
 
