@@ -20,6 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
+	cmn "github.com/itzmeanjan/ette/app/common"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
@@ -64,32 +65,6 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		}
 
 		return _num, nil
-	}
-
-	// Return topics to be used for finding out events in hex form
-	// topics are extracted out from query params
-	getTopics := func(topics ...string) map[uint8]string {
-
-		_topics := make(map[uint8]string)
-
-		if topics[0] != "" {
-			_topics[0] = topics[0]
-		}
-
-		if topics[1] != "" {
-			_topics[1] = topics[1]
-		}
-
-		if topics[2] != "" {
-			_topics[2] = topics[2]
-		}
-
-		if topics[3] != "" {
-			_topics[3] = topics[3]
-		}
-
-		return _topics
-
 	}
 
 	respondWithJSON := func(data []byte, c *gin.Context) {
@@ -1042,15 +1017,29 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
+
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
 					})
 					return
+
 				}
 
-				if event := db.GetEventsFromContractWithTopicsByBlockNumberRange(_db, common.HexToAddress(contract), _fromBlock, _toBlock, getTopics([]string{topic0, topic1, topic2, topic3}...)...); event != nil {
+				topics := cmn.CreateEventTopicMap([]string{topic0, topic1, topic2, topic3}...)
+				if len(topics) == 0 {
+
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad event topic signature(s)",
+					})
+					return
+
+				}
+
+				if event := db.GetEventsFromContractWithTopicsByBlockNumberRange(_db, common.HexToAddress(contract), _fromBlock, _toBlock, topics); event != nil {
+
 					respondWithJSON(event.ToJSON(), c)
 					return
+
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -1066,15 +1055,29 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
+
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
 					})
 					return
+
 				}
 
-				if event := db.GetEventsFromContractWithTopicsByBlockTimeRange(_db, common.HexToAddress(contract), _fromTime, _toTime, getTopics([]string{topic0, topic1, topic2, topic3}...)...); event != nil {
+				topics := cmn.CreateEventTopicMap([]string{topic0, topic1, topic2, topic3}...)
+				if len(topics) == 0 {
+
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad event topic signature(s)",
+					})
+					return
+
+				}
+
+				if event := db.GetEventsFromContractWithTopicsByBlockTimeRange(_db, common.HexToAddress(contract), _fromTime, _toTime, topics); event != nil {
+
 					respondWithJSON(event.ToJSON(), c)
 					return
+
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
