@@ -379,21 +379,16 @@ func DoesItMatch(event *data.Event, topics map[uint8]string) bool {
 
 }
 
-// ExtractOutOnlyMatchingEvents - ...
+// ExtractOutOnlyMatchingEvents - Extract out only those events which are having
+// full match with specified event topic signatures
 func ExtractOutOnlyMatchingEvents(events []*data.Event, topics map[uint8]string) *data.Events {
 
 	sink := make([]*data.Event, len(events))
 
 	for _, e := range events {
 
-		switch len(topics) {
-
-		case 1:
-
-			if len(e.Topics) > 0 && e.Topics[0] == topics[0].Hex() {
-
-			}
-
+		if DoesItMatch(e, topics) {
+			sink = append(sink, e)
 		}
 
 	}
