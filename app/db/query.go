@@ -407,33 +407,14 @@ func EventTopicsAsString(topics map[uint8]string) string {
 
 }
 
-// GetEventsFromContractWithTopicsByBlockNumberRange - Given block number range, contract address & topics ( var arg topic, at max 4 ) of event log, extracts out all
+// GetEventsFromContractWithTopicsByBlockNumberRange - Given block number range, contract address & topics of event log, extracts out all
 // events emitted by this contract during block span with topic signatures matching
 func GetEventsFromContractWithTopicsByBlockNumberRange(db *gorm.DB, contract common.Address, from uint64, to uint64, topics map[uint8]string) *data.Events {
 
-	if topics == nil {
-		return nil
-	}
-
 	var events []*data.Event
 
-	switch len(topics) {
-	case 1:
-		if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.number >= %d and b.number <= %d and {%s} <@ e.topics", contract.Hex(), from, to, topics[0].Hex())).Scan(events).Error; err != nil {
-			return nil
-		}
-	case 2:
-		if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.number >= %d and b.number <= %d and {%s, %s} <@ e.topics", contract.Hex(), from, to, topics[0].Hex(), topics[1].Hex())).Scan(events).Error; err != nil {
-			return nil
-		}
-	case 3:
-		if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.number >= %d and b.number <= %d and {%s, %s, %s} <@ e.topics", contract.Hex(), from, to, topics[0].Hex(), topics[1].Hex(), topics[2].Hex())).Scan(events).Error; err != nil {
-			return nil
-		}
-	case 4:
-		if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.number >= %d and b.number <= %d and {%s, %s, %s, %s} <@ e.topics", contract.Hex(), from, to, topics[0].Hex(), topics[1].Hex(), topics[2].Hex(), topics[3].Hex())).Scan(events).Error; err != nil {
-			return nil
-		}
+	if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.number >= %d and b.number <= %d and {%s} <@ e.topics", contract.Hex(), from, to, EventTopicsAsString(topics))).Scan(events).Error; err != nil {
+		return nil
 	}
 
 	if len(events) == 0 {
@@ -446,33 +427,14 @@ func GetEventsFromContractWithTopicsByBlockNumberRange(db *gorm.DB, contract com
 
 }
 
-// GetEventsFromContractWithTopicsByBlockTimeRange - Given time range, contract address & topics ( var arg topic, at max 4 ) of event log, extracts out all
+// GetEventsFromContractWithTopicsByBlockTimeRange - Given time range, contract address & topics of event log, extracts out all
 // events emitted by this contract during block span with topic signatures matching
 func GetEventsFromContractWithTopicsByBlockTimeRange(db *gorm.DB, contract common.Address, from uint64, to uint64, topics map[uint8]string) *data.Events {
 
-	if topics == nil {
-		return nil
-	}
-
 	var events []*data.Event
 
-	switch len(topics) {
-	case 1:
-		if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.time >= %d and b.time <= %d and {%s} <@ e.topics", contract.Hex(), from, to, topics[0].Hex())).Scan(events).Error; err != nil {
-			return nil
-		}
-	case 2:
-		if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.time >= %d and b.time <= %d and {%s, %s} <@ e.topics", contract.Hex(), from, to, topics[0].Hex(), topics[1].Hex())).Scan(events).Error; err != nil {
-			return nil
-		}
-	case 3:
-		if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.time >= %d and b.time <= %d and {%s, %s, %s} <@ e.topics", contract.Hex(), from, to, topics[0].Hex(), topics[1].Hex(), topics[2].Hex())).Scan(events).Error; err != nil {
-			return nil
-		}
-	case 4:
-		if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.time >= %d and b.time <= %d and {%s, %s, %s, %s} <@ e.topics", contract.Hex(), from, to, topics[0].Hex(), topics[1].Hex(), topics[2].Hex(), topics[3].Hex())).Scan(events).Error; err != nil {
-			return nil
-		}
+	if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.time >= %d and b.time <= %d and {%s} <@ e.topics", contract.Hex(), from, to, EventTopicsAsString(topics))).Scan(events).Error; err != nil {
+		return nil
 	}
 
 	if len(events) == 0 {
