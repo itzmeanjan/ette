@@ -1,6 +1,11 @@
 package common
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"errors"
+	"strconv"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 // StringifyEventTopics - Given array of event topic signatures,
 // returns their stringified form, to be required for publishing data to subscribers
@@ -39,5 +44,40 @@ func CreateEventTopicMap(topics ...string) map[uint8]string {
 	}
 
 	return _topics
+
+}
+
+// ParseNumber - Given an integer as string, attempts to parse it
+func ParseNumber(number string) (uint64, error) {
+
+	_num, err := strconv.ParseUint(number, 10, 64)
+	if err != nil {
+
+		return 0, errors.New("Failed to parse integer")
+
+	}
+
+	return _num, nil
+
+}
+
+// RangeChecker - ...
+func RangeChecker(from string, to string, limit uint64) (uint64, uint64, error) {
+
+	_from, err := strconv.ParseUint(from, 10, 64)
+	if err != nil {
+		return 0, 0, errors.New("Failed to parse integer")
+	}
+
+	_to, err := strconv.ParseUint(to, 10, 64)
+	if err != nil {
+		return 0, 0, errors.New("Failed to parse integer")
+	}
+
+	if !(_to-_from < limit) {
+		return 0, 0, errors.New("Range too long")
+	}
+
+	return _from, _to, nil
 
 }
