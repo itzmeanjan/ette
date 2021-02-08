@@ -59,6 +59,7 @@ create table events (
 
 create index on events(origin);
 create index on events(txhash);
+create index on events using gin(topics);
 
 create table users (
     address char(42) not null,
