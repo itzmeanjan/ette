@@ -383,7 +383,7 @@ func DoesItMatch(event *data.Event, topics map[uint8]string) bool {
 // full match with specified event topic signatures
 func ExtractOutOnlyMatchingEvents(events []*data.Event, topics map[uint8]string) *data.Events {
 
-	sink := make([]*data.Event, len(events))
+	sink := make([]*data.Event, 0, len(events))
 
 	for _, e := range events {
 
@@ -404,7 +404,7 @@ func ExtractOutOnlyMatchingEvents(events []*data.Event, topics map[uint8]string)
 // to be used for forming DB raw query
 func EventTopicsAsString(topics map[uint8]string) string {
 
-	_topics := make([]string, len(topics))
+	_topics := make([]string, 0, len(topics))
 
 	for _, v := range topics {
 
@@ -422,7 +422,7 @@ func GetEventsFromContractWithTopicsByBlockNumberRange(db *gorm.DB, contract com
 
 	var events []*data.Event
 
-	if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.number >= %d and b.number <= %d and {%s} <@ e.topics", contract.Hex(), from, to, EventTopicsAsString(topics))).Scan(events).Error; err != nil {
+	if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = '%s' and b.number >= %d and b.number <= %d and '{%s}' <@ e.topics", contract.Hex(), from, to, EventTopicsAsString(topics))).Scan(events).Error; err != nil {
 		return nil
 	}
 
@@ -440,7 +440,7 @@ func GetEventsFromContractWithTopicsByBlockTimeRange(db *gorm.DB, contract commo
 
 	var events []*data.Event
 
-	if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = %s and b.time >= %d and b.time <= %d and {%s} <@ e.topics", contract.Hex(), from, to, EventTopicsAsString(topics))).Scan(events).Error; err != nil {
+	if err := db.Raw(fmt.Sprintf("select e.origin, e.index, e.topics, e.data, e.txhash, e.blockhash from events as e left join blocks as b on e.blockhash = b.hash where e.origin = '%s' and b.time >= %d and b.time <= %d and '{%s}' <@ e.topics", contract.Hex(), from, to, EventTopicsAsString(topics))).Scan(events).Error; err != nil {
 		return nil
 	}
 

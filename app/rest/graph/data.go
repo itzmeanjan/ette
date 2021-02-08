@@ -290,14 +290,15 @@ func FillUpTopicArray(topics []string) []string {
 		return topics
 	}
 
-	result := make([]string, 4)
+	result := make([]string, 0, 4)
 	result = append(result, topics...)
 
-	var i int
+	i := 0
+	target := 4 - len(topics)
 
-	for i < 4-len(topics) {
+	for i < target {
 
-		result[i+len(topics)] = ""
+		result = append(result, "")
 		i++
 
 	}

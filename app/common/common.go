@@ -23,7 +23,7 @@ func StringifyEventTopics(data []common.Hash) []string {
 // CreateEventTopicMap - Given array of event topics, returns map
 // of valid event topics, to be used when performing selective field based
 // queries on event topics
-func CreateEventTopicMap(topics ...string) map[uint8]string {
+func CreateEventTopicMap(topics []string) map[uint8]string {
 
 	_topics := make(map[uint8]string)
 

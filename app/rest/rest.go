@@ -993,7 +993,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 				}
 
-				topics := cmn.CreateEventTopicMap([]string{topic0, topic1, topic2, topic3}...)
+				topics := cmn.CreateEventTopicMap([]string{topic0, topic1, topic2, topic3})
 				if len(topics) == 0 {
 
 					c.JSON(http.StatusBadRequest, gin.H{
@@ -1031,7 +1031,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 				}
 
-				topics := cmn.CreateEventTopicMap([]string{topic0, topic1, topic2, topic3}...)
+				topics := cmn.CreateEventTopicMap([]string{topic0, topic1, topic2, topic3})
 				if len(topics) == 0 {
 
 					c.JSON(http.StatusBadRequest, gin.H{

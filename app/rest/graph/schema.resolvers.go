@@ -254,7 +254,7 @@ func (r *queryResolver) EventsFromContractWithTopicsByNumberRange(ctx context.Co
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractWithTopicsByBlockNumberRange(db, common.HexToAddress(contract), _from, _to, cmn.CreateEventTopicMap(FillUpTopicArray(topics)...)))
+	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractWithTopicsByBlockNumberRange(db, common.HexToAddress(contract), _from, _to, cmn.CreateEventTopicMap(FillUpTopicArray(topics))))
 }
 
 func (r *queryResolver) EventsFromContractWithTopicsByTimeRange(ctx context.Context, contract string, from string, to string, topics []string) ([]*model.Event, error) {
@@ -267,7 +267,7 @@ func (r *queryResolver) EventsFromContractWithTopicsByTimeRange(ctx context.Cont
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractWithTopicsByBlockTimeRange(db, common.HexToAddress(contract), _from, _to, cmn.CreateEventTopicMap(FillUpTopicArray(topics)...)))
+	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractWithTopicsByBlockTimeRange(db, common.HexToAddress(contract), _from, _to, cmn.CreateEventTopicMap(FillUpTopicArray(topics))))
 }
 
 func (r *queryResolver) LastXEventsFromContract(ctx context.Context, contract string, x int) ([]*model.Event, error) {
