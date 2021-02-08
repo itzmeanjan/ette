@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -280,26 +279,6 @@ func getTopicSignaturesAsStringSlice(topics pq.StringArray) []string {
 	}
 
 	return _tmp
-}
-
-// Extracted from, to field of range based block query ( using block numbers/ time stamps )
-// gets parsed into unsigned integers
-func rangeChecker(from string, to string, limit uint64) (uint64, uint64, error) {
-	_from, err := strconv.ParseUint(from, 10, 64)
-	if err != nil {
-		return 0, 0, errors.New("Failed to parse integer")
-	}
-
-	_to, err := strconv.ParseUint(to, 10, 64)
-	if err != nil {
-		return 0, 0, errors.New("Failed to parse integer")
-	}
-
-	if !(_to-_from < limit) {
-		return 0, 0, errors.New("Range too long")
-	}
-
-	return _from, _to, nil
 }
 
 // FillUpTopicArray - Creates a topic signature array of length
