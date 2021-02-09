@@ -19,12 +19,72 @@ type LockRequest struct {
 type ProcessQueueLock struct {
 	runningQueue     map[uint64]<-chan bool
 	runningQueueLock *sync.RWMutex
-	waitingQueue     map[uint64]chan bool
+	waitingQueue     map[uint64]chan<- bool
 	done             chan uint64
 	wait             chan *LockRequest
 }
 
-// WaitingQueueWatceher - Looks for new block processing request arriving in waiting queue
+// Acquire - When ever one go routine is interested in processing
+// some block, it'll attempt to acquire lock that block number
+//
+// If no other block has already acquired lock for that block number
+// it'll be allowed to proceed
+//
+// If some other block is already processing it, it'll be rather sent to
+// one waiting queue, where it'll wait until previous job finishes its
+// processing
+//
+// Once that's done, waiting one to be informed over agreed communication
+// channel that they're good to proceed
+func (p *ProcessQueueLock) Acquire(request *LockRequest) bool {
+
+	_, ok := p.runningQueue[request.Block]
+	if !ok {
+
+		// -- Accessing critical section of code, acquiring lock
+		p.runningQueueLock.Lock()
+		p.runningQueue[request.Block] = request.Communication
+		p.runningQueueLock.Unlock()
+		// -- Released lock, done with critical section of code
+
+		go p.running(request)
+		return true
+
+	}
+
+	p.wait <- request
+	return false
+
+}
+
+// Release - When done with processing block, worker invokes method
+// to let run tracker know it's done with processing this block, it there's
+// any other worker waiting for processing same block, it can now go in
+func (p *ProcessQueueLock) Release(comm chan<- bool) {
+
+	comm <- true
+
+}
+
+// NewLock - Create new instance of queue lock manager
+// while starting waiting queue watcher in seperate go routine
+func NewLock() *ProcessQueueLock {
+
+	lock := &ProcessQueueLock{
+		runningQueue:     make(map[uint64]<-chan bool, 0),
+		runningQueueLock: &sync.RWMutex{},
+		waitingQueue:     make(map[uint64]chan<- bool, 0),
+		done:             make(chan uint64),
+		wait:             make(chan *LockRequest),
+	}
+
+	go lock.waitingQueueWatceher()
+
+	return lock
+
+}
+
+// Looks for new block processing request arriving in waiting queue
 // or certain block getting processed & waiting go routines getting notified, that they can
 // again attempt to call `Acquire`
 //
@@ -74,39 +134,6 @@ func (p *ProcessQueueLock) waitingQueueWatceher() {
 
 }
 
-// Acquire - When ever one go routine is interested in processing
-// some block, it'll attempt to acquire lock that block number
-//
-// If no other block has already acquired lock for that block number
-// it'll be allowed to proceed
-//
-// If some other block is already processing it, it'll be rather sent to
-// one waiting queue, where it'll wait until previous job finishes its
-// processing
-//
-// Once that's done, waiting one to be informed over agreed communication
-// channel that they're good to proceed
-func (p *ProcessQueueLock) Acquire(request *LockRequest) bool {
-
-	_, ok := p.runningQueue[request.Block]
-	if !ok {
-
-		// -- Accessing critical section of code, acquiring lock
-		p.runningQueueLock.Lock()
-		p.runningQueue[request.Block] = request.Communication
-		p.runningQueueLock.Unlock()
-		// -- Released lock, done with critical section of code
-
-		go p.running(request)
-		return true
-
-	}
-
-	p.wait <- request
-	return false
-
-}
-
 func (p *ProcessQueueLock) running(request *LockRequest) {
 
 	defer func() {
@@ -130,14 +157,5 @@ func (p *ProcessQueueLock) running(request *LockRequest) {
 	// if yes, they'll be informed
 	p.done <- request.Block
 	return
-
-}
-
-// Release - When done with processing block, worker invokes method
-// to let run tracker know it's done with processing this block, it there's
-// any other worker waiting for processing same block, it can now go in
-func (p *ProcessQueueLock) Release(comm chan<- bool) {
-
-	comm <- true
 
 }
