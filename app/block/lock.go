@@ -8,7 +8,7 @@ type ProcessQueueLock struct {
 	runningQueueLock *sync.RWMutex
 	waitingQueue     map[uint64]chan bool
 	waitingQueueLock *sync.RWMutex
-	done             <-chan uint64
+	done             chan uint64
 	wait             <-chan bool
 }
 
@@ -41,27 +41,27 @@ func (p *ProcessQueueLock) WaitingQueueWatceher() {
 }
 
 // Acquire - ...
-func (p *ProcessQueueLock) Acquire(block uint64, comm chan bool) bool {
+func (p *ProcessQueueLock) Acquire(request *LockRequest) bool {
 
-	_, ok := p.runningQueue[block]
+	_, ok := p.runningQueue[request.Block]
 	if !ok {
 
 		// -- Accessing critical section of code, acquiring lock
 		p.runningQueueLock.Lock()
 
-		p.runningQueue[block] = comm
+		p.runningQueue[request.Block] = request.Communication
 
 		p.runningQueueLock.Unlock()
 		// -- Released lock, done with critical section of code
 
-		go p.Running(block, comm)
+		go p.Running(request)
 		return true
 
 	}
 	// -- Accessing critical section of code, acquiring lock
 	p.waitingQueueLock.Lock()
 
-	p.waitingQueue[block] = comm
+	p.waitingQueue[request.Block] = request.Communication
 
 	p.waitingQueueLock.Unlock()
 	// -- Released lock, done with critical section of code
@@ -71,14 +71,14 @@ func (p *ProcessQueueLock) Acquire(block uint64, comm chan bool) bool {
 }
 
 // Running - ...
-func (p *ProcessQueueLock) Running(block uint64, comm <-chan bool) {
+func (p *ProcessQueueLock) Running(request *LockRequest) {
 
 	defer func() {
 
 		// -- Critical section of code, below
 		p.runningQueueLock.Lock()
 
-		delete(p.runningQueue, block)
+		delete(p.runningQueue, request.Block)
 
 		p.runningQueueLock.Unlock()
 		// -- Releasing lock, done with critical section of code
@@ -87,7 +87,14 @@ func (p *ProcessQueueLock) Running(block uint64, comm <-chan bool) {
 
 	// this is a blocking call, only to be unblocked when
 	// client has done it's job & call release lock
-	<-comm
+	<-request.Communication
+
+	// as soon as lock for this block is released,
+	// it'll be published to listener, which will check if
+	// any party is waiting for this block completion or not
+	//
+	// if yes, they'll be informed
+	p.done <- request.Block
 	return
 
 }
