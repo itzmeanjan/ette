@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"strconv"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -18,6 +19,47 @@ import (
 
 // FetchBlockByHash - Fetching block content using blockHash
 func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redis *d.RedisInfo, _status *d.StatusHolder, lock *ProcessQueueLock) {
+
+	_number, err := strconv.ParseUint(number, 10, 64)
+	if err != nil {
+		log.Printf("[!] Failed to parse block number : %s\n", err.Error())
+		return
+	}
+
+	// communication channel to be used between this worker
+	// lock manager go routine
+	comm := make(chan bool)
+
+	// attempting to acquire lock, but failed in first chance
+	if !lock.Acquire(&LockRequest{Block: _number, Communication: comm}) {
+
+		log.Print(color.LightRed.Sprintf("[!] Failed to acquire lock for processing block : %s, waiting", number))
+
+		// waiting to learn when previous go routine which was processing same
+		// block number, done with its job
+		//
+		// it can receive a no go for this block processing, then it's
+		// not attempted anymore, rather it's retry queue manager's job now
+		// to reprocess this block
+		if !<-comm {
+
+			// Pushing block number into Redis queue for retrying later
+			PushBlockIntoRetryQueue(redis, number)
+
+			log.Print(color.Red.Sprintf("[!] Failed to acquire lock for processing block : %s", number))
+			return
+
+		}
+
+	}
+
+	// letting lock manager know processing of this certain block number
+	// done
+	defer func() {
+
+		comm <- true
+
+	}()
 
 	// Starting block processing at
 	startingAt := time.Now().UTC()
