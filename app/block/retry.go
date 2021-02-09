@@ -23,7 +23,7 @@ import (
 // Sleeps for 1000 milliseconds
 //
 // Keeps repeating
-func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, status *d.StatusHolder) {
+func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, status *d.StatusHolder, lock *ProcessQueueLock) {
 	sleep := func() {
 		time.Sleep(time.Duration(100) * time.Millisecond)
 	}
@@ -71,12 +71,12 @@ func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 				// whose processing failed due to some reasons in last attempt
 				if status.MaxBlockNumberAtStartUp() <= _blockNumber {
 
-					FetchBlockByNumber(client, _blockNumber, _db, redis, true, status)
+					FetchBlockByNumber(client, _blockNumber, _db, redis, true, status, lock)
 					return
 
 				}
 
-				FetchBlockByNumber(client, _blockNumber, _db, redis, false, status)
+				FetchBlockByNumber(client, _blockNumber, _db, redis, false, status, lock)
 
 			})
 

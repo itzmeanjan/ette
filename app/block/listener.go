@@ -39,6 +39,8 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	// when returning from this execution scope i.e. function
 	defer wp.Stop()
 
+	lock := NewLock()
+
 	for {
 		select {
 		case err := <-subs.Err():
@@ -94,7 +96,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 				// Starting go routine for fetching blocks `ette` failed to process in previous attempt
 				//
 				// Uses Redis backed queue for fetching pending block hash & retries
-				go RetryQueueManager(connection.RPC, _db, redis, status)
+				go RetryQueueManager(connection.RPC, _db, redis, status, lock)
 
 				// If historical data query features are enabled
 				// only then we need to sync to latest state of block chain
@@ -105,7 +107,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 					// i.e. trying to fill up gap, which was caused when `ette` was offline
 					//
 					// Backward traversal mechanism gives us more recent blockchain happenings to cover
-					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, status.MaxBlockNumberAtStartUp(), status)
+					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, status.MaxBlockNumberAtStartUp(), status, lock)
 
 				}
 				// Making sure that when next latest block header is received, it'll not
@@ -162,7 +164,8 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 										_db,
 										redis,
 										false,
-										status)
+										status,
+										lock)
 
 								})
 
@@ -191,7 +194,8 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 						fmt.Sprintf("%d", blockNumber),
 						_db,
 						redis,
-						status)
+						status,
+						lock)
 
 				})
 

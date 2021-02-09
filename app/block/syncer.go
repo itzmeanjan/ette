@@ -113,7 +113,7 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromB
 //
 // Range can be either ascending or descending, depending upon that proper arguments to be
 // passed to `Syncer` function during invokation
-func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromBlock uint64, toBlock uint64, status *d.StatusHolder) {
+func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, fromBlock uint64, toBlock uint64, status *d.StatusHolder, lock *ProcessQueueLock) {
 
 	// Job to be submitted and executed by each worker
 	//
@@ -133,7 +133,7 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 
 			}
 
-			FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, j.Status)
+			FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, j.Status, lock)
 
 		})
 	}
@@ -154,12 +154,12 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 	//
 	// And this will itself run as a infinite job, completes one iteration &
 	// takes break for 1 min, then repeats
-	go SyncMissingBlocksInDB(client, _db, redis, status)
+	go SyncMissingBlocksInDB(client, _db, redis, status, lock)
 }
 
 // SyncMissingBlocksInDB - Checks with database for what blocks are present & what are not, fetches missing
 // blocks & related data iteratively
-func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, status *d.StatusHolder) {
+func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, status *d.StatusHolder, lock *ProcessQueueLock) {
 
 	// Sleep for 1 minute & then again check whether we need to fetch missing blocks or not
 	sleep := func() {
@@ -204,7 +204,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *data.R
 				block := db.GetBlock(j.DB, j.Block)
 				if block == nil && !CheckBlockInRetryQueue(redis, fmt.Sprintf("%d", j.Block)) {
 					// If not found, block fetching cycle is run, for this block
-					FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, j.Status)
+					FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, j.Status, lock)
 				}
 
 			})

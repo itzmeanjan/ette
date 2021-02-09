@@ -17,7 +17,7 @@ import (
 )
 
 // FetchBlockByHash - Fetching block content using blockHash
-func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redis *d.RedisInfo, _status *d.StatusHolder) {
+func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redis *d.RedisInfo, _status *d.StatusHolder, lock *ProcessQueueLock) {
 
 	// Starting block processing at
 	startingAt := time.Now().UTC()
@@ -36,7 +36,7 @@ func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 }
 
 // FetchBlockByNumber - Fetching block content using block number
-func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redis *d.RedisInfo, publishable bool, _status *d.StatusHolder) {
+func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redis *d.RedisInfo, publishable bool, _status *d.StatusHolder, lock *ProcessQueueLock) {
 
 	// Starting block processing at
 	startingAt := time.Now().UTC()
