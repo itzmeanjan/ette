@@ -9,7 +9,7 @@ type ProcessQueueLock struct {
 	waitingQueue     map[uint64]chan bool
 	waitingQueueLock *sync.RWMutex
 	done             chan uint64
-	wait             <-chan bool
+	wait             chan *LockRequest
 }
 
 // LockRequest - When some go routines wants to start processing one
@@ -30,9 +30,27 @@ func (p *ProcessQueueLock) WaitingQueueWatceher() {
 
 		select {
 
-		case <-p.done:
+		case num := <-p.done:
 
-		case <-p.wait:
+			p.waitingQueueLock.Lock()
+
+			comm, ok := p.waitingQueue[num]
+			if ok {
+
+				comm <- true
+				delete(p.waitingQueue, num)
+
+			}
+
+			p.waitingQueueLock.Unlock()
+
+		case req := <-p.wait:
+
+			p.waitingQueueLock.Lock()
+
+			p.waitingQueue[req.Block] = req.Communication
+
+			p.waitingQueueLock.Unlock()
 
 		}
 
@@ -40,7 +58,18 @@ func (p *ProcessQueueLock) WaitingQueueWatceher() {
 
 }
 
-// Acquire - ...
+// Acquire - When ever one go routine is interested in processing
+// some block, it'll attempt to acquire lock that block number
+//
+// If no other block has already acquired lock for that block number
+// it'll be allowed to proceed
+//
+// If some other block is already processing it, it'll be rather sent to
+// one waiting queue, where it'll wait until previous job finishes its
+// processing
+//
+// Once that's done, waiting one to be informed over agreed communication
+// channel that they're good to proceed
 func (p *ProcessQueueLock) Acquire(request *LockRequest) bool {
 
 	_, ok := p.runningQueue[request.Block]
@@ -58,14 +87,8 @@ func (p *ProcessQueueLock) Acquire(request *LockRequest) bool {
 		return true
 
 	}
-	// -- Accessing critical section of code, acquiring lock
-	p.waitingQueueLock.Lock()
 
-	p.waitingQueue[request.Block] = request.Communication
-
-	p.waitingQueueLock.Unlock()
-	// -- Released lock, done with critical section of code
-
+	p.wait <- request
 	return false
 
 }
