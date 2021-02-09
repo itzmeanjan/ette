@@ -1,6 +1,11 @@
 package block
 
-import "sync"
+import (
+	"runtime"
+	"sync"
+
+	cfg "github.com/itzmeanjan/ette/app/config"
+)
 
 // LockRequest - When some go routines wants to start processing one
 // block, they will send a request of this form i.e. invoke `Acquire`
@@ -74,8 +79,8 @@ func NewLock() *ProcessQueueLock {
 		runningQueue:     make(map[uint64]<-chan bool, 0),
 		runningQueueLock: &sync.RWMutex{},
 		waitingQueue:     make(map[uint64]chan<- bool, 0),
-		done:             make(chan uint64),
-		wait:             make(chan *LockRequest),
+		done:             make(chan uint64, runtime.NumCPU()*int(cfg.GetConcurrencyFactor())),
+		wait:             make(chan *LockRequest, runtime.NumCPU()*int(cfg.GetConcurrencyFactor())),
 	}
 
 	go lock.waitingQueueWatceher()
