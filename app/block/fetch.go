@@ -33,7 +33,7 @@ func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 	// attempting to acquire lock, but failed in first chance
 	if !lock.Acquire(&LockRequest{Block: _number, Communication: comm}) {
 
-		log.Print(color.LightRed.Sprintf("[!] Failed to acquire lock for processing block : %s, waiting", number))
+		log.Print(color.LightWhite.Sprintf("[!] Failed to acquire lock for processing block : %s, waiting", number))
 
 		// waiting to learn when previous go routine which was processing same
 		// block number, done with its job
@@ -87,7 +87,7 @@ func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 	// attempting to acquire lock, but failed in first chance
 	if !lock.Acquire(&LockRequest{Block: number, Communication: comm}) {
 
-		log.Print(color.LightRed.Sprintf("[!] Failed to acquire lock for processing block : %d, waiting", number))
+		log.Print(color.LightWhite.Sprintf("[!] Failed to acquire lock for processing block : %d, waiting", number))
 
 		// waiting to learn when previous go routine which was processing same
 		// block number, done with its job
