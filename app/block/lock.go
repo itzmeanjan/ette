@@ -2,16 +2,6 @@ package block
 
 import "sync"
 
-// ProcessQueueLock - ...
-type ProcessQueueLock struct {
-	runningQueue     map[uint64]<-chan bool
-	runningQueueLock *sync.RWMutex
-	waitingQueue     map[uint64]chan bool
-	waitingQueueLock *sync.RWMutex
-	done             chan uint64
-	wait             chan *LockRequest
-}
-
 // LockRequest - When some go routines wants to start processing one
 // block, they will send a request of this form i.e. invoke `Acquire`
 // function with these pieces of data
@@ -23,8 +13,24 @@ type LockRequest struct {
 	Communication chan bool
 }
 
-// WaitingQueueWatceher - ...
-func (p *ProcessQueueLock) WaitingQueueWatceher() {
+// ProcessQueueLock - Struct for managing info regarding which blocks are
+// currently processing, which go routines are waiting for reprocessing
+// certain block number, because same block number was received twice
+type ProcessQueueLock struct {
+	runningQueue     map[uint64]<-chan bool
+	runningQueueLock *sync.RWMutex
+	waitingQueue     map[uint64]chan bool
+	done             chan uint64
+	wait             chan *LockRequest
+}
+
+// WaitingQueueWatceher - Looks for new block processing request arriving in waiting queue
+// or certain block getting processed & waiting go routines getting notified, that they can
+// again attempt to call `Acquire`
+//
+// This function should be started as one seperate go routine, which will be started when
+// processor queue lock manager to be created
+func (p *ProcessQueueLock) waitingQueueWatceher() {
 
 	for {
 
@@ -32,8 +38,9 @@ func (p *ProcessQueueLock) WaitingQueueWatceher() {
 
 		case num := <-p.done:
 
-			p.waitingQueueLock.Lock()
-
+			// As soon as one block processing is done, this go routine will
+			// be notified, which will also let any waiting block processor go routine
+			// know they're good to go with their processing
 			comm, ok := p.waitingQueue[num]
 			if ok {
 
@@ -42,15 +49,24 @@ func (p *ProcessQueueLock) WaitingQueueWatceher() {
 
 			}
 
-			p.waitingQueueLock.Unlock()
-
 		case req := <-p.wait:
 
-			p.waitingQueueLock.Lock()
+			// If there's already one go routine which is waiting for
+			// attempt to process same block number, then we're going to
+			// ask that block number not to wait anymore
+			//
+			// because newer processor has arrived, so it'll be prioritized
+			//
+			// it denotes, for a single block number, there could be at max one
+			// worker in running state & one worker in waiting state
+			comm, ok := p.waitingQueue[req.Block]
+			if ok {
+
+				comm <- false
+
+			}
 
 			p.waitingQueue[req.Block] = req.Communication
-
-			p.waitingQueueLock.Unlock()
 
 		}
 
@@ -77,13 +93,11 @@ func (p *ProcessQueueLock) Acquire(request *LockRequest) bool {
 
 		// -- Accessing critical section of code, acquiring lock
 		p.runningQueueLock.Lock()
-
 		p.runningQueue[request.Block] = request.Communication
-
 		p.runningQueueLock.Unlock()
 		// -- Released lock, done with critical section of code
 
-		go p.Running(request)
+		go p.running(request)
 		return true
 
 	}
@@ -93,16 +107,13 @@ func (p *ProcessQueueLock) Acquire(request *LockRequest) bool {
 
 }
 
-// Running - ...
-func (p *ProcessQueueLock) Running(request *LockRequest) {
+func (p *ProcessQueueLock) running(request *LockRequest) {
 
 	defer func() {
 
 		// -- Critical section of code, below
 		p.runningQueueLock.Lock()
-
 		delete(p.runningQueue, request.Block)
-
 		p.runningQueueLock.Unlock()
 		// -- Releasing lock, done with critical section of code
 
