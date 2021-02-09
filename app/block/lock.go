@@ -24,7 +24,7 @@ type LockRequest struct {
 type ProcessQueueLock struct {
 	runningQueue     map[uint64]<-chan bool
 	runningQueueLock *sync.RWMutex
-	waitingQueue     map[uint64]chan<- bool
+	waitingQueue     map[uint64]chan bool
 	done             chan uint64
 	wait             chan *LockRequest
 }
@@ -78,7 +78,7 @@ func NewLock() *ProcessQueueLock {
 	lock := &ProcessQueueLock{
 		runningQueue:     make(map[uint64]<-chan bool, 0),
 		runningQueueLock: &sync.RWMutex{},
-		waitingQueue:     make(map[uint64]chan<- bool, 0),
+		waitingQueue:     make(map[uint64]chan bool, 0),
 		done:             make(chan uint64, runtime.NumCPU()*int(cfg.GetConcurrencyFactor())),
 		wait:             make(chan *LockRequest, runtime.NumCPU()*int(cfg.GetConcurrencyFactor())),
 	}
@@ -109,8 +109,17 @@ func (p *ProcessQueueLock) waitingQueueWatceher() {
 			comm, ok := p.waitingQueue[num]
 			if ok {
 
-				comm <- true
+				// -- Accessing critical section of code, acquiring lock
+				p.runningQueueLock.Lock()
+				p.runningQueue[num] = comm
+				p.runningQueueLock.Unlock()
+				// -- Released lock, done with critical section of code
+
+				go p.running(&LockRequest{Block: num, Communication: comm})
+
 				delete(p.waitingQueue, num)
+
+				comm <- true
 
 			}
 
