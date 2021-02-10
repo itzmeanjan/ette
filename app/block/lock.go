@@ -4,6 +4,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/gammazero/workerpool"
 	cfg "github.com/itzmeanjan/ette/app/config"
 )
 
@@ -27,6 +28,7 @@ type ProcessQueueLock struct {
 	waitingQueue     map[uint64]chan bool
 	done             chan uint64
 	wait             chan *LockRequest
+	pool             *workerpool.WorkerPool
 }
 
 // Acquire - When ever one go routine is interested in processing
@@ -52,7 +54,12 @@ func (p *ProcessQueueLock) Acquire(request *LockRequest) bool {
 		p.runningQueueLock.Unlock()
 		// -- Released lock, done with critical section of code
 
-		go p.running(request)
+		p.pool.Submit(func() {
+
+			p.running(request)
+
+		})
+
 		return true
 
 	}
@@ -81,6 +88,7 @@ func NewLock() *ProcessQueueLock {
 		waitingQueue:     make(map[uint64]chan bool, 0),
 		done:             make(chan uint64, runtime.NumCPU()*int(cfg.GetConcurrencyFactor())*5),
 		wait:             make(chan *LockRequest, runtime.NumCPU()*int(cfg.GetConcurrencyFactor())*5),
+		pool:             workerpool.New(runtime.NumCPU() * int(cfg.GetConcurrencyFactor()) * 5),
 	}
 
 	go lock.waitingQueueWatceher()
@@ -115,7 +123,11 @@ func (p *ProcessQueueLock) waitingQueueWatceher() {
 				p.runningQueueLock.Unlock()
 				// -- Released lock, done with critical section of code
 
-				go p.running(&LockRequest{Block: num, Communication: comm})
+				p.pool.Submit(func() {
+
+					p.running(&LockRequest{Block: num, Communication: comm})
+
+				})
 
 				delete(p.waitingQueue, num)
 
