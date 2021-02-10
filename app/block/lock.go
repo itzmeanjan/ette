@@ -123,6 +123,8 @@ func (p *ProcessQueueLock) waitingQueueWatceher() {
 				p.runningQueueLock.Unlock()
 				// -- Released lock, done with critical section of code
 
+				comm <- true
+
 				p.pool.Submit(func() {
 
 					p.running(&LockRequest{Block: num, Communication: comm})
@@ -130,8 +132,6 @@ func (p *ProcessQueueLock) waitingQueueWatceher() {
 				})
 
 				delete(p.waitingQueue, num)
-
-				comm <- true
 
 			}
 
