@@ -64,17 +64,6 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 		}
 
-		// If block doesn't contain any tx, we'll attempt to persist only block
-		if err := db.StoreBlock(_db, packedBlock, status); err != nil {
-
-			log.Print(color.Red.Sprintf("[+] Failed to process block %d with 0 tx(s) : %s [ Took : %s ]", block.NumberU64(), err.Error(), time.Now().UTC().Sub(startingAt)))
-
-			// If failed to persist, we'll put it in retry queue
-			PushBlockIntoRetryQueue(redis, block.Number().String())
-			return false
-
-		}
-
 		if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
 			log.Print(color.LightRed.Sprintf("[x] Non-final block %d with 0 tx(s) [ Took : %s | Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, time.Now().UTC().Sub(startingAt), status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
@@ -83,6 +72,17 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 			// finality for this block has been achieved
 			PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", packedBlock.Block.Number))
 			return true
+
+		}
+
+		// If block doesn't contain any tx, we'll attempt to persist only block
+		if err := db.StoreBlock(_db, packedBlock, status); err != nil {
+
+			log.Print(color.Red.Sprintf("[+] Failed to process block %d with 0 tx(s) : %s [ Took : %s ]", block.NumberU64(), err.Error(), time.Now().UTC().Sub(startingAt)))
+
+			// If failed to persist, we'll put it in retry queue
+			PushBlockIntoRetryQueue(redis, block.Number().String())
+			return false
 
 		}
 
@@ -187,17 +187,6 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 	}
 
-	// If block doesn't contain any tx, we'll attempt to persist only block
-	if err := db.StoreBlock(_db, packedBlock, status); err != nil {
-
-		log.Print(color.Red.Sprintf("[+] Failed to process block %d with %d tx(s) : %s [ Took : %s ]", block.NumberU64(), block.Transactions().Len(), err.Error(), time.Now().UTC().Sub(startingAt)))
-
-		// If failed to persist, we'll put it in retry queue
-		PushBlockIntoRetryQueue(redis, block.Number().String())
-		return false
-
-	}
-
 	if !HasBlockFinalized(status, packedBlock.Block.Number) {
 
 		log.Print(color.LightRed.Sprintf("[x] Non-final block %d with %d tx(s) [ Took : %s | Latest Block : %d | In Queue : %d ]", packedBlock.Block.Number, block.Transactions().Len(), time.Now().UTC().Sub(startingAt), status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
@@ -206,6 +195,17 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		// finality for this block has been achieved
 		PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", packedBlock.Block.Number))
 		return true
+
+	}
+
+	// If block doesn't contain any tx, we'll attempt to persist only block
+	if err := db.StoreBlock(_db, packedBlock, status); err != nil {
+
+		log.Print(color.Red.Sprintf("[+] Failed to process block %d with %d tx(s) : %s [ Took : %s ]", block.NumberU64(), block.Transactions().Len(), err.Error(), time.Now().UTC().Sub(startingAt)))
+
+		// If failed to persist, we'll put it in retry queue
+		PushBlockIntoRetryQueue(redis, block.Number().String())
+		return false
 
 	}
 
