@@ -2,7 +2,6 @@ package rest
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -20,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
+	cmn "github.com/itzmeanjan/ette/app/common"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
@@ -34,59 +34,6 @@ import (
 
 // RunHTTPServer - Holds definition for all REST API(s) to be exposed
 func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Client) {
-
-	// Extracted from, to field of range based block query ( using block numbers/ time stamps )
-	// gets parsed into unsigned integers
-	rangeChecker := func(from string, to string, limit uint64) (uint64, uint64, error) {
-		_from, err := strconv.ParseUint(from, 10, 64)
-		if err != nil {
-			return 0, 0, errors.New("Failed to parse integer")
-		}
-
-		_to, err := strconv.ParseUint(to, 10, 64)
-		if err != nil {
-			return 0, 0, errors.New("Failed to parse integer")
-		}
-
-		if !(_to-_from < limit) {
-			return 0, 0, errors.New("Range too long")
-		}
-
-		return _from, _to, nil
-	}
-
-	// Extracted numeric query param, gets parsed into
-	// unsigned integer
-	parseNumber := func(number string) (uint64, error) {
-		_num, err := strconv.ParseUint(number, 10, 64)
-		if err != nil {
-			return 0, errors.New("Failed to parse integer")
-		}
-
-		return _num, nil
-	}
-
-	// Return topics to be used for finding out events in hex form
-	// topics are extracted out from query params in string form
-	getTopics := func(topics ...string) []common.Hash {
-		if topics[0] != "" && topics[1] != "" && topics[2] != "" && topics[3] != "" {
-			return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2]), common.HexToHash(topics[3])}
-		}
-
-		if topics[0] != "" && topics[1] != "" && topics[2] != "" {
-			return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2])}
-		}
-
-		if topics[0] != "" && topics[1] != "" {
-			return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1])}
-		}
-
-		if topics[0] != "" {
-			return []common.Hash{common.HexToHash(topics[0])}
-		}
-
-		return nil
-	}
 
 	respondWithJSON := func(data []byte, c *gin.Context) {
 
@@ -465,7 +412,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		// For checking `ette`'s syncing status
 		grp.GET("/synced", func(c *gin.Context) {
 
-			currentBlockNumber := db.GetCurrentBlockNumber(_db)
+			currentBlockNumber := _status.GetLatestBlockNumber()
 			blockCountInDB := _status.BlockCountInDB()
 			remaining := (currentBlockNumber + 1) - blockCountInDB
 			elapsed := _status.ElapsedTime()
@@ -516,7 +463,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// Given block number, finds out all tx(s) present in that block
 			if number != "" && tx == "yes" {
 
-				_num, err := parseNumber(number)
+				_num, err := cmn.ParseNumber(number)
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number",
@@ -551,7 +498,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// Block number based single block retrieval request handler
 			if number != "" {
 
-				_num, err := parseNumber(number)
+				_num, err := cmn.ParseNumber(number)
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number",
@@ -577,7 +524,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 			if fromBlock != "" && toBlock != "" {
 
-				_from, _to, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
+				_from, _to, err := cmn.RangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -603,7 +550,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 			if fromTime != "" && toTime != "" {
 
-				_from, _to, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
+				_from, _to, err := cmn.RangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -671,7 +618,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// Responds with tx sent from account with specified nonce
 			if nonce != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
 
-				_nonce, err := parseNumber(nonce)
+				_nonce, err := cmn.ParseNumber(nonce)
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad account nonce",
@@ -695,7 +642,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// ( i.e. deployer ) with in given block number range
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(deployer, "0x") && len(deployer) == 42 {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
+				_fromBlock, _toBlock, err := cmn.RangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -719,7 +666,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// ( i.e. deployer ) with in given time frame
 			if fromTime != "" && toTime != "" && strings.HasPrefix(deployer, "0x") && len(deployer) == 42 {
 
-				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
+				_fromTime, _toTime, err := cmn.RangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -743,7 +690,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// between that pair, where `from` & `to` fields are fixed
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
+				_fromBlock, _toBlock, err := cmn.RangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -767,7 +714,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// between that pair, where `from` & `to` fields are fixed
 			if fromTime != "" && toTime != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
 
-				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
+				_fromTime, _toTime, err := cmn.RangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -791,7 +738,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// from account
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
+				_fromBlock, _toBlock, err := cmn.RangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -815,7 +762,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// from this account in that given time span
 			if fromTime != "" && toTime != "" && strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42 {
 
-				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
+				_fromTime, _toTime, err := cmn.RangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -839,7 +786,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// to this account in that block range
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
+				_fromBlock, _toBlock, err := cmn.RangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -863,7 +810,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// to this account in that given time span
 			if fromTime != "" && toTime != "" && strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42 {
 
-				_fromTime, _toTime, err := rangeChecker(fromBlock, toBlock, cfg.GetTimeRange())
+				_fromTime, _toTime, err := cmn.RangeChecker(fromBlock, toBlock, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -1036,17 +983,31 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// events satisfying criteria
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 && ((strings.HasPrefix(topic0, "0x") && len(topic0) == 66) || (strings.HasPrefix(topic1, "0x") && len(topic1) == 66) || (strings.HasPrefix(topic2, "0x") && len(topic2) == 66) || (strings.HasPrefix(topic3, "0x") && len(topic3) == 66)) {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
+				_fromBlock, _toBlock, err := cmn.RangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
+
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
 					})
 					return
+
 				}
 
-				if event := db.GetEventsFromContractWithTopicsByBlockNumberRange(_db, common.HexToAddress(contract), _fromBlock, _toBlock, getTopics([]string{topic0, topic1, topic2, topic3}...)...); event != nil {
+				topics := cmn.CreateEventTopicMap([]string{topic0, topic1, topic2, topic3})
+				if len(topics) == 0 {
+
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad event topic signature(s)",
+					})
+					return
+
+				}
+
+				if event := db.GetEventsFromContractWithTopicsByBlockNumberRange(_db, common.HexToAddress(contract), _fromBlock, _toBlock, topics); event != nil {
+
 					respondWithJSON(event.ToJSON(), c)
 					return
+
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -1060,17 +1021,31 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// events satisfying criteria
 			if fromTime != "" && toTime != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 && ((strings.HasPrefix(topic0, "0x") && len(topic0) == 66) || (strings.HasPrefix(topic1, "0x") && len(topic1) == 66) || (strings.HasPrefix(topic2, "0x") && len(topic2) == 66) || (strings.HasPrefix(topic3, "0x") && len(topic3) == 66)) {
 
-				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
+				_fromTime, _toTime, err := cmn.RangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
+
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
 					})
 					return
+
 				}
 
-				if event := db.GetEventsFromContractWithTopicsByBlockTimeRange(_db, common.HexToAddress(contract), _fromTime, _toTime, getTopics([]string{topic0, topic1, topic2, topic3}...)...); event != nil {
+				topics := cmn.CreateEventTopicMap([]string{topic0, topic1, topic2, topic3})
+				if len(topics) == 0 {
+
+					c.JSON(http.StatusBadRequest, gin.H{
+						"msg": "Bad event topic signature(s)",
+					})
+					return
+
+				}
+
+				if event := db.GetEventsFromContractWithTopicsByBlockTimeRange(_db, common.HexToAddress(contract), _fromTime, _toTime, topics); event != nil {
+
 					respondWithJSON(event.ToJSON(), c)
 					return
+
 				}
 
 				c.JSON(http.StatusNotFound, gin.H{
@@ -1083,7 +1058,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// Given block number range & contract address, finds out all events emitted by this contract
 			if fromBlock != "" && toBlock != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
 
-				_fromBlock, _toBlock, err := rangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
+				_fromBlock, _toBlock, err := cmn.RangeChecker(fromBlock, toBlock, cfg.GetBlockNumberRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block number range",
@@ -1107,7 +1082,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			// events emitted by this contract during time span
 			if fromTime != "" && toTime != "" && strings.HasPrefix(contract, "0x") && len(contract) == 42 {
 
-				_fromTime, _toTime, err := rangeChecker(fromTime, toTime, cfg.GetTimeRange())
+				_fromTime, _toTime, err := cmn.RangeChecker(fromTime, toTime, cfg.GetTimeRange())
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"msg": "Bad block time range",
@@ -1137,10 +1112,13 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 	upgrader := websocket.Upgrader{}
 
 	router.GET("/v1/ws", func(c *gin.Context) {
+
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
+
 			log.Printf("[!] Failed to upgrade to websocket : %s\n", err.Error())
 			return
+
 		}
 
 		// Registering websocket connection closing, to be executed when leaving
@@ -1151,44 +1129,48 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			return
 		}
 
-		// Keeping track of which topics this client has subscribed to
-		topics := make(map[string]ps.Consumer)
-		lock := sync.Mutex{}
+		// To be used for concurrent safe access of
+		// underlying network socket
+		connLock := sync.Mutex{}
+		// To be used for concurrent safe access of subscribed
+		// topic's associative array
+		topicLock := sync.RWMutex{}
 
-		// When returning from this execution scope, unsubscribing client
-		// from all topics it might have subscribed to during it's life time
-		//
-		// Just attempting to do a graceful unsubscription
+		// All topic subscription/ unsubscription requests
+		// to handled by this higher layer abstraction
+		pubsubManager := ps.SubscriptionManager{
+			Topics:     make(map[string]map[string]*ps.SubscriptionRequest),
+			Consumers:  make(map[string]ps.Consumer),
+			Client:     _redisClient,
+			Connection: conn,
+			DB:         _db,
+			ConnLock:   &connLock,
+			TopicLock:  &topicLock,
+		}
+
+		// Unsubscribe from all pubsub topics ( 3 at max ) when returning from
+		// this execution scope
 		defer func() {
 
-			for _, v := range topics {
+			topicLock.Lock()
+			defer topicLock.Unlock()
 
-				if v, ok := v.(*ps.BlockConsumer); ok {
-					v.Request.Type = "unsubscribe"
-					continue
-				}
-
-				if v, ok := v.(*ps.TransactionConsumer); ok {
-					v.Request.Type = "unsubscribe"
-					continue
-				}
-
-				if v, ok := v.(*ps.EventConsumer); ok {
-					v.Request.Type = "unsubscribe"
-					continue
-				}
-
+			for _, v := range pubsubManager.Consumers {
+				v.Unsubscribe()
 			}
 
 		}()
 
 		// Client communication handling logic
 		for {
+
 			var req ps.SubscriptionRequest
 
 			if err := conn.ReadJSON(&req); err != nil {
+
 				log.Printf("[!] Failed to read message : %s\n", err.Error())
 				break
+
 			}
 
 			// Validating client provided API key, if fails, we return
@@ -1198,13 +1180,13 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 				// -- Critical section of code begins
 				//
 				// Attempting to write to shared network connection
-				lock.Lock()
+				connLock.Lock()
 
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
 
-				lock.Unlock()
+				connLock.Unlock()
 				// -- ends here
 				break
 			}
@@ -1214,13 +1196,13 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 				// -- Critical section of code begins
 				//
 				// Attempting to write to shared network connection
-				lock.Lock()
+				connLock.Lock()
 
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad API Key"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
 
-				lock.Unlock()
+				connLock.Unlock()
 				// -- ends here
 				break
 			}
@@ -1232,70 +1214,44 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 				// -- Critical section of code begins
 				//
 				// Attempting to write to shared network connection
-				lock.Lock()
+				connLock.Lock()
 
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Crossed Allowed Rate Limit"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
 
-				lock.Unlock()
+				connLock.Unlock()
 				// -- ends here
 				break
 			}
 
 			// Validating incoming request on websocket subscription channel
-			if !req.Validate(topics) {
+			if !req.Validate(&pubsubManager) {
 				// -- Critical section of code begins
 				//
 				// Attempting to write to shared network connection
-				lock.Lock()
+				connLock.Lock()
 
 				if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Bad Payload"}); err != nil {
 					log.Printf("[!] Failed to write message : %s\n", err.Error())
 				}
 
-				lock.Unlock()
+				connLock.Unlock()
 				// -- ends here
 				break
 			}
 
+			// Attempting to subscribe to/ unsubscribe from this topic
 			switch req.Type {
+
 			case "subscribe":
-				switch req.Topic() {
-
-				case "block":
-					topics[req.Name] = ps.NewBlockConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
-
-				case "transaction":
-					topics[req.Name] = ps.NewTransactionConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
-
-				case "event":
-					topics[req.Name] = ps.NewEventConsumer(_redisClient, conn, &req, _db, userAddress, &lock)
-
-				}
+				pubsubManager.Subscribe(&req)
 			case "unsubscribe":
-				switch req.Topic() {
-
-				case "block":
-					if v, ok := topics[req.Name].(*ps.BlockConsumer); ok {
-						v.Request.Type = req.Type
-					}
-
-				case "transaction":
-					if v, ok := topics[req.Name].(*ps.TransactionConsumer); ok {
-						v.Request.Type = req.Type
-					}
-
-				case "event":
-					if v, ok := topics[req.Name].(*ps.EventConsumer); ok {
-						v.Request.Type = req.Type
-					}
-
-				}
-
-				delete(topics, req.Name)
+				pubsubManager.Unsubscribe(&req)
 			}
+
 		}
+
 	})
 
 	router.POST("/v1/graphql", validateAPIKey,

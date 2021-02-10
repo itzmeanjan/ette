@@ -110,15 +110,17 @@ cd ette
     - Set `Production` to `yes` before running it in production; otherwise you can simply skip it
     - `ette` can be run in any of 👇 5 possible modes, which can be set by `EtteMode`
 
-    ```json
-    {
-        "1": "Only Historical Data Query Allowed",
-        "2": "Only Real-time Subscription Allowed",
-        "3": "Both Historical Data Query & Real-time Subscription Allowed",
-        "4": "Attempt to take snapshot from data in backing DB",
-        "5": "Attempt to restore data from snapshot file"
-    }
-    ```
+    ---
+
+    EtteMode | Interpretation
+    --- | ---
+    1 | Only Historical Data Query Allowed
+    2 | Only Real-time Subscription Allowed
+    3 | Both Historical Data Query & Real-time Subscription Allowed
+    4 | Attempt to take snapshot from data in backing DB
+    5 | Attempt to restore data from snapshot file
+
+    ---
 
     - For testing historical data query using browser based GraphQL Playground in `ette`, you can set `EtteGraphQLPlayGround` to `yes` in config file
     - For processing block(s)/ tx(s) concurrently, it'll create `ConcurrencyFactor * #-of CPUs on machine` workers, who will pick up jobs submitted to them.

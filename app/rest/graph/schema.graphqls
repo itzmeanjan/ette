@@ -9,8 +9,11 @@ type Block {
   nonce: String!
   miner: String!
   size: Float!
+  stateRootHash: String!
+  uncleHash: String!
   txRootHash: String!
   receiptRootHash: String!
+  extraData: String!
 }
 
 type Transaction {

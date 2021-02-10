@@ -10,11 +10,14 @@ create table blocks (
     difficulty varchar not null,
     gasused bigint not null,
     gaslimit bigint not null,
-    nonce bigint not null,
+    nonce varchar not null,
     miner char(42) not null,
     size float(8) not null,
+    stateroothash char(66) not null,
+    unclehash char(66) not null,
     txroothash char(66) not null,
     receiptroothash char(66) not null,
+    extradata bytea
 );
 
 create index on blocks(number asc);
@@ -56,6 +59,7 @@ create table events (
 
 create index on events(origin);
 create index on events(txhash);
+create index on events using gin(topics);
 
 create table users (
     address char(42) not null,

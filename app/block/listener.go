@@ -42,12 +42,46 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 	for {
 		select {
 		case err := <-subs.Err():
+
 			log.Fatal(color.Red.Sprintf("[!] Listener stopped : %s", err.Error()))
-			break
+
 		case header := <-headerChan:
 
-			// Latest block number seen, is getting safely updated, as
-			// soon as new block mined data gets propagated to network
+			// At very beginning iteration, newly mined block number
+			// should be greater than max block number obtained from DB
+			if first && !(header.Number.Uint64() > status.MaxBlockNumberAtStartUp()) {
+
+				log.Fatal(color.Red.Sprintf("[!] Bad block received : expected > `%d`\n", status.MaxBlockNumberAtStartUp()))
+
+			}
+
+			// At any iteration other than first one, if received block number
+			// is more than latest block number + 1, it's definite that we've some
+			// block (  >=1 ) missed & the RPC node we're relying on might be feeding us with
+			// wrong data
+			//
+			// It's better stop relying on it, we crash the program
+			// @note This is not the state-of-the art solution, but this is it, as of now
+			// It can be improved.
+			if !first && header.Number.Uint64() > status.GetLatestBlockNumber()+1 {
+
+				log.Fatal(color.Red.Sprintf("[!] Bad block received %d, expected %d", header.Number.Uint64(), status.GetLatestBlockNumber()))
+
+			}
+
+			// At any iteration other than first one, if received block number
+			// not exactly current latest block number + 1, then it's probably one
+			// reorganization, we'll attempt to process this new block
+			if !first && !(header.Number.Uint64() == status.GetLatestBlockNumber()+1) {
+
+				log.Printf(color.Blue.Sprintf("[*] Received block %d again, expected %d, attempting to process", header.Number.Uint64(), status.GetLatestBlockNumber()+1))
+
+			} else {
+
+				log.Printf(color.Blue.Sprintf("[*] Received block %d, attempting to process", header.Number.Uint64()))
+
+			}
+
 			status.SetLatestBlockNumber(header.Number.Uint64())
 
 			if first {

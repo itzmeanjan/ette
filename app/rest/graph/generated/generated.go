@@ -44,6 +44,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Block struct {
 		Difficulty      func(childComplexity int) int
+		ExtraData       func(childComplexity int) int
 		GasLimit        func(childComplexity int) int
 		GasUsed         func(childComplexity int) int
 		Hash            func(childComplexity int) int
@@ -53,8 +54,10 @@ type ComplexityRoot struct {
 		ParentHash      func(childComplexity int) int
 		ReceiptRootHash func(childComplexity int) int
 		Size            func(childComplexity int) int
+		StateRootHash   func(childComplexity int) int
 		Time            func(childComplexity int) int
 		TxRootHash      func(childComplexity int) int
+		UncleHash       func(childComplexity int) int
 	}
 
 	Event struct {
@@ -160,6 +163,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Block.Difficulty(childComplexity), true
 
+	case "Block.extraData":
+		if e.complexity.Block.ExtraData == nil {
+			break
+		}
+
+		return e.complexity.Block.ExtraData(childComplexity), true
+
 	case "Block.gasLimit":
 		if e.complexity.Block.GasLimit == nil {
 			break
@@ -223,6 +233,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Block.Size(childComplexity), true
 
+	case "Block.stateRootHash":
+		if e.complexity.Block.StateRootHash == nil {
+			break
+		}
+
+		return e.complexity.Block.StateRootHash(childComplexity), true
+
 	case "Block.time":
 		if e.complexity.Block.Time == nil {
 			break
@@ -236,6 +253,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Block.TxRootHash(childComplexity), true
+
+	case "Block.uncleHash":
+		if e.complexity.Block.UncleHash == nil {
+			break
+		}
+
+		return e.complexity.Block.UncleHash(childComplexity), true
 
 	case "Event.blockHash":
 		if e.complexity.Event.BlockHash == nil {
@@ -724,8 +748,11 @@ var sources = []*ast.Source{
   nonce: String!
   miner: String!
   size: Float!
+  stateRootHash: String!
+  uncleHash: String!
   txRootHash: String!
   receiptRootHash: String!
+  extraData: String!
 }
 
 type Transaction {
@@ -1873,6 +1900,76 @@ func (ec *executionContext) _Block_size(ctx context.Context, field graphql.Colle
 	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Block_stateRootHash(ctx context.Context, field graphql.CollectedField, obj *model.Block) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Block",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StateRootHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Block_uncleHash(ctx context.Context, field graphql.CollectedField, obj *model.Block) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Block",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UncleHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Block_txRootHash(ctx context.Context, field graphql.CollectedField, obj *model.Block) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1927,6 +2024,41 @@ func (ec *executionContext) _Block_receiptRootHash(ctx context.Context, field gr
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.ReceiptRootHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Block_extraData(ctx context.Context, field graphql.CollectedField, obj *model.Block) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Block",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ExtraData, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4850,6 +4982,16 @@ func (ec *executionContext) _Block(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "stateRootHash":
+			out.Values[i] = ec._Block_stateRootHash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "uncleHash":
+			out.Values[i] = ec._Block_uncleHash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "txRootHash":
 			out.Values[i] = ec._Block_txRootHash(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4857,6 +4999,11 @@ func (ec *executionContext) _Block(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "receiptRootHash":
 			out.Values[i] = ec._Block_receiptRootHash(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "extraData":
+			out.Values[i] = ec._Block_extraData(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

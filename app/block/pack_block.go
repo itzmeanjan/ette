@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/itzmeanjan/ette/app/db"
 )
@@ -19,11 +20,14 @@ func BuildPackedBlock(block *types.Block, txs []*db.PackedTransaction) *db.Packe
 		Difficulty:          block.Difficulty().String(),
 		GasUsed:             block.GasUsed(),
 		GasLimit:            block.GasLimit(),
-		Nonce:               block.Nonce(),
+		Nonce:               hexutil.EncodeUint64(block.Nonce()),
 		Miner:               block.Coinbase().Hex(),
 		Size:                float64(block.Size()),
+		StateRootHash:       block.Root().Hex(),
+		UncleHash:           block.UncleHash().Hex(),
 		TransactionRootHash: block.TxHash().Hex(),
 		ReceiptRootHash:     block.ReceiptHash().Hex(),
+		ExtraData:           block.Extra(),
 	}
 	packedBlock.Transactions = txs
 

@@ -6,10 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/itzmeanjan/ette/app/data"
 	_db "github.com/itzmeanjan/ette/app/db"
@@ -95,6 +93,11 @@ func getGraphQLCompatibleBlock(ctx context.Context, block *data.Block, bookKeepi
 		}
 	}
 
+	extraData := ""
+	if _h := hex.EncodeToString(block.ExtraData); _h != "" {
+		extraData = fmt.Sprintf("0x%s", _h)
+	}
+
 	return &model.Block{
 		Hash:            block.Hash,
 		Number:          fmt.Sprintf("%d", block.Number),
@@ -103,11 +106,14 @@ func getGraphQLCompatibleBlock(ctx context.Context, block *data.Block, bookKeepi
 		Difficulty:      block.Difficulty,
 		GasUsed:         fmt.Sprintf("%d", block.GasUsed),
 		GasLimit:        fmt.Sprintf("%d", block.GasLimit),
-		Nonce:           fmt.Sprintf("%d", block.Nonce),
+		Nonce:           block.Nonce,
 		Miner:           block.Miner,
 		Size:            block.Size,
+		StateRootHash:   block.StateRootHash,
+		UncleHash:       block.UncleHash,
 		TxRootHash:      block.TransactionRootHash,
 		ReceiptRootHash: block.ReceiptRootHash,
+		ExtraData:       extraData,
 	}, nil
 
 }
@@ -142,17 +148,17 @@ func getGraphQLCompatibleTransaction(ctx context.Context, tx *data.Transaction, 
 		return nil, errors.New("Found nothing")
 	}
 
-	data := ""
-	if _h := hex.EncodeToString(tx.Data); _h != "" {
-		data = fmt.Sprintf("0x%s", _h)
-	}
-
 	// to be `false` when calling from `getGraphQLCompatibleTransactions(...)`
 	// because that function will then take care of it's own book keeping logic
 	if bookKeeping {
 		if err := doBookKeeping(ctx, tx.ToJSON()); err != nil {
 			return nil, errors.New("Book keeping failed")
 		}
+	}
+
+	data := ""
+	if _h := hex.EncodeToString(tx.Data); _h != "" {
+		data = fmt.Sprintf("0x%s", _h)
 	}
 
 	if !strings.HasPrefix(tx.Contract, "0x") {
@@ -218,17 +224,17 @@ func getGraphQLCompatibleEvent(ctx context.Context, event *data.Event, bookKeepi
 		return nil, errors.New("Found nothing")
 	}
 
-	data := ""
-	if _h := hex.EncodeToString(event.Data); _h != "" && _h != strings.Repeat("0", 64) {
-		data = fmt.Sprintf("0x%s", _h)
-	}
-
 	// to be `false` when calling from `getGraphQLCompatibleEvents(...)`
 	// because that function will then take care of it's own book keeping logic
 	if bookKeeping {
 		if err := doBookKeeping(ctx, event.ToJSON()); err != nil {
 			return nil, errors.New("Book keeping failed")
 		}
+	}
+
+	data := ""
+	if _h := hex.EncodeToString(event.Data); _h != "" && _h != strings.Repeat("0", 64) {
+		data = fmt.Sprintf("0x%s", _h)
 	}
 
 	return &model.Event{
@@ -265,26 +271,6 @@ func getGraphQLCompatibleEvents(ctx context.Context, events *data.Events) ([]*mo
 	return _events, nil
 }
 
-func getTopics(topics ...string) []common.Hash {
-	if topics[0] != "" && topics[1] != "" && topics[2] != "" && topics[3] != "" {
-		return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2]), common.HexToHash(topics[3])}
-	}
-
-	if topics[0] != "" && topics[1] != "" && topics[2] != "" {
-		return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1]), common.HexToHash(topics[2])}
-	}
-
-	if topics[0] != "" && topics[1] != "" {
-		return []common.Hash{common.HexToHash(topics[0]), common.HexToHash(topics[1])}
-	}
-
-	if topics[0] != "" {
-		return []common.Hash{common.HexToHash(topics[0])}
-	}
-
-	return nil
-}
-
 func getTopicSignaturesAsStringSlice(topics pq.StringArray) []string {
 	_tmp := make([]string, len(topics))
 
@@ -295,22 +281,28 @@ func getTopicSignaturesAsStringSlice(topics pq.StringArray) []string {
 	return _tmp
 }
 
-// Extracted from, to field of range based block query ( using block numbers/ time stamps )
-// gets parsed into unsigned integers
-func rangeChecker(from string, to string, limit uint64) (uint64, uint64, error) {
-	_from, err := strconv.ParseUint(from, 10, 64)
-	if err != nil {
-		return 0, 0, errors.New("Failed to parse integer")
+// FillUpTopicArray - Creates a topic signature array of length
+// 4, while putting all elements passed from graphQL query & appending
+// empty strings, in remaining places
+func FillUpTopicArray(topics []string) []string {
+
+	if len(topics) == 4 {
+		return topics
 	}
 
-	_to, err := strconv.ParseUint(to, 10, 64)
-	if err != nil {
-		return 0, 0, errors.New("Failed to parse integer")
+	result := make([]string, 0, 4)
+	result = append(result, topics...)
+
+	i := 0
+	target := 4 - len(topics)
+
+	for i < target {
+
+		result = append(result, "")
+		i++
+
 	}
 
-	if !(_to-_from < limit) {
-		return 0, 0, errors.New("Range too long")
-	}
+	return result
 
-	return _from, _to, nil
 }

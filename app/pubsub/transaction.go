@@ -4,12 +4,10 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	d "github.com/itzmeanjan/ette/app/data"
@@ -23,132 +21,58 @@ import (
 //
 // If yes, also deliver data to client application, connected over websocket
 type TransactionConsumer struct {
-	Client      *redis.Client
-	Request     *SubscriptionRequest
-	UserAddress common.Address
-	Connection  *websocket.Conn
-	PubSub      *redis.PubSub
-	DB          *gorm.DB
-	Lock        *sync.Mutex
+	Client     *redis.Client
+	Requests   map[string]*SubscriptionRequest
+	Connection *websocket.Conn
+	PubSub     *redis.PubSub
+	DB         *gorm.DB
+	ConnLock   *sync.Mutex
+	TopicLock  *sync.RWMutex
 }
 
 // Subscribe - Subscribe to `transaction` topic, under which all transaction related data to be published
 func (t *TransactionConsumer) Subscribe() {
-	t.PubSub = t.Client.Subscribe(context.Background(), t.Request.Topic())
+	t.PubSub = t.Client.Subscribe(context.Background(), "transaction")
 }
 
 // Listen - Listener function, which keeps looping in infinite loop
 // and reads data from subcribed channel, which also gets delivered to client application
 func (t *TransactionConsumer) Listen() {
 
-	// When leaving this execution scope, attempting to unsubscribe
-	// client from pubsub topic, it was listening to, in a graceful fashion
-	defer t.Unsubscribe()
-
 	for {
-
-		// Checking if client is still subscribed to this topic
-		// or not
-		//
-		// If not, we're cancelling this subscription
-		if t.Request.Type == "unsubscribe" {
-			break
-		}
 
 		msg, err := t.PubSub.ReceiveTimeout(context.Background(), time.Second)
 		if err != nil {
 			continue
 		}
 
-		// To be used for checking whether delivering data to client went successful or not
-		status := true
-
 		switch m := msg.(type) {
+
 		case *redis.Subscription:
-			status = t.SendData(&SubscriptionResponse{
+
+			// Pubsub broker informed we've been unsubscribed from
+			// this topic
+			if m.Kind == "unsubscribe" {
+				return
+			}
+
+			t.SendData(&SubscriptionResponse{
 				Code:    1,
 				Message: "Subscribed to `transaction`",
 			})
+
 		case *redis.Message:
-			status = t.Send(m.Payload)
+			t.Send(m.Payload)
+
 		}
 
-		if !status {
-			break
-		}
 	}
 
 }
 
 // Send - Tries to deliver subscribed transaction data to client application
 // connected over websocket
-func (t *TransactionConsumer) Send(msg string) bool {
-
-	user := db.GetUserFromAPIKey(t.DB, t.Request.APIKey)
-	if user == nil {
-
-		// -- Critical section of code begins
-		//
-		// Attempting to write to a network resource,
-		// shared among multiple go routines
-		t.Lock.Lock()
-
-		if err := t.Connection.WriteJSON(&SubscriptionResponse{
-			Code:    0,
-			Message: "Bad API Key",
-		}); err != nil {
-			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
-		}
-
-		t.Lock.Unlock()
-		// -- ends here
-		return false
-
-	}
-
-	if !user.Enabled {
-
-		// -- Critical section of code begins
-		//
-		// Attempting to write to a network resource,
-		// shared among multiple go routines
-		t.Lock.Lock()
-
-		if err := t.Connection.WriteJSON(&SubscriptionResponse{
-			Code:    0,
-			Message: "Bad API Key",
-		}); err != nil {
-			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
-		}
-
-		t.Lock.Unlock()
-		// -- ends here
-		return false
-
-	}
-
-	// Don't deliver data & close underlying connection
-	// if client has crossed it's allowed data delivery limit
-	if !db.IsUnderRateLimit(t.DB, t.UserAddress.Hex()) {
-
-		// -- Critical section of code begins
-		//
-		// Attempting to write to a network resource,
-		// shared among multiple go routines
-		t.Lock.Lock()
-
-		if err := t.Connection.WriteJSON(&SubscriptionResponse{
-			Code:    0,
-			Message: "Crossed Allowed Rate Limit",
-		}); err != nil {
-			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
-		}
-
-		t.Lock.Unlock()
-		// -- ends here
-		return false
-
-	}
+func (t *TransactionConsumer) Send(msg string) {
 
 	// Creating this temporary struct definition here, because
 	// while unmarshalling JSON it was failing in `{ Data: []byte }`
@@ -175,7 +99,7 @@ func (t *TransactionConsumer) Send(msg string) bool {
 
 	if err := json.Unmarshal(_msg, &transaction); err != nil {
 		log.Printf("[!] Failed to decode published transaction data to JSON : %s\n", err.Error())
-		return true
+		return
 	}
 
 	data := make([]byte, 0)
@@ -190,11 +114,10 @@ func (t *TransactionConsumer) Send(msg string) bool {
 
 	if err != nil {
 		log.Printf("[!] Failed to decode data field of transaction : %s\n", err.Error())
-		return true
+		return
 	}
 
-	// If doesn't match, simply ignoring received data
-	if !t.Request.DoesMatchWithPublishedTransactionData(&d.Transaction{
+	tx := &d.Transaction{
 		Hash:      transaction.Hash,
 		From:      transaction.From,
 		To:        transaction.To,
@@ -207,16 +130,102 @@ func (t *TransactionConsumer) Send(msg string) bool {
 		Nonce:     transaction.Nonce,
 		State:     transaction.State,
 		BlockHash: transaction.BlockHash,
-	}) {
-		return true
+	}
+
+	var request *SubscriptionRequest
+
+	// -- Shared memory being read from concurrently
+	// running thread of execution, with lock
+	t.TopicLock.RLock()
+
+	for _, v := range t.Requests {
+
+		if v.DoesMatchWithPublishedTransactionData(tx) {
+			request = v
+			break
+		}
+
+	}
+
+	t.TopicLock.RUnlock()
+	// -- Lock released, shared memory reading done
+
+	// Can't proceed with this anymore, because failed to find
+	// respective subscription request
+	if request == nil {
+		return
+	}
+
+	user := db.GetUserFromAPIKey(t.DB, request.APIKey)
+	if user == nil {
+
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		t.ConnLock.Lock()
+
+		if err := t.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Bad API Key",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
+		}
+
+		t.ConnLock.Unlock()
+		// -- ends here
+		return
+
+	}
+
+	if !user.Enabled {
+
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		t.ConnLock.Lock()
+
+		if err := t.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Bad API Key",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
+		}
+
+		t.ConnLock.Unlock()
+		// -- ends here
+		return
+
+	}
+
+	// Don't deliver data & close underlying connection
+	// if client has crossed it's allowed data delivery limit
+	if !db.IsUnderRateLimit(t.DB, user.Address) {
+
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		t.ConnLock.Lock()
+
+		if err := t.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Crossed Allowed Rate Limit",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
+		}
+
+		t.ConnLock.Unlock()
+		// -- ends here
+		return
+
 	}
 
 	if t.SendData(&transaction) {
-		db.PutDataDeliveryInfo(t.DB, t.UserAddress.Hex(), "/v1/ws/transaction", uint64(len(msg)))
-		return true
+		db.PutDataDeliveryInfo(t.DB, user.Address, "/v1/ws/transaction", uint64(len(msg)))
 	}
 
-	return false
 }
 
 // SendData - Sending message to client application, connected over websocket
@@ -229,8 +238,8 @@ func (t *TransactionConsumer) SendData(data interface{}) bool {
 	//
 	// Attempting to write to a network resource,
 	// shared among multiple go routines
-	t.Lock.Lock()
-	defer t.Lock.Unlock()
+	t.ConnLock.Lock()
+	defer t.ConnLock.Unlock()
 
 	if err := t.Connection.WriteJSON(data); err != nil {
 		log.Printf("[!] Failed to deliver `transaction` data to client : %s\n", err.Error())
@@ -245,29 +254,29 @@ func (t *TransactionConsumer) SendData(data interface{}) bool {
 func (t *TransactionConsumer) Unsubscribe() {
 
 	if t.PubSub == nil {
-		log.Printf("[!] Bad attempt to unsubscribe from `%s` topic\n", t.Request.Topic())
+		log.Printf("[!] Bad attempt to unsubscribe from `transaction` topic\n")
 		return
 	}
 
-	if err := t.PubSub.Unsubscribe(context.Background(), t.Request.Topic()); err != nil {
-		log.Printf("[!] Failed to unsubscribe from `%s` topic : %s\n", t.Request.Topic(), err.Error())
+	if err := t.PubSub.Unsubscribe(context.Background(), "transaction"); err != nil {
+		log.Printf("[!] Failed to unsubscribe from `transaction` topic : %s\n", err.Error())
 		return
 	}
 
 	resp := &SubscriptionResponse{
 		Code:    1,
-		Message: fmt.Sprintf("Unsubscribed from `%s`", t.Request.Topic()),
+		Message: "Unsubscribed from `transaction`",
 	}
 
 	// -- Critical section of code begins
 	//
 	// Attempting to write to a network resource,
 	// shared among multiple go routines
-	t.Lock.Lock()
-	defer t.Lock.Unlock()
+	t.ConnLock.Lock()
+	defer t.ConnLock.Unlock()
 
 	if err := t.Connection.WriteJSON(resp); err != nil {
-		log.Printf("[!] Failed to deliver `%s` unsubscription confirmation to client : %s\n", t.Request.Topic(), err.Error())
+		log.Printf("[!] Failed to deliver `transaction` unsubscription confirmation to client : %s\n", err.Error())
 	}
 
 }

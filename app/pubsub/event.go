@@ -4,19 +4,17 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
-	"github.com/lib/pq"
 )
 
 // EventConsumer - Event consumption to be managed by this struct, when new websocket
@@ -24,19 +22,19 @@ import (
 // of information, which is to be required when delivering data & checking whether this connection
 // has really requested notification for this event or not
 type EventConsumer struct {
-	Client      *redis.Client
-	Request     *SubscriptionRequest
-	UserAddress common.Address
-	Connection  *websocket.Conn
-	PubSub      *redis.PubSub
-	DB          *gorm.DB
-	Lock        *sync.Mutex
+	Client     *redis.Client
+	Requests   map[string]*SubscriptionRequest
+	Connection *websocket.Conn
+	PubSub     *redis.PubSub
+	DB         *gorm.DB
+	ConnLock   *sync.Mutex
+	TopicLock  *sync.RWMutex
 }
 
 // Subscribe - Event consumer is subscribing to `event` topic,
 // where all event related data to be published
 func (e *EventConsumer) Subscribe() {
-	e.PubSub = e.Client.Subscribe(context.Background(), e.Request.Topic())
+	e.PubSub = e.Client.Subscribe(context.Background(), "event")
 }
 
 // Listen - Polling for new data published in `event` topic periodically
@@ -44,116 +42,40 @@ func (e *EventConsumer) Subscribe() {
 // if client has subscribed to get notified on occurrence of this event
 func (e *EventConsumer) Listen() {
 
-	// Before leaving this execution context, attempting to
-	// unsubscribe client from `event` pubsub topic
-	//
-	// One attempt to unsubscribe gracefully
-	defer e.Unsubscribe()
-
 	for {
-
-		// Checking if client is still subscribed to this topic
-		// or not
-		//
-		// If not, we're cancelling this subscription
-		if e.Request.Type == "unsubscribe" {
-			break
-		}
 
 		msg, err := e.PubSub.ReceiveTimeout(context.Background(), time.Second)
 		if err != nil {
 			continue
 		}
 
-		// To be used for checking whether delivering data to client went successful or not
-		status := true
-
 		switch m := msg.(type) {
+
 		case *redis.Subscription:
-			status = e.SendData(&SubscriptionResponse{
+
+			// Pubsub broker informed we've been unsubscribed from
+			// this topic
+			if m.Kind == "unsubscribe" {
+				return
+			}
+
+			e.SendData(&SubscriptionResponse{
 				Code:    1,
 				Message: "Subscribed to `event`",
 			})
+
 		case *redis.Message:
-			status = e.Send(m.Payload)
+			e.Send(m.Payload)
+
 		}
 
-		if !status {
-			break
-		}
 	}
 
 }
 
 // Send - Sending event occurrence data to client application, which has subscribed to this event
 // & connected over websocket
-func (e *EventConsumer) Send(msg string) bool {
-
-	user := db.GetUserFromAPIKey(e.DB, e.Request.APIKey)
-	if user == nil {
-
-		// -- Critical section of code begins
-		//
-		// Attempting to write to a network resource,
-		// shared among multiple go routines
-		e.Lock.Lock()
-
-		if err := e.Connection.WriteJSON(&SubscriptionResponse{
-			Code:    0,
-			Message: "Bad API Key",
-		}); err != nil {
-			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
-		}
-
-		e.Lock.Unlock()
-		// -- ends here
-		return false
-
-	}
-
-	if !user.Enabled {
-
-		// -- Critical section of code begins
-		//
-		// Attempting to write to a network resource,
-		// shared among multiple go routines
-		e.Lock.Lock()
-
-		if err := e.Connection.WriteJSON(&SubscriptionResponse{
-			Code:    0,
-			Message: "Bad API Key",
-		}); err != nil {
-			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
-		}
-
-		e.Lock.Unlock()
-		// -- ends here
-		return false
-
-	}
-
-	// Don't deliver data & close underlying connection
-	// if client has crossed it's allowed data delivery limit
-	if !db.IsUnderRateLimit(e.DB, e.UserAddress.Hex()) {
-
-		// -- Critical section of code begins
-		//
-		// Attempting to write to a network resource,
-		// shared among multiple go routines
-		e.Lock.Lock()
-
-		if err := e.Connection.WriteJSON(&SubscriptionResponse{
-			Code:    0,
-			Message: "Crossed Allowed Rate Limit",
-		}); err != nil {
-			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
-		}
-
-		e.Lock.Unlock()
-		// -- ends here
-		return false
-
-	}
+func (e *EventConsumer) Send(msg string) {
 
 	var event struct {
 		Origin          string         `json:"origin"`
@@ -168,7 +90,7 @@ func (e *EventConsumer) Send(msg string) bool {
 
 	if err := json.Unmarshal(_msg, &event); err != nil {
 		log.Printf("[!] Failed to decode published event data to JSON : %s\n", err.Error())
-		return true
+		return
 	}
 
 	data := make([]byte, 0)
@@ -180,27 +102,111 @@ func (e *EventConsumer) Send(msg string) bool {
 
 	if err != nil {
 		log.Printf("[!] Failed to decode data field of event : %s\n", err.Error())
-		return true
+		return
 	}
 
-	// If doesn't match with specified criteria, simply ignoring received data
-	if !e.Request.DoesMatchWithPublishedEventData(&d.Event{
+	_event := &d.Event{
 		Origin:          event.Origin,
 		Index:           event.Index,
 		Topics:          event.Topics,
 		Data:            data,
 		TransactionHash: event.TransactionHash,
 		BlockHash:       event.BlockHash,
-	}) {
-		return true
+	}
+
+	var request *SubscriptionRequest
+
+	// -- Obtaining read lock
+	e.TopicLock.RLock()
+
+	for _, v := range e.Requests {
+
+		if v.DoesMatchWithPublishedEventData(_event) {
+			request = v
+			break
+		}
+
+	}
+
+	e.TopicLock.RUnlock()
+	// -- Unlocking shared resource
+
+	// Can't proceed with this anymore, because failed to find
+	// respective subscription request
+	if request == nil {
+		return
+	}
+
+	user := db.GetUserFromAPIKey(e.DB, request.APIKey)
+	if user == nil {
+
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		e.ConnLock.Lock()
+
+		if err := e.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Bad API Key",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
+		}
+
+		e.ConnLock.Unlock()
+		// -- ends here
+		return
+
+	}
+
+	if !user.Enabled {
+
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		e.ConnLock.Lock()
+
+		if err := e.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Bad API Key",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver bad API key message to client : %s\n", err.Error())
+		}
+
+		e.ConnLock.Unlock()
+		// -- ends here
+		return
+
+	}
+
+	// Don't deliver data & close underlying connection
+	// if client has crossed it's allowed data delivery limit
+	if !db.IsUnderRateLimit(e.DB, user.Address) {
+
+		// -- Critical section of code begins
+		//
+		// Attempting to write to a network resource,
+		// shared among multiple go routines
+		e.ConnLock.Lock()
+
+		if err := e.Connection.WriteJSON(&SubscriptionResponse{
+			Code:    0,
+			Message: "Crossed Allowed Rate Limit",
+		}); err != nil {
+			log.Printf("[!] Failed to deliver rate limit crossed message to client : %s\n", err.Error())
+		}
+
+		e.ConnLock.Unlock()
+		// -- ends here
+		return
+
 	}
 
 	if e.SendData(&event) {
-		db.PutDataDeliveryInfo(e.DB, e.UserAddress.Hex(), "/v1/ws/event", uint64(len(msg)))
-		return true
+		db.PutDataDeliveryInfo(e.DB, user.Address, "/v1/ws/event", uint64(len(msg)))
 	}
 
-	return false
 }
 
 // SendData - Sending message to client application, connected over websocket
@@ -213,8 +219,8 @@ func (e *EventConsumer) SendData(data interface{}) bool {
 	//
 	// Attempting to write to a network resource,
 	// shared among multiple go routines
-	e.Lock.Lock()
-	defer e.Lock.Unlock()
+	e.ConnLock.Lock()
+	defer e.ConnLock.Unlock()
 
 	if err := e.Connection.WriteJSON(data); err != nil {
 		log.Printf("[!] Failed to deliver `event` data to client : %s\n", err.Error())
@@ -231,29 +237,29 @@ func (e *EventConsumer) SendData(data interface{}) bool {
 func (e *EventConsumer) Unsubscribe() {
 
 	if e.PubSub == nil {
-		log.Printf("[!] Bad attempt to unsubscribe from `%s` topic\n", e.Request.Topic())
+		log.Printf("[!] Bad attempt to unsubscribe from `event` topic\n")
 		return
 	}
 
-	if err := e.PubSub.Unsubscribe(context.Background(), e.Request.Topic()); err != nil {
-		log.Printf("[!] Failed to unsubscribe from `%s` topic : %s\n", e.Request.Topic(), err.Error())
+	if err := e.PubSub.Unsubscribe(context.Background(), "event"); err != nil {
+		log.Printf("[!] Failed to unsubscribe from `event` topic : %s\n", err.Error())
 		return
 	}
 
 	resp := &SubscriptionResponse{
 		Code:    1,
-		Message: fmt.Sprintf("Unsubscribed from `%s`", e.Request.Topic()),
+		Message: "Unsubscribed from `event`",
 	}
 
 	// -- Critical section of code begins
 	//
 	// Attempting to write to a network resource,
 	// shared among multiple go routines
-	e.Lock.Lock()
-	defer e.Lock.Unlock()
+	e.ConnLock.Lock()
+	defer e.ConnLock.Unlock()
 
 	if err := e.Connection.WriteJSON(resp); err != nil {
-		log.Printf("[!] Failed to deliver `%s` unsubscription confirmation to client : %s\n", e.Request.Topic(), err.Error())
+		log.Printf("[!] Failed to deliver `event` unsubscription confirmation to client : %s\n", err.Error())
 	}
 
 }

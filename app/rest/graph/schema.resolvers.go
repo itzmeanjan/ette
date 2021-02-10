@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	cmn "github.com/itzmeanjan/ette/app/common"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	_db "github.com/itzmeanjan/ette/app/db"
 	"github.com/itzmeanjan/ette/app/rest/graph/generated"
@@ -34,7 +35,7 @@ func (r *queryResolver) BlockByNumber(ctx context.Context, number string) (*mode
 }
 
 func (r *queryResolver) BlocksByNumberRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
-	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -43,7 +44,7 @@ func (r *queryResolver) BlocksByNumberRange(ctx context.Context, from string, to
 }
 
 func (r *queryResolver) BlocksByTimeRange(ctx context.Context, from string, to string) ([]*model.Block, error) {
-	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -81,7 +82,7 @@ func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -94,7 +95,7 @@ func (r *queryResolver) TransactionsFromAccountByTimeRange(ctx context.Context, 
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -107,7 +108,7 @@ func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, 
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -120,7 +121,7 @@ func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, ac
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -137,7 +138,7 @@ func (r *queryResolver) TransactionsBetweenAccountsByNumberRange(ctx context.Con
 		return nil, errors.New("Bad To Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -154,7 +155,7 @@ func (r *queryResolver) TransactionsBetweenAccountsByTimeRange(ctx context.Conte
 		return nil, errors.New("Bad To Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -167,7 +168,7 @@ func (r *queryResolver) ContractsCreatedFromAccountByNumberRange(ctx context.Con
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -180,7 +181,7 @@ func (r *queryResolver) ContractsCreatedFromAccountByTimeRange(ctx context.Conte
 		return nil, errors.New("Bad Account Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -206,7 +207,7 @@ func (r *queryResolver) EventsFromContractByNumberRange(ctx context.Context, con
 		return nil, errors.New("Bad Contract Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
@@ -219,7 +220,7 @@ func (r *queryResolver) EventsFromContractByTimeRange(ctx context.Context, contr
 		return nil, errors.New("Bad Contract Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
@@ -248,12 +249,12 @@ func (r *queryResolver) EventsFromContractWithTopicsByNumberRange(ctx context.Co
 		return nil, errors.New("Bad Contract Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetBlockNumberRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetBlockNumberRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Number Range")
 	}
 
-	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractWithTopicsByBlockNumberRange(db, common.HexToAddress(contract), _from, _to, getTopics(topics...)...))
+	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractWithTopicsByBlockNumberRange(db, common.HexToAddress(contract), _from, _to, cmn.CreateEventTopicMap(FillUpTopicArray(topics))))
 }
 
 func (r *queryResolver) EventsFromContractWithTopicsByTimeRange(ctx context.Context, contract string, from string, to string, topics []string) ([]*model.Event, error) {
@@ -261,12 +262,12 @@ func (r *queryResolver) EventsFromContractWithTopicsByTimeRange(ctx context.Cont
 		return nil, errors.New("Bad Contract Address")
 	}
 
-	_from, _to, err := rangeChecker(from, to, cfg.GetTimeRange())
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
 	if err != nil {
 		return nil, errors.New("Bad Block Timestamp Range")
 	}
 
-	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractWithTopicsByBlockTimeRange(db, common.HexToAddress(contract), _from, _to, getTopics(topics...)...))
+	return getGraphQLCompatibleEvents(ctx, _db.GetEventsFromContractWithTopicsByBlockTimeRange(db, common.HexToAddress(contract), _from, _to, cmn.CreateEventTopicMap(FillUpTopicArray(topics))))
 }
 
 func (r *queryResolver) LastXEventsFromContract(ctx context.Context, contract string, x int) ([]*model.Event, error) {
@@ -282,7 +283,6 @@ func (r *queryResolver) LastXEventsFromContract(ctx context.Context, contract st
 }
 
 func (r *queryResolver) EventByBlockHashAndLogIndex(ctx context.Context, hash string, index string) (*model.Event, error) {
-
 	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
 		return nil, errors.New("Bad Block Hash")
 	}
@@ -293,11 +293,9 @@ func (r *queryResolver) EventByBlockHashAndLogIndex(ctx context.Context, hash st
 	}
 
 	return getGraphQLCompatibleEvent(ctx, _db.GetEventByBlockHashAndLogIndex(db, common.HexToHash(hash), uint(_index)), true)
-
 }
 
 func (r *queryResolver) EventByBlockNumberAndLogIndex(ctx context.Context, number string, index string) (*model.Event, error) {
-
 	_number, err := strconv.ParseUint(number, 10, 64)
 	if err != nil {
 		return nil, errors.New("Bad Block Number")
@@ -309,7 +307,6 @@ func (r *queryResolver) EventByBlockNumberAndLogIndex(ctx context.Context, numbe
 	}
 
 	return getGraphQLCompatibleEvent(ctx, _db.GetEventByBlockNumberAndLogIndex(db, _number, uint(_index)), true)
-
 }
 
 // Query returns generated.QueryResolver implementation.

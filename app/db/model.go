@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"time"
@@ -22,11 +23,14 @@ type Blocks struct {
 	Difficulty          string       `gorm:"column:difficulty;type:varchar;not null"`
 	GasUsed             uint64       `gorm:"column:gasused;type:bigint;not null"`
 	GasLimit            uint64       `gorm:"column:gaslimit;type:bigint;not null"`
-	Nonce               uint64       `gorm:"column:nonce;type:bigint;not null"`
+	Nonce               string       `gorm:"column:nonce;type:varchar;not null"`
 	Miner               string       `gorm:"column:miner;type:char(42);not null"`
 	Size                float64      `gorm:"column:size;type:float(8);not null"`
+	StateRootHash       string       `gorm:"column:stateroothash;type:char(66);not null"`
+	UncleHash           string       `gorm:"column:unclehash;type:char(66);not null"`
 	TransactionRootHash string       `gorm:"column:txroothash;type:char(66);not null"`
 	ReceiptRootHash     string       `gorm:"column:receiptroothash;type:char(66);not null"`
+	ExtraData           []byte       `gorm:"column:extradata;type:bytea"`
 	Transactions        Transactions `gorm:"foreignKey:blockhash"`
 	Events              Events       `gorm:"foreignKey:blockhash"`
 }
@@ -48,8 +52,11 @@ func (b *Blocks) SimilarTo(_b *Blocks) bool {
 		b.Nonce == _b.Nonce &&
 		b.Miner == _b.Miner &&
 		b.Size == _b.Size &&
+		b.StateRootHash == _b.StateRootHash &&
+		b.UncleHash == _b.UncleHash &&
 		b.TransactionRootHash == _b.TransactionRootHash &&
-		b.ReceiptRootHash == _b.ReceiptRootHash
+		b.ReceiptRootHash == _b.ReceiptRootHash &&
+		bytes.Compare(b.ExtraData, _b.ExtraData) == 0
 }
 
 // Transactions - Blockchain transaction holder table model
@@ -79,7 +86,7 @@ type Events struct {
 	BlockHash       string         `gorm:"column:blockhash;type:char(66);not null;primaryKey"`
 	Index           uint           `gorm:"column:index;type:integer;not null;primaryKey"`
 	Origin          string         `gorm:"column:origin;type:char(42);not null;index"`
-	Topics          pq.StringArray `gorm:"column:topics;type:text[];not null"`
+	Topics          pq.StringArray `gorm:"column:topics;type:text[];not null;index:,type:gin"`
 	Data            []byte         `gorm:"column:data;type:bytea"`
 	TransactionHash string         `gorm:"column:txhash;type:char(66);not null;index"`
 }

@@ -23,3 +23,11 @@ func UpsertEvent(dbWTx *gorm.DB, event *Events) error {
 	return dbWTx.Clauses(clause.OnConflict{UpdateAll: true}).Create(event).Error
 
 }
+
+// RemoveEventsByBlockHash - All events emitted by tx(s) packed in block, to be
+// removed from DB
+func RemoveEventsByBlockHash(dbWTx *gorm.DB, blockHash string) error {
+
+	return dbWTx.Where("blockhash = ?", blockHash).Delete(&Events{}).Error
+
+}

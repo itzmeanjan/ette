@@ -13,8 +13,11 @@ type Block struct {
 	Nonce           string  `json:"nonce"`
 	Miner           string  `json:"miner"`
 	Size            float64 `json:"size"`
+	StateRootHash   string  `json:"stateRootHash"`
+	UncleHash       string  `json:"uncleHash"`
 	TxRootHash      string  `json:"txRootHash"`
 	ReceiptRootHash string  `json:"receiptRootHash"`
+	ExtraData       string  `json:"extraData"`
 }
 
 type Event struct {

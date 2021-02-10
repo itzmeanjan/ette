@@ -23,3 +23,10 @@ func UpsertTransaction(dbWTx *gorm.DB, tx *Transactions) error {
 	return dbWTx.Clauses(clause.OnConflict{UpdateAll: true}).Create(tx).Error
 
 }
+
+// RemoveTransactionsByBlockHash - Remove all tx(s) packed in this block from DB
+func RemoveTransactionsByBlockHash(dbWTx *gorm.DB, blockHash string) error {
+
+	return dbWTx.Where("blockhash = ?", blockHash).Delete(&Transactions{}).Error
+
+}

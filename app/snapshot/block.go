@@ -24,8 +24,11 @@ func BlockToProtoBuf(block *data.Block, db *gorm.DB) *pb.Block {
 		Nonce:               block.Nonce,
 		Miner:               block.Miner,
 		Size:                block.Size,
+		StateRootHash:       block.StateRootHash,
+		UncleHash:           block.UncleHash,
 		TransactionRootHash: block.TransactionRootHash,
 		ReceiptRootHash:     block.ReceiptRootHash,
+		ExtraData:           block.ExtraData,
 	}
 
 	txs := _db.GetTransactionsByBlockHash(db, common.HexToHash(block.Hash))
@@ -53,8 +56,11 @@ func ProtoBufToBlock(block *pb.Block) *_db.PackedBlock {
 		Nonce:               block.Nonce,
 		Miner:               block.Miner,
 		Size:                block.Size,
+		StateRootHash:       block.StateRootHash,
+		UncleHash:           block.UncleHash,
 		TransactionRootHash: block.TransactionRootHash,
 		ReceiptRootHash:     block.ReceiptRootHash,
+		ExtraData:           block.ExtraData,
 	}
 
 	if block.Transactions == nil {
