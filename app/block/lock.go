@@ -86,9 +86,9 @@ func NewLock() *ProcessQueueLock {
 		runningQueue:     make(map[uint64]<-chan bool, 0),
 		runningQueueLock: &sync.RWMutex{},
 		waitingQueue:     make(map[uint64]chan bool, 0),
-		done:             make(chan uint64, runtime.NumCPU()*int(cfg.GetConcurrencyFactor())*5),
-		wait:             make(chan *LockRequest, runtime.NumCPU()*int(cfg.GetConcurrencyFactor())*5),
-		pool:             workerpool.New(runtime.NumCPU() * int(cfg.GetConcurrencyFactor()) * 5),
+		done:             make(chan uint64, runtime.NumCPU()*int(cfg.GetConcurrencyFactor())),
+		wait:             make(chan *LockRequest, runtime.NumCPU()*int(cfg.GetConcurrencyFactor())),
+		pool:             workerpool.New(runtime.NumCPU() * int(cfg.GetConcurrencyFactor())),
 	}
 
 	go lock.waitingQueueWatceher()
