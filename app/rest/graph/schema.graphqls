@@ -45,11 +45,12 @@ type Query {
   blockByNumber(number: String!): Block!
   blocksByNumberRange(from: String!, to: String!): [Block!]!
   blocksByTimeRange(from: String!, to: String!): [Block!]!
-  
-  transactionByHash(hash: String!): Transaction!
-  transactionsByBlockHash(hash: String!): [Transaction!]!
-  transactionsByBlockNumber(number: String!): [Transaction!]!
+
   transaction(hash: String!): Transaction!
+  transactionCountByBlockHash(hash: String!): Int!
+  transactionsByBlockHash(hash: String!): [Transaction!]!
+  transactionCountByBlockNumber(number: String!): Int!
+  transactionsByBlockNumber(number: String!): [Transaction!]!
   transactionsFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
   transactionsFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
   transactionsToAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
