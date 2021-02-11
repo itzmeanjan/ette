@@ -70,33 +70,39 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		BlockByHash                               func(childComplexity int, hash string) int
-		BlockByNumber                             func(childComplexity int, number string) int
-		BlocksByNumberRange                       func(childComplexity int, from string, to string) int
-		BlocksByTimeRange                         func(childComplexity int, from string, to string) int
-		ContractsCreatedFromAccountByNumberRange  func(childComplexity int, account string, from string, to string) int
-		ContractsCreatedFromAccountByTimeRange    func(childComplexity int, account string, from string, to string) int
-		EventByBlockHashAndLogIndex               func(childComplexity int, hash string, index string) int
-		EventByBlockNumberAndLogIndex             func(childComplexity int, number string, index string) int
-		EventsByBlockHash                         func(childComplexity int, hash string) int
-		EventsByTxHash                            func(childComplexity int, hash string) int
-		EventsFromContractByNumberRange           func(childComplexity int, contract string, from string, to string) int
-		EventsFromContractByTimeRange             func(childComplexity int, contract string, from string, to string) int
-		EventsFromContractWithTopicsByNumberRange func(childComplexity int, contract string, from string, to string, topics []string) int
-		EventsFromContractWithTopicsByTimeRange   func(childComplexity int, contract string, from string, to string, topics []string) int
-		LastXEventsFromContract                   func(childComplexity int, contract string, x int) int
-		Transaction                               func(childComplexity int, hash string) int
-		TransactionCountByBlockHash               func(childComplexity int, hash string) int
-		TransactionCountByBlockNumber             func(childComplexity int, number string) int
-		TransactionFromAccountWithNonce           func(childComplexity int, account string, nonce string) int
-		TransactionsBetweenAccountsByNumberRange  func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
-		TransactionsBetweenAccountsByTimeRange    func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
-		TransactionsByBlockHash                   func(childComplexity int, hash string) int
-		TransactionsByBlockNumber                 func(childComplexity int, number string) int
-		TransactionsFromAccountByNumberRange      func(childComplexity int, account string, from string, to string) int
-		TransactionsFromAccountByTimeRange        func(childComplexity int, account string, from string, to string) int
-		TransactionsToAccountByNumberRange        func(childComplexity int, account string, from string, to string) int
-		TransactionsToAccountByTimeRange          func(childComplexity int, account string, from string, to string) int
+		BlockByHash                                  func(childComplexity int, hash string) int
+		BlockByNumber                                func(childComplexity int, number string) int
+		BlocksByNumberRange                          func(childComplexity int, from string, to string) int
+		BlocksByTimeRange                            func(childComplexity int, from string, to string) int
+		ContractsCreatedFromAccountByNumberRange     func(childComplexity int, account string, from string, to string) int
+		ContractsCreatedFromAccountByTimeRange       func(childComplexity int, account string, from string, to string) int
+		EventByBlockHashAndLogIndex                  func(childComplexity int, hash string, index string) int
+		EventByBlockNumberAndLogIndex                func(childComplexity int, number string, index string) int
+		EventsByBlockHash                            func(childComplexity int, hash string) int
+		EventsByTxHash                               func(childComplexity int, hash string) int
+		EventsFromContractByNumberRange              func(childComplexity int, contract string, from string, to string) int
+		EventsFromContractByTimeRange                func(childComplexity int, contract string, from string, to string) int
+		EventsFromContractWithTopicsByNumberRange    func(childComplexity int, contract string, from string, to string, topics []string) int
+		EventsFromContractWithTopicsByTimeRange      func(childComplexity int, contract string, from string, to string, topics []string) int
+		LastXEventsFromContract                      func(childComplexity int, contract string, x int) int
+		Transaction                                  func(childComplexity int, hash string) int
+		TransactionCountBetweenAccountsByNumberRange func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
+		TransactionCountBetweenAccountsByTimeRange   func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
+		TransactionCountByBlockHash                  func(childComplexity int, hash string) int
+		TransactionCountByBlockNumber                func(childComplexity int, number string) int
+		TransactionCountFromAccountByNumberRange     func(childComplexity int, account string, from string, to string) int
+		TransactionCountFromAccountByTimeRange       func(childComplexity int, account string, from string, to string) int
+		TransactionCountToAccountByNumberRange       func(childComplexity int, account string, from string, to string) int
+		TransactionCountToAccountByTimeRange         func(childComplexity int, account string, from string, to string) int
+		TransactionFromAccountWithNonce              func(childComplexity int, account string, nonce string) int
+		TransactionsBetweenAccountsByNumberRange     func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
+		TransactionsBetweenAccountsByTimeRange       func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
+		TransactionsByBlockHash                      func(childComplexity int, hash string) int
+		TransactionsByBlockNumber                    func(childComplexity int, number string) int
+		TransactionsFromAccountByNumberRange         func(childComplexity int, account string, from string, to string) int
+		TransactionsFromAccountByTimeRange           func(childComplexity int, account string, from string, to string) int
+		TransactionsToAccountByNumberRange           func(childComplexity int, account string, from string, to string) int
+		TransactionsToAccountByTimeRange             func(childComplexity int, account string, from string, to string) int
 	}
 
 	Transaction struct {
@@ -125,11 +131,17 @@ type QueryResolver interface {
 	TransactionsByBlockHash(ctx context.Context, hash string) ([]*model.Transaction, error)
 	TransactionCountByBlockNumber(ctx context.Context, number string) (int, error)
 	TransactionsByBlockNumber(ctx context.Context, number string) ([]*model.Transaction, error)
+	TransactionCountFromAccountByNumberRange(ctx context.Context, account string, from string, to string) (int, error)
 	TransactionsFromAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error)
+	TransactionCountFromAccountByTimeRange(ctx context.Context, account string, from string, to string) (int, error)
 	TransactionsFromAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error)
+	TransactionCountToAccountByNumberRange(ctx context.Context, account string, from string, to string) (int, error)
 	TransactionsToAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error)
+	TransactionCountToAccountByTimeRange(ctx context.Context, account string, from string, to string) (int, error)
 	TransactionsToAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error)
+	TransactionCountBetweenAccountsByNumberRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) (int, error)
 	TransactionsBetweenAccountsByNumberRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error)
+	TransactionCountBetweenAccountsByTimeRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) (int, error)
 	TransactionsBetweenAccountsByTimeRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error)
 	ContractsCreatedFromAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error)
 	ContractsCreatedFromAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error)
@@ -499,6 +511,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Transaction(childComplexity, args["hash"].(string)), true
 
+	case "Query.transactionCountBetweenAccountsByNumberRange":
+		if e.complexity.Query.TransactionCountBetweenAccountsByNumberRange == nil {
+			break
+		}
+
+		args, err := ec.field_Query_transactionCountBetweenAccountsByNumberRange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TransactionCountBetweenAccountsByNumberRange(childComplexity, args["fromAccount"].(string), args["toAccount"].(string), args["from"].(string), args["to"].(string)), true
+
+	case "Query.transactionCountBetweenAccountsByTimeRange":
+		if e.complexity.Query.TransactionCountBetweenAccountsByTimeRange == nil {
+			break
+		}
+
+		args, err := ec.field_Query_transactionCountBetweenAccountsByTimeRange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TransactionCountBetweenAccountsByTimeRange(childComplexity, args["fromAccount"].(string), args["toAccount"].(string), args["from"].(string), args["to"].(string)), true
+
 	case "Query.transactionCountByBlockHash":
 		if e.complexity.Query.TransactionCountByBlockHash == nil {
 			break
@@ -522,6 +558,54 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.TransactionCountByBlockNumber(childComplexity, args["number"].(string)), true
+
+	case "Query.transactionCountFromAccountByNumberRange":
+		if e.complexity.Query.TransactionCountFromAccountByNumberRange == nil {
+			break
+		}
+
+		args, err := ec.field_Query_transactionCountFromAccountByNumberRange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TransactionCountFromAccountByNumberRange(childComplexity, args["account"].(string), args["from"].(string), args["to"].(string)), true
+
+	case "Query.transactionCountFromAccountByTimeRange":
+		if e.complexity.Query.TransactionCountFromAccountByTimeRange == nil {
+			break
+		}
+
+		args, err := ec.field_Query_transactionCountFromAccountByTimeRange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TransactionCountFromAccountByTimeRange(childComplexity, args["account"].(string), args["from"].(string), args["to"].(string)), true
+
+	case "Query.transactionCountToAccountByNumberRange":
+		if e.complexity.Query.TransactionCountToAccountByNumberRange == nil {
+			break
+		}
+
+		args, err := ec.field_Query_transactionCountToAccountByNumberRange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TransactionCountToAccountByNumberRange(childComplexity, args["account"].(string), args["from"].(string), args["to"].(string)), true
+
+	case "Query.transactionCountToAccountByTimeRange":
+		if e.complexity.Query.TransactionCountToAccountByTimeRange == nil {
+			break
+		}
+
+		args, err := ec.field_Query_transactionCountToAccountByTimeRange_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TransactionCountToAccountByTimeRange(childComplexity, args["account"].(string), args["from"].(string), args["to"].(string)), true
 
 	case "Query.transactionFromAccountWithNonce":
 		if e.complexity.Query.TransactionFromAccountWithNonce == nil {
@@ -813,20 +897,37 @@ type Query {
   blocksByNumberRange(from: String!, to: String!): [Block!]!
   blocksByTimeRange(from: String!, to: String!): [Block!]!
 
+  # -- transaction related methods, start
   transaction(hash: String!): Transaction!
+  
   transactionCountByBlockHash(hash: String!): Int!
   transactionsByBlockHash(hash: String!): [Transaction!]!
+  
   transactionCountByBlockNumber(number: String!): Int!
   transactionsByBlockNumber(number: String!): [Transaction!]!
+  
+  transactionCountFromAccountByNumberRange(account: String!, from: String!, to: String!): Int!
   transactionsFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+  
+  transactionCountFromAccountByTimeRange(account: String!, from: String!, to: String!): Int!
   transactionsFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+  
+  transactionCountToAccountByNumberRange(account: String!, from: String!, to: String!): Int!
   transactionsToAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+
+  transactionCountToAccountByTimeRange(account: String!, from: String!, to: String!): Int!
   transactionsToAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+
+  transactionCountBetweenAccountsByNumberRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): Int!
   transactionsBetweenAccountsByNumberRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
+
+  transactionCountBetweenAccountsByTimeRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): Int!
   transactionsBetweenAccountsByTimeRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
+
   contractsCreatedFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
   contractsCreatedFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
   transactionFromAccountWithNonce(account: String!, nonce: String!): Transaction!
+  # transaction related methods, end
 
   eventsFromContractByNumberRange(contract: String!, from: String!, to: String!): [Event!]!
   eventsFromContractByTimeRange(contract: String!, from: String!, to: String!): [Event!]!
@@ -1257,6 +1358,90 @@ func (ec *executionContext) field_Query_lastXEventsFromContract_args(ctx context
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_transactionCountBetweenAccountsByNumberRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["fromAccount"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fromAccount"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["fromAccount"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["toAccount"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("toAccount"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["toAccount"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["from"] = arg2
+	var arg3 string
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg3, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_transactionCountBetweenAccountsByTimeRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["fromAccount"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fromAccount"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["fromAccount"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["toAccount"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("toAccount"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["toAccount"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["from"] = arg2
+	var arg3 string
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg3, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg3
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_transactionCountByBlockHash_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1284,6 +1469,138 @@ func (ec *executionContext) field_Query_transactionCountByBlockNumber_args(ctx c
 		}
 	}
 	args["number"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_transactionCountFromAccountByNumberRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["account"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("account"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["account"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["from"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_transactionCountFromAccountByTimeRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["account"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("account"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["account"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["from"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_transactionCountToAccountByNumberRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["account"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("account"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["account"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["from"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_transactionCountToAccountByTimeRange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["account"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("account"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["account"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["from"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("from"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["from"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["to"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("to"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["to"] = arg2
 	return args, nil
 }
 
@@ -2723,6 +3040,48 @@ func (ec *executionContext) _Query_transactionsByBlockNumber(ctx context.Context
 	return ec.marshalNTransaction2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐTransactionᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_transactionCountFromAccountByNumberRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_transactionCountFromAccountByNumberRange_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TransactionCountFromAccountByNumberRange(rctx, args["account"].(string), args["from"].(string), args["to"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_transactionsFromAccountByNumberRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2763,6 +3122,48 @@ func (ec *executionContext) _Query_transactionsFromAccountByNumberRange(ctx cont
 	res := resTmp.([]*model.Transaction)
 	fc.Result = res
 	return ec.marshalNTransaction2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐTransactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_transactionCountFromAccountByTimeRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_transactionCountFromAccountByTimeRange_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TransactionCountFromAccountByTimeRange(rctx, args["account"].(string), args["from"].(string), args["to"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_transactionsFromAccountByTimeRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2807,6 +3208,48 @@ func (ec *executionContext) _Query_transactionsFromAccountByTimeRange(ctx contex
 	return ec.marshalNTransaction2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐTransactionᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_transactionCountToAccountByNumberRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_transactionCountToAccountByNumberRange_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TransactionCountToAccountByNumberRange(rctx, args["account"].(string), args["from"].(string), args["to"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_transactionsToAccountByNumberRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2847,6 +3290,48 @@ func (ec *executionContext) _Query_transactionsToAccountByNumberRange(ctx contex
 	res := resTmp.([]*model.Transaction)
 	fc.Result = res
 	return ec.marshalNTransaction2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐTransactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_transactionCountToAccountByTimeRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_transactionCountToAccountByTimeRange_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TransactionCountToAccountByTimeRange(rctx, args["account"].(string), args["from"].(string), args["to"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_transactionsToAccountByTimeRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2891,6 +3376,48 @@ func (ec *executionContext) _Query_transactionsToAccountByTimeRange(ctx context.
 	return ec.marshalNTransaction2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐTransactionᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_transactionCountBetweenAccountsByNumberRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_transactionCountBetweenAccountsByNumberRange_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TransactionCountBetweenAccountsByNumberRange(rctx, args["fromAccount"].(string), args["toAccount"].(string), args["from"].(string), args["to"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_transactionsBetweenAccountsByNumberRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2931,6 +3458,48 @@ func (ec *executionContext) _Query_transactionsBetweenAccountsByNumberRange(ctx 
 	res := resTmp.([]*model.Transaction)
 	fc.Result = res
 	return ec.marshalNTransaction2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐTransactionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_transactionCountBetweenAccountsByTimeRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_transactionCountBetweenAccountsByTimeRange_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TransactionCountBetweenAccountsByTimeRange(rctx, args["fromAccount"].(string), args["toAccount"].(string), args["from"].(string), args["to"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_transactionsBetweenAccountsByTimeRange(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5355,6 +5924,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "transactionCountFromAccountByNumberRange":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_transactionCountFromAccountByNumberRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "transactionsFromAccountByNumberRange":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -5364,6 +5947,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_transactionsFromAccountByNumberRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "transactionCountFromAccountByTimeRange":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_transactionCountFromAccountByTimeRange(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -5383,6 +5980,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "transactionCountToAccountByNumberRange":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_transactionCountToAccountByNumberRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "transactionsToAccountByNumberRange":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -5392,6 +6003,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_transactionsToAccountByNumberRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "transactionCountToAccountByTimeRange":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_transactionCountToAccountByTimeRange(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -5411,6 +6036,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "transactionCountBetweenAccountsByNumberRange":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_transactionCountBetweenAccountsByNumberRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "transactionsBetweenAccountsByNumberRange":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -5420,6 +6059,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_transactionsBetweenAccountsByNumberRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "transactionCountBetweenAccountsByTimeRange":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_transactionCountBetweenAccountsByTimeRange(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -119,6 +120,10 @@ func (r *queryResolver) TransactionsByBlockNumber(ctx context.Context, number st
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsByBlockNumber(db, _number))
 }
 
+func (r *queryResolver) TransactionCountFromAccountByNumberRange(ctx context.Context, account string, from string, to string) (int, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
 	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
 		return nil, errors.New("Bad Account Address")
@@ -130,6 +135,10 @@ func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context
 	}
 
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsFromAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
+}
+
+func (r *queryResolver) TransactionCountFromAccountByTimeRange(ctx context.Context, account string, from string, to string) (int, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) TransactionsFromAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -145,6 +154,10 @@ func (r *queryResolver) TransactionsFromAccountByTimeRange(ctx context.Context, 
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsFromAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
 }
 
+func (r *queryResolver) TransactionCountToAccountByNumberRange(ctx context.Context, account string, from string, to string) (int, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
 	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
 		return nil, errors.New("Bad Account Address")
@@ -158,6 +171,10 @@ func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, 
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsToAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
 }
 
+func (r *queryResolver) TransactionCountToAccountByTimeRange(ctx context.Context, account string, from string, to string) (int, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
 	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
 		return nil, errors.New("Bad Account Address")
@@ -169,6 +186,10 @@ func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, ac
 	}
 
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsToAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
+}
+
+func (r *queryResolver) TransactionCountBetweenAccountsByNumberRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) (int, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) TransactionsBetweenAccountsByNumberRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error) {
@@ -186,6 +207,10 @@ func (r *queryResolver) TransactionsBetweenAccountsByNumberRange(ctx context.Con
 	}
 
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsBetweenAccountsByBlockNumberRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to))
+}
+
+func (r *queryResolver) TransactionCountBetweenAccountsByTimeRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) (int, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) TransactionsBetweenAccountsByTimeRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error) {
