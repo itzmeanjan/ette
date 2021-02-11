@@ -46,6 +46,7 @@ type Query {
   blocksByNumberRange(from: String!, to: String!): [Block!]!
   blocksByTimeRange(from: String!, to: String!): [Block!]!
   
+  transactionByHash(hash: String!): Transaction!
   transactionsByBlockHash(hash: String!): [Transaction!]!
   transactionsByBlockNumber(number: String!): [Transaction!]!
   transaction(hash: String!): Transaction!
