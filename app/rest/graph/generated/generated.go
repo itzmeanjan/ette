@@ -86,6 +86,7 @@ type ComplexityRoot struct {
 		EventsFromContractWithTopicsByTimeRange   func(childComplexity int, contract string, from string, to string, topics []string) int
 		LastXEventsFromContract                   func(childComplexity int, contract string, x int) int
 		Transaction                               func(childComplexity int, hash string) int
+		TransactionByHash                         func(childComplexity int, hash string) int
 		TransactionFromAccountWithNonce           func(childComplexity int, account string, nonce string) int
 		TransactionsBetweenAccountsByNumberRange  func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
 		TransactionsBetweenAccountsByTimeRange    func(childComplexity int, fromAccount string, toAccount string, from string, to string) int
@@ -118,6 +119,7 @@ type QueryResolver interface {
 	BlockByNumber(ctx context.Context, number string) (*model.Block, error)
 	BlocksByNumberRange(ctx context.Context, from string, to string) ([]*model.Block, error)
 	BlocksByTimeRange(ctx context.Context, from string, to string) ([]*model.Block, error)
+	TransactionByHash(ctx context.Context, hash string) (*model.Transaction, error)
 	TransactionsByBlockHash(ctx context.Context, hash string) ([]*model.Transaction, error)
 	TransactionsByBlockNumber(ctx context.Context, number string) ([]*model.Transaction, error)
 	Transaction(ctx context.Context, hash string) (*model.Transaction, error)
@@ -495,6 +497,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Transaction(childComplexity, args["hash"].(string)), true
 
+	case "Query.transactionByHash":
+		if e.complexity.Query.TransactionByHash == nil {
+			break
+		}
+
+		args, err := ec.field_Query_transactionByHash_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TransactionByHash(childComplexity, args["hash"].(string)), true
+
 	case "Query.transactionFromAccountWithNonce":
 		if e.complexity.Query.TransactionFromAccountWithNonce == nil {
 			break
@@ -785,6 +799,7 @@ type Query {
   blocksByNumberRange(from: String!, to: String!): [Block!]!
   blocksByTimeRange(from: String!, to: String!): [Block!]!
   
+  transactionByHash(hash: String!): Transaction!
   transactionsByBlockHash(hash: String!): [Transaction!]!
   transactionsByBlockNumber(number: String!): [Transaction!]!
   transaction(hash: String!): Transaction!
@@ -1224,6 +1239,21 @@ func (ec *executionContext) field_Query_lastXEventsFromContract_args(ctx context
 		}
 	}
 	args["x"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_transactionByHash_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["hash"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hash"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["hash"] = arg0
 	return args, nil
 }
 
@@ -2451,6 +2481,48 @@ func (ec *executionContext) _Query_blocksByTimeRange(ctx context.Context, field 
 	res := resTmp.([]*model.Block)
 	fc.Result = res
 	return ec.marshalNBlock2ᚕᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐBlockᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_transactionByHash(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_transactionByHash_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().TransactionByHash(rctx, args["hash"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Transaction)
+	fc.Result = res
+	return ec.marshalNTransaction2ᚖgithubᚗcomᚋitzmeanjanᚋetteᚋappᚋrestᚋgraphᚋmodelᚐTransaction(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_transactionsByBlockHash(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5136,6 +5208,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_blocksByTimeRange(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "transactionByHash":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_transactionByHash(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

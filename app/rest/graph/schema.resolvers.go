@@ -52,6 +52,14 @@ func (r *queryResolver) BlocksByTimeRange(ctx context.Context, from string, to s
 	return getGraphQLCompatibleBlocks(ctx, _db.GetBlocksByTimeRange(db, _from, _to))
 }
 
+func (r *queryResolver) TransactionByHash(ctx context.Context, hash string) (*model.Transaction, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return nil, errors.New("Bad Transaction Hash")
+	}
+
+	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionByHash(db, common.HexToHash(hash)), true)
+}
+
 func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string) ([]*model.Transaction, error) {
 	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
 		return nil, errors.New("Bad Block Hash")
