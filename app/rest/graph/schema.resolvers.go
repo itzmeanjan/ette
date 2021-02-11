@@ -235,7 +235,28 @@ func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, 
 }
 
 func (r *queryResolver) TransactionCountToAccountByTimeRange(ctx context.Context, account string, from string, to string) (int, error) {
-	panic(fmt.Errorf("not implemented"))
+	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
+		return 0, errors.New("Bad Account Address")
+	}
+
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
+	if err != nil {
+		return 0, errors.New("Bad Block Timestamp Range")
+	}
+
+	count := int(_db.GetTransactionCountToAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
 }
 
 func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
