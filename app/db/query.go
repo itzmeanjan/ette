@@ -143,7 +143,7 @@ func GetBlocksByTimeRange(db *gorm.DB, from uint64, to uint64) *data.Blocks {
 
 // GetTransactionCountByBlockHash - Given block hash, finds out how many
 // transactions are packed in that block
-func GetTransactionCountByBlockHash(db *gorm.DB, hash common.Hash) uint32 {
+func GetTransactionCountByBlockHash(db *gorm.DB, hash common.Hash) int64 {
 
 	var count int64
 
@@ -151,7 +151,7 @@ func GetTransactionCountByBlockHash(db *gorm.DB, hash common.Hash) uint32 {
 		return 0
 	}
 
-	return uint32(count)
+	return count
 
 }
 
@@ -171,7 +171,7 @@ func GetTransactionsByBlockHash(db *gorm.DB, hash common.Hash) *data.Transaction
 
 // GetTransactionCountByBlockNumber - Given block number, finds out how many
 // transactions are packed in that block
-func GetTransactionCountByBlockNumber(db *gorm.DB, number uint64) uint32 {
+func GetTransactionCountByBlockNumber(db *gorm.DB, number uint64) int64 {
 
 	var count int64
 
@@ -179,7 +179,7 @@ func GetTransactionCountByBlockNumber(db *gorm.DB, number uint64) uint32 {
 		return 0
 	}
 
-	return uint32(count)
+	return count
 
 }
 
