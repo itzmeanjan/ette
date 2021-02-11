@@ -208,6 +208,20 @@ func GetTransactionByHash(db *gorm.DB, hash common.Hash) *data.Transaction {
 	return &tx
 }
 
+// GetTransactionCountFromAccountByBlockNumberRange - Given account address & block number range, it can find out
+// how many tx(s) were sent from this account in specified block range
+func GetTransactionCountFromAccountByBlockNumberRange(db *gorm.DB, account common.Address, from uint64, to uint64) int64 {
+
+	var count int64
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.from = ? and blocks.number >= ? and blocks.number <= ?", account.Hex(), from, to).Count(&count).Error; err != nil {
+		return 0
+	}
+
+	return count
+
+}
+
 // GetTransactionsFromAccountByBlockNumberRange - Given account address & block number range, it can find out
 // all transactions which are performed from this account
 func GetTransactionsFromAccountByBlockNumberRange(db *gorm.DB, account common.Address, from uint64, to uint64) *data.Transactions {
