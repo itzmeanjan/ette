@@ -348,6 +348,20 @@ func GetTransactionsBetweenAccountsByBlockNumberRange(db *gorm.DB, fromAccount c
 	}
 }
 
+// GetTransactionCountBetweenAccountsByBlockTimeRange - Given from & to account addresses & block mining time range,
+// returns #-of transactions where `from` & `to` fields are matching
+func GetTransactionCountBetweenAccountsByBlockTimeRange(db *gorm.DB, fromAccount common.Address, toAccount common.Address, from uint64, to uint64) int64 {
+
+	var count int64
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.from = ? and transactions.to = ? and blocks.time >= ? and blocks.time <= ?", fromAccount.Hex(), toAccount.Hex(), from, to).Count(&count).Error; err != nil {
+		return 0
+	}
+
+	return count
+
+}
+
 // GetTransactionsBetweenAccountsByBlockTimeRange - Given from & to account addresses & block mining time range,
 // returns transactions where `from` & `to` fields are matching
 func GetTransactionsBetweenAccountsByBlockTimeRange(db *gorm.DB, fromAccount common.Address, toAccount common.Address, from uint64, to uint64) *data.Transactions {
