@@ -46,20 +46,37 @@ type Query {
   blocksByNumberRange(from: String!, to: String!): [Block!]!
   blocksByTimeRange(from: String!, to: String!): [Block!]!
 
+  # -- transaction related methods, start
   transaction(hash: String!): Transaction!
+  
   transactionCountByBlockHash(hash: String!): Int!
   transactionsByBlockHash(hash: String!): [Transaction!]!
+  
   transactionCountByBlockNumber(number: String!): Int!
   transactionsByBlockNumber(number: String!): [Transaction!]!
+  
+  transactionCountFromAccountByNumberRange(account: String!, from: String!, to: String!): Int!
   transactionsFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+  
+  transactionCountFromAccountByTimeRange(account: String!, from: String!, to: String!): Int!
   transactionsFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+  
+  transactionCountToAccountByNumberRange(account: String!, from: String!, to: String!): Int!
   transactionsToAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
+
+  transactionCountToAccountByTimeRange(account: String!, from: String!, to: String!): Int!
   transactionsToAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
+
+  transactionCountBetweenAccountsByNumberRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): Int!
   transactionsBetweenAccountsByNumberRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
+
+  transactionCountBetweenAccountsByTimeRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): Int!
   transactionsBetweenAccountsByTimeRange(fromAccount: String!, toAccount: String!, from: String!, to: String!): [Transaction!]!
+
   contractsCreatedFromAccountByNumberRange(account: String!, from: String!, to: String!): [Transaction!]!
   contractsCreatedFromAccountByTimeRange(account: String!, from: String!, to: String!): [Transaction!]!
   transactionFromAccountWithNonce(account: String!, nonce: String!): Transaction!
+  # transaction related methods, end
 
   eventsFromContractByNumberRange(contract: String!, from: String!, to: String!): [Event!]!
   eventsFromContractByTimeRange(contract: String!, from: String!, to: String!): [Event!]!
