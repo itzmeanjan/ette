@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -91,7 +90,24 @@ func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string
 }
 
 func (r *queryResolver) TransactionCountByBlockNumber(ctx context.Context, number string) (int, error) {
-	panic(fmt.Errorf("not implemented"))
+	_number, err := strconv.ParseUint(number, 10, 64)
+	if err != nil {
+		return 0, errors.New("Bad Block Number")
+	}
+
+	count := int(_db.GetTransactionCountByBlockNumber(db, _number))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
 }
 
 func (r *queryResolver) TransactionsByBlockNumber(ctx context.Context, number string) ([]*model.Transaction, error) {
