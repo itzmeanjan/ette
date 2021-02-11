@@ -264,6 +264,20 @@ func GetTransactionsFromAccountByBlockTimeRange(db *gorm.DB, account common.Addr
 	}
 }
 
+// GetTransactionCountToAccountByBlockNumberRange - Given account address & block number range, returns #-of transactions where
+// `account` was in `to` field
+func GetTransactionCountToAccountByBlockNumberRange(db *gorm.DB, account common.Address, from uint64, to uint64) int64 {
+
+	var count int64
+
+	if err := db.Model(&Transactions{}).Joins("left join blocks on transactions.blockhash = blocks.hash").Where("transactions.to = ? and blocks.number >= ? and blocks.number <= ?", account.Hex(), from, to).Count(&count).Error; err != nil {
+		return 0
+	}
+
+	return count
+
+}
+
 // GetTransactionsToAccountByBlockNumberRange - Given account address & block number range, returns transactions where
 // `account` was in `to` field
 func GetTransactionsToAccountByBlockNumberRange(db *gorm.DB, account common.Address, from uint64, to uint64) *data.Transactions {
