@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -319,7 +318,32 @@ func (r *queryResolver) TransactionsBetweenAccountsByNumberRange(ctx context.Con
 }
 
 func (r *queryResolver) TransactionCountBetweenAccountsByTimeRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) (int, error) {
-	panic(fmt.Errorf("not implemented"))
+	if !(strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42) {
+		return 0, errors.New("Bad From Account Address")
+	}
+
+	if !(strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42) {
+		return 0, errors.New("Bad To Account Address")
+	}
+
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
+	if err != nil {
+		return 0, errors.New("Bad Block Timestamp Range")
+	}
+
+	count := int(_db.GetTransactionCountBetweenAccountsByBlockTimeRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
 }
 
 func (r *queryResolver) TransactionsBetweenAccountsByTimeRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error) {
