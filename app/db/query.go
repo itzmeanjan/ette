@@ -169,6 +169,20 @@ func GetTransactionsByBlockHash(db *gorm.DB, hash common.Hash) *data.Transaction
 	}
 }
 
+// GetTransactionCountByBlockNumber - Given block number, finds out how many
+// transactions are packed in that block
+func GetTransactionCountByBlockNumber(db *gorm.DB, number uint64) uint32 {
+
+	var count int64
+
+	if err := db.Model(&Transactions{}).Where("blockhash = (?)", db.Model(&Blocks{}).Where("number = ?", number).Select("hash")).Count(&count).Error; err != nil {
+		return 0
+	}
+
+	return uint32(count)
+
+}
+
 // GetTransactionsByBlockNumber - Given block number, returns all transactions
 // present in that block
 func GetTransactionsByBlockNumber(db *gorm.DB, number uint64) *data.Transactions {
