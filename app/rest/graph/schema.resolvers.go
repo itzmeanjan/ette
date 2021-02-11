@@ -5,7 +5,9 @@ package graph
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -52,12 +54,32 @@ func (r *queryResolver) BlocksByTimeRange(ctx context.Context, from string, to s
 	return getGraphQLCompatibleBlocks(ctx, _db.GetBlocksByTimeRange(db, _from, _to))
 }
 
-func (r *queryResolver) TransactionByHash(ctx context.Context, hash string) (*model.Transaction, error) {
+func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Transaction, error) {
 	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
 		return nil, errors.New("Bad Transaction Hash")
 	}
 
 	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionByHash(db, common.HexToHash(hash)), true)
+}
+
+func (r *queryResolver) TransactionCountByBlockHash(ctx context.Context, hash string) (int, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return 0, errors.New("Bad Block Hash")
+	}
+
+	count := int(_db.GetTransactionCountByBlockHash(db, common.HexToHash(hash)))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
 }
 
 func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string) ([]*model.Transaction, error) {
@@ -68,6 +90,10 @@ func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsByBlockHash(db, common.HexToHash(hash)))
 }
 
+func (r *queryResolver) TransactionCountByBlockNumber(ctx context.Context, number string) (int, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) TransactionsByBlockNumber(ctx context.Context, number string) ([]*model.Transaction, error) {
 	_number, err := strconv.ParseUint(number, 10, 64)
 	if err != nil {
@@ -75,14 +101,6 @@ func (r *queryResolver) TransactionsByBlockNumber(ctx context.Context, number st
 	}
 
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsByBlockNumber(db, _number))
-}
-
-func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Transaction, error) {
-	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
-		return nil, errors.New("Bad Transaction Hash")
-	}
-
-	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionByHash(db, common.HexToHash(hash)), true)
 }
 
 func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -321,3 +339,17 @@ func (r *queryResolver) EventByBlockNumberAndLogIndex(ctx context.Context, numbe
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *queryResolver) TransactionByHash(ctx context.Context, hash string) (*model.Transaction, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return nil, errors.New("Bad Transaction Hash")
+	}
+
+	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionByHash(db, common.HexToHash(hash)), true)
+}
