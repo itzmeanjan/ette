@@ -101,9 +101,24 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 					// Starting syncer in another thread, where it'll keep fetching
 					// blocks from highest block number it fetched last time to current network block number
 					// i.e. trying to fill up gap, which was caused when `ette` was offline
+
+					// Upper limit of syncing, in terms of block number
+					from := header.Number.Uint64() - 1
+					// Lower limit of syncing, in terms of block number
 					//
-					// Backward traversal mechanism gives us more recent blockchain happenings to cover
-					go SyncBlocksByRange(connection.RPC, _db, redis, header.Number.Uint64()-1, status.MaxBlockNumberAtStartUp(), status)
+					// Subtracting confirmation required block number count, due to
+					// the fact it might be case those block contents might have changed due to
+					// some reorg, in the time duration, when `ette` was offline
+					//
+					// So we've to take a look at those
+					to := status.MaxBlockNumberAtStartUp() - cfg.GetBlockConfirmations()
+
+					// block number can never be negative
+					if to < 0 {
+						to = 0
+					}
+
+					go SyncBlocksByRange(connection.RPC, _db, redis, from, to, status)
 
 				}
 				// Making sure that when next latest block header is received, it'll not
