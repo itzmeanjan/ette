@@ -454,6 +454,15 @@ type Block {
 }
 ```
 
+Method | Parameters | Possible use case
+--- | --- | ---
+`blockByHash` | hash: String! | When you know block hash & want to get whole block data back
+`blockByNumber` | number: String! | When you know block number & want to get whole block data back
+`blocksByNumberRange` | from: String!, to: String! | When you've a block number range & want to get all blocks in that range, in a single call
+`blocksByTimeRange` | from: String!, to: String! | When you've unix timestamp range & want to get all blocks in that range, in a single call
+
+---
+
 ### Historical Transaction Data ( GraphQL API ) 🤩
 
 You can query transaction data from `ette`, using following GraphQL methods.
@@ -515,6 +524,31 @@ type Transaction {
 }
 ```
 
+Method | Parameters | Possible use case
+--- | --- | ---
+`transaction` | hash: String! | When you know txHash & want to get that tx data
+`transactionCountByBlockHash` | hash: String! | When you know block hash & want to get count of tx(s) packed in that block
+`transactionsByBlockHash` | hash: String! | When you know block hash & want to get all tx(s) packed in that block
+`transactionCountByBlockNumber` | number: String! | When you know block number & want to get count of tx(s) packed in that block
+`transactionsByBlockNumber` | number: String! | When you know block number & want to get all tx(s) packed in that block
+`transactionCountFromAccountByNumberRange` | account: String!, from: String!, to: String! | When you know tx sender address, block number range & want to find out how many tx(s) were sent by this address in that certain block number range
+`transactionsFromAccountByNumberRange` | account: String!, from: String!, to: String! | When you know tx sender address, block number range & want to find out all tx(s) that were sent by this address in that certain block number range
+`transactionCountFromAccountByTimeRange` | account: String!, from: String!, to: String! | When you know tx sender address, unix time stamp range & want to find out how many tx(s) were sent by this address in that certain timespan
+`transactionsFromAccountByTimeRange` | account: String!, from: String!, to: String! | When you know tx sender address, unix time stamp range & want to find out all tx(s) that were sent by this address in that certain timespan
+`transactionCountToAccountByNumberRange` | account: String!, from: String!, to: String! | When you know tx receiver address, block number range & want to find out how many tx(s) were sent to this address in that certain block number range
+`transactionsToAccountByNumberRange` | account: String!, from: String!, to: String! | When you know tx receiver address, block number range & want to find out all tx(s) that were sent to this address in that certain block number range
+`transactionCountToAccountByTimeRange` | account: String!, from: String!, to: String! | When you know tx receiver address, unix time stamp range & want to find out how many tx(s) were sent to this address in that certain timespan
+`transactionsToAccountByTimeRange` | account: String!, from: String!, to: String! | When you know tx receiver address, unix time stamp range & want to find out all tx(s) that were sent to this address in that certain timespan
+`transactionCountBetweenAccountsByNumberRange` | fromAccount: String!, toAccount: String!, from: String!, to: String! | When you know tx sender & receiver addresses, block number range & want to find out how many tx(s) were sent from sender to receiver in that certain block number range
+`transactionsBetweenAccountsByNumberRange` | fromAccount: String!, toAccount: String!, from: String!, to: String! | When you know tx sender & receiver addresses, block number range & want to find out all tx(s) that were sent from sender to receiver in that certain block number range
+`transactionCountBetweenAccountsByTimeRange` | fromAccount: String!, toAccount: String!, from: String!, to: String! | When you know tx sender & receiver addresses, unix timestamp range & want to find out how many tx(s) were sent from sender to receiver in that certain timespan
+`transactionsBetweenAccountsByTimeRange` | fromAccount: String!, toAccount: String!, from: String!, to: String! | When you know tx sender & receiver addresses, unix timestamp range & want to find out all tx(s) that were sent from sender to receiver in that certain timespan
+`contractsCreatedFromAccountByNumberRange` | account: String!, from: String!, to: String! | When you know EOA's _( externally owned account )_ address & want to find out all contracts created by that account in block number range
+`contractsCreatedFromAccountByTimeRange` | account: String!, from: String!, to: String! | When you know EOA's _( externally owned account )_ address & want to find out all contracts created by that account in certain time span
+`transactionFromAccountWithNonce` | account: String!, nonce: String! | When you have EOA's address & nonce value of it, you can pin point to that tx. This can be used to iterate through all tx(s) from this account, by updating nonce.
+
+---
+
 ### Historical Event Data ( GraphQL API ) 🤩
 
 You can ask `ette` for event data using GraphQL API.
@@ -549,6 +583,20 @@ type Event {
   blockHash: String!
 }
 ```
+
+Method | Parameters | Possible use case
+--- | --- | ---
+`eventsFromContractByNumberRange` | contract: String!, from: String!, to: String! | When you've one contract address, block number range & you want to find out all events emitted by that contract in given block range
+`eventsFromContractByTimeRange` | contract: String!, from: String!, to: String! | When you know contract address, unix time stamp range & you want to find out all events emitted by that contract in given timespan
+`eventsByBlockHash` | hash: String! | When you've block hash & want to find out all events emitted in tx(s) packed in that block
+`eventsByTxHash` | hash: String! | When you've txHash & want to find out all events emitted during execution of that tx
+`eventsFromContractWithTopicsByNumberRange` | contract: String!, from: String!, to: String!, topics: [String!]! | When you've smart contract address, block number range & an ordered list of event log's topic signature(s), you can find out all events emitted by that contract with specific signature(s) in block range
+`eventsFromContractWithTopicsByTimeRange` | contract: String!, from: String!, to: String!, topics: [String!]! | When you've smart contract address, unix time stamp range & an ordered list of event log's topic signature(s), you can find out all events emitted by that contract with specific signature(s) in given timespan
+`lastXEventsFromContract` | contract: String!, x: Int! | When you know just contract address & want to find out last **X** events emitted by that contract **[ Very useful sometimes 😅 ]**
+`eventByBlockHashAndLogIndex` | hash: String!, index: String! | When you know block hash, index of event log in block & want to get back specific event in that position
+`eventByBlockHashAndLogIndex` | number: String!, index: String! | When you know block number, index of event log in block & want to get back specific event in that position
+
+---
 
 > Browser based GraphQL Playground : **/v1/graphql-playground** 👇🤩
 
