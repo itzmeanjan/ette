@@ -109,14 +109,25 @@ func ValidateAPIKey(_db *gorm.DB, apiKey string) bool {
 }
 
 // IsUnderRateLimit - Checks whether number of times data delivered
-// to client application in current month day ( identified using signer address
+// to client application on this day ( identified using signer address
 // i.e. who created API Key ), for query response or for real-time data delivery,
 // is under a limit ( currently hardcoded inside code ) or not
 func IsUnderRateLimit(_db *gorm.DB, userAddress string) bool {
+
+	// Getting current local time of machine
+	now := time.Now()
+
+	// Segregating into parts required
+	var (
+		day   = now.Day()
+		month = now.Month()
+		year  = now.Year()
+	)
+
 	var count int64
 
 	if err := _db.Model(&DeliveryHistory{}).
-		Where("delivery_history.client = ? and extract(day from delivery_history.ts) = extract(day from now())  and extract(month from delivery_history.ts) = extract(month from now()) and extract(year from delivery_history.ts) = extract(year from now())", userAddress).
+		Where("delivery_history.client = ? and extract(day from delivery_history.ts) = ? and extract(month from delivery_history.ts) = ? and extract(year from delivery_history.ts) = ?", userAddress, day, month, year).
 		Count(&count).Error; err != nil {
 		return false
 	}
