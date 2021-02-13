@@ -25,9 +25,16 @@ func GetAppsByUserAddress(_db *gorm.DB, address common.Address) []*Users {
 	return apps
 }
 
-// ComputeAPIKeyForAddress - Computing new API key for user address, by taking nonce of that account under consideration
+// ComputeAPIKeyForAddress - Computing new API key for user address,
+// by taking `nonce` of that account & current unix time stamp ( with nanosecond level precision )
+//  under consideration
 //
-// Here nonce is nothing but count of applications created in `ette` by account
+// Here `nonce` is nothing but count of applications created in `ette` by account
+//
+// `Time` field is being added when computing next API key for making it more
+// unpredictable
+//
+// Previous implementation had very predicatable pattern
 func ComputeAPIKeyForAddress(_db *gorm.DB, address common.Address) []byte {
 	var count int64
 
@@ -38,9 +45,11 @@ func ComputeAPIKeyForAddress(_db *gorm.DB, address common.Address) []byte {
 	data, err := json.Marshal(&struct {
 		Address common.Address `json:"address"`
 		Nonce   int64          `json:"nonce"`
+		Time    int64          `json:"time"`
 	}{
 		Address: address,
 		Nonce:   count + 1,
+		Time:    time.Now().UTC().UnixNano(),
 	})
 	if err != nil {
 		return nil
