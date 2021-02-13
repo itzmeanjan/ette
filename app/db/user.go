@@ -116,7 +116,7 @@ func IsUnderRateLimit(_db *gorm.DB, userAddress string) bool {
 	var count int64
 
 	if err := _db.Model(&DeliveryHistory{}).
-		Where("delivery_history.client = ? and extract(day from delivery_history.ts) = extract(day from now())", userAddress).
+		Where("delivery_history.client = ? and extract(day from delivery_history.ts) = extract(day from now())  and extract(month from delivery_history.ts) = extract(month from now()) and extract(year from delivery_history.ts) = extract(year from now())", userAddress).
 		Count(&count).Error; err != nil {
 		return false
 	}
@@ -134,8 +134,15 @@ func DropOldDeliveryHistories(_db *gorm.DB, userAddress string) {
 
 	_db.Transaction(func(dbWtx *gorm.DB) error {
 
-		return dbWtx.Where("client = ? and ts < now() - interval '1 day'", userAddress).Delete(&DeliveryHistory{}).Error
+		return dbWtx.Where("delivery_history.client = ? and extract(day from delivery_history.ts) = extract(day from now())", userAddress).Delete(&DeliveryHistory{}).Error
 
 	})
+
+}
+
+// GetUserAddressesWithOldDeliveryHistories - ...
+func GetUserAddressesWithOldDeliveryHistories(_db *gorm.DB, limit uint8) {
+
+	_db.Model(&DeliveryHistory{}).Where("delivery_history.ts > now() - interval '1 day'")
 
 }
