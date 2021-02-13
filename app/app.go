@@ -17,6 +17,7 @@ import (
 	"github.com/itzmeanjan/ette/app/db"
 	"github.com/itzmeanjan/ette/app/rest"
 	"github.com/itzmeanjan/ette/app/rest/graph"
+	srv "github.com/itzmeanjan/ette/app/services"
 	ss "github.com/itzmeanjan/ette/app/snapshot"
 	"gorm.io/gorm"
 )
@@ -159,6 +160,10 @@ func Run(configFile, subscriptionPlansFile string) {
 
 	// Pushing block header propagation listener to another thread of execution
 	go blk.SubscribeToNewBlocks(_connection, _db, _status, &_redisInfo)
+
+	// Periodic clean up job being started, to be run every 24 hours to clean up
+	// delivery history data, older than 24 hours
+	go srv.DeliveryHistoryCleanUpService(_db)
 
 	// Starting http server on main thread
 	rest.RunHTTPServer(_db, _status, _redisClient)
