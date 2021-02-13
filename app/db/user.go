@@ -124,3 +124,18 @@ func IsUnderRateLimit(_db *gorm.DB, userAddress string) bool {
 	// Compare it with allowed rate count per 24 hours, of plan user is subscribed to
 	return count < int64(GetAllowedDeliveryCountByAddress(_db, common.HexToAddress(userAddress)))
 }
+
+// DropOldDeliveryHistories - Attempts to delete older than 24 hours delivery history
+// from data store, because that piece of data is not being used any where, so no need to keep it
+//
+// Before delivering any piece of data to client, rate limit to be checked for last 24 hours
+// not older than that
+func DropOldDeliveryHistories(_db *gorm.DB, userAddress string) {
+
+	_db.Transaction(func(dbWtx *gorm.DB) error {
+
+		return dbWtx.Where("client = ? and ts < now() - interval '1 day'", userAddress).Delete(&DeliveryHistory{}).Error
+
+	})
+
+}
