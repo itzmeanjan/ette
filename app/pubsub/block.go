@@ -112,6 +112,9 @@ func (b *BlockConsumer) Send(msg string) {
 
 		b.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		b.Counter.IncrementSend(1)
 		return
 
 	}
@@ -133,6 +136,9 @@ func (b *BlockConsumer) Send(msg string) {
 
 		b.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		b.Counter.IncrementSend(1)
 		return
 
 	}
@@ -156,6 +162,9 @@ func (b *BlockConsumer) Send(msg string) {
 
 		b.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		b.Counter.IncrementSend(1)
 		return
 
 	}
@@ -210,6 +219,9 @@ func (b *BlockConsumer) SendData(data interface{}) bool {
 		return false
 	}
 
+	// Because we're writing to socket
+	b.Counter.IncrementSend(1)
+
 	return true
 
 }
@@ -240,7 +252,13 @@ func (b *BlockConsumer) Unsubscribe() {
 	defer b.ConnLock.Unlock()
 
 	if err := b.Connection.WriteJSON(resp); err != nil {
+
 		log.Printf("[!] Failed to deliver `block` unsubscription confirmation to client : %s\n", err.Error())
+		return
+
 	}
+
+	// Because we're writing to socket
+	b.Counter.IncrementSend(1)
 
 }
