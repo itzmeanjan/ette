@@ -175,6 +175,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 	}
 
 	router := gin.Default()
+	activeSubscriptions := d.ActiveSubscriptions{Count: 0}
 
 	// enabled cors
 	router.Use(cors.Default())
@@ -1132,6 +1133,12 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		if !checkEtteRealTimeMode(conn) {
 			return
 		}
+
+		// Increment active WS connection count
+		activeSubscriptions.Increment(1)
+		// Scheduling decrement to be invoked later
+		// when disconnecting client
+		defer activeSubscriptions.Decrement(1)
 
 		// To be used for concurrent safe access of
 		// underlying network socket
