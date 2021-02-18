@@ -1109,9 +1109,13 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		})
 	}
 
-	upgrader := websocket.Upgrader{}
-
 	router.GET("/v1/ws", func(c *gin.Context) {
+
+		// Setting read & write buffer size
+		upgrader := websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		}
 
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
