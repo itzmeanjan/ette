@@ -25,3 +25,13 @@ type SendReceiveCounter struct {
 	Send    uint64
 	Receive uint64
 }
+
+// IncrementSend -To be invoked when new data written into socket
+func (s *SendReceiveCounter) IncrementSend(by uint64) {
+	atomic.AddUint64(&s.Send, by)
+}
+
+// IncrementReceive - To be invoked when new data read from socket
+func (s *SendReceiveCounter) IncrementReceive(by uint64) {
+	atomic.AddUint64(&s.Receive, by)
+}
