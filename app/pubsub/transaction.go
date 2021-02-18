@@ -176,6 +176,9 @@ func (t *TransactionConsumer) Send(msg string) {
 
 		t.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		t.Counter.IncrementSend(1)
 		return
 
 	}
@@ -197,6 +200,9 @@ func (t *TransactionConsumer) Send(msg string) {
 
 		t.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		t.Counter.IncrementSend(1)
 		return
 
 	}
@@ -220,6 +226,9 @@ func (t *TransactionConsumer) Send(msg string) {
 
 		t.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		t.Counter.IncrementSend(1)
 		return
 
 	}
@@ -247,6 +256,9 @@ func (t *TransactionConsumer) SendData(data interface{}) bool {
 		log.Printf("[!] Failed to deliver `transaction` data to client : %s\n", err.Error())
 		return false
 	}
+
+	// Because we're writing to socket
+	t.Counter.IncrementSend(1)
 
 	return true
 
@@ -278,7 +290,13 @@ func (t *TransactionConsumer) Unsubscribe() {
 	defer t.ConnLock.Unlock()
 
 	if err := t.Connection.WriteJSON(resp); err != nil {
+
 		log.Printf("[!] Failed to deliver `transaction` unsubscription confirmation to client : %s\n", err.Error())
+		return
+
 	}
+
+	// Because we're writing to socket
+	t.Counter.IncrementSend(1)
 
 }
