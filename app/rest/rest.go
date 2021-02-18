@@ -1108,6 +1108,17 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			})
 
 		})
+
+		// Returns how many clients are currently connected to
+		// `ette` over WS
+		grp.GET("/stat", func(c *gin.Context) {
+
+			c.JSON(http.StatusOK, gin.H{
+				"count": activeSubscriptions.Count,
+			})
+
+		})
+
 	}
 
 	router.GET("/v1/ws", func(c *gin.Context) {
