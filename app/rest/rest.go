@@ -1163,6 +1163,13 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		// ws connection
 		sendReceiveCounter := d.SendReceiveCounter{Send: 0, Receive: 0}
 
+		// Log it when closing connection
+		defer func() {
+
+			log.Printf("[+] Closing websocket connection [ Read : %d | Write : %d ]\n", sendReceiveCounter.Receive, sendReceiveCounter.Send)
+
+		}()
+
 		// All topic subscription/ unsubscription requests
 		// to handled by this higher layer abstraction
 		pubsubManager := ps.SubscriptionManager{
