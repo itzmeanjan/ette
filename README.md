@@ -225,6 +225,13 @@ curl -s localhost:7000/v1/synced | jq
 }
 ```
 
+- You can check how many active websocket sessions being managed by your `ette` deployment by
+
+
+```bash
+curl -s localhost:7000/v1/stat | jq
+```
+
 ---
 
 ### Production deployment of `ette` using **systemd**

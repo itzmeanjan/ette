@@ -1166,7 +1166,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		// Log it when closing connection
 		defer func() {
 
-			log.Printf("[+] Closing websocket connection [ Read : %d | Write : %d ]\n", sendReceiveCounter.Receive, sendReceiveCounter.Send)
+			log.Printf("[✅] Closing websocket connection [ Read : %d | Write : %d ]\n", sendReceiveCounter.Receive, sendReceiveCounter.Send)
 
 		}()
 
