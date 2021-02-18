@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/itzmeanjan/ette/app/data"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"github.com/lib/pq"
@@ -29,6 +30,7 @@ type EventConsumer struct {
 	DB         *gorm.DB
 	ConnLock   *sync.Mutex
 	TopicLock  *sync.RWMutex
+	Counter    *data.SendReceiveCounter
 }
 
 // Subscribe - Event consumer is subscribing to `event` topic,
@@ -155,6 +157,9 @@ func (e *EventConsumer) Send(msg string) {
 
 		e.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		e.Counter.IncrementSend(1)
 		return
 
 	}
@@ -176,6 +181,9 @@ func (e *EventConsumer) Send(msg string) {
 
 		e.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		e.Counter.IncrementSend(1)
 		return
 
 	}
@@ -199,6 +207,9 @@ func (e *EventConsumer) Send(msg string) {
 
 		e.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		e.Counter.IncrementSend(1)
 		return
 
 	}
@@ -226,6 +237,9 @@ func (e *EventConsumer) SendData(data interface{}) bool {
 		log.Printf("[!] Failed to deliver `event` data to client : %s\n", err.Error())
 		return false
 	}
+
+	// Because we're writing to socket
+	e.Counter.IncrementSend(1)
 
 	return true
 
@@ -259,7 +273,13 @@ func (e *EventConsumer) Unsubscribe() {
 	defer e.ConnLock.Unlock()
 
 	if err := e.Connection.WriteJSON(resp); err != nil {
+
 		log.Printf("[!] Failed to deliver `event` unsubscription confirmation to client : %s\n", err.Error())
+		return
+
 	}
+
+	// Because we're writing to socket
+	e.Counter.IncrementSend(1)
 
 }

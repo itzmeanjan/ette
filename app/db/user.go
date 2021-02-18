@@ -25,9 +25,16 @@ func GetAppsByUserAddress(_db *gorm.DB, address common.Address) []*Users {
 	return apps
 }
 
-// ComputeAPIKeyForAddress - Computing new API key for user address, by taking nonce of that account under consideration
+// ComputeAPIKeyForAddress - Computing new API key for user address,
+// by taking `nonce` of that account & current unix time stamp ( with nanosecond level precision )
+//  under consideration
 //
-// Here nonce is nothing but count of applications created in `ette` by account
+// Here `nonce` is nothing but count of applications created in `ette` by account
+//
+// `Time` field is being added when computing next API key for making it more
+// unpredictable
+//
+// Previous implementation had very predicatable pattern
 func ComputeAPIKeyForAddress(_db *gorm.DB, address common.Address) []byte {
 	var count int64
 
@@ -38,9 +45,11 @@ func ComputeAPIKeyForAddress(_db *gorm.DB, address common.Address) []byte {
 	data, err := json.Marshal(&struct {
 		Address common.Address `json:"address"`
 		Nonce   int64          `json:"nonce"`
+		Time    int64          `json:"time"`
 	}{
 		Address: address,
 		Nonce:   count + 1,
+		Time:    time.Now().UTC().UnixNano(),
 	})
 	if err != nil {
 		return nil
@@ -109,18 +118,59 @@ func ValidateAPIKey(_db *gorm.DB, apiKey string) bool {
 }
 
 // IsUnderRateLimit - Checks whether number of times data delivered
-// to client application ( identified using signer address i.e. who created API Key ),
-//  for query response or for real-time data delivery, is under a limit
-// ( currently hardcoded inside code ) or not
+// to client application on this day ( identified using signer address
+// i.e. who created API Key ), for query response or for real-time data delivery,
+// is under a limit ( currently hardcoded inside code ) or not
 func IsUnderRateLimit(_db *gorm.DB, userAddress string) bool {
+
+	// Getting current local time of machine
+	now := time.Now()
+
+	// Segregating into parts required
+	var (
+		day   = now.Day()
+		month = now.Month()
+		year  = now.Year()
+	)
+
 	var count int64
 
 	if err := _db.Model(&DeliveryHistory{}).
-		Where("delivery_history.client = ? and delivery_history.ts > now() - interval '1 day'", userAddress).
+		Where("delivery_history.client = ? and extract(day from delivery_history.ts) = ? and extract(month from delivery_history.ts) = ? and extract(year from delivery_history.ts) = ?", userAddress, day, month, year).
 		Count(&count).Error; err != nil {
 		return false
 	}
 
 	// Compare it with allowed rate count per 24 hours, of plan user is subscribed to
 	return count < int64(GetAllowedDeliveryCountByAddress(_db, common.HexToAddress(userAddress)))
+}
+
+// DropOldDeliveryHistories - Attempts to delete older than 24 hours delivery history
+// from data store, because that piece of data is not being used any where, so no need to keep it
+//
+// Before delivering any piece of data to client, rate limit to be checked for last 24 hours
+// not older than that
+//
+// This function can be invoked every 24 hours to clean up historical entries
+func DropOldDeliveryHistories(_db *gorm.DB) {
+
+	// Getting current local time of machine
+	now := time.Now()
+
+	// Segregating into parts required
+	var (
+		day   = now.Day()
+		month = now.Month()
+		year  = now.Year()
+	)
+
+	// Wrapping delete operation inside DB transaction to make it
+	// consistent to other parties attempting to read from same table
+	_db.Transaction(func(dbWtx *gorm.DB) error {
+
+		return dbWtx.Where("extract(day from delivery_history.ts) != ? and extract(month from delivery_history.ts) != ? and extract(year from delivery_history.ts) != ?",
+			day, month, year).Delete(&DeliveryHistory{}).Error
+
+	})
+
 }

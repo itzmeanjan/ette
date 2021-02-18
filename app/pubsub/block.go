@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 
+	"github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 )
 
@@ -24,6 +25,7 @@ type BlockConsumer struct {
 	DB         *gorm.DB
 	ConnLock   *sync.Mutex
 	TopicLock  *sync.RWMutex
+	Counter    *data.SendReceiveCounter
 }
 
 // Subscribe - Subscribe to `block` channel
@@ -110,6 +112,9 @@ func (b *BlockConsumer) Send(msg string) {
 
 		b.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		b.Counter.IncrementSend(1)
 		return
 
 	}
@@ -131,6 +136,9 @@ func (b *BlockConsumer) Send(msg string) {
 
 		b.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		b.Counter.IncrementSend(1)
 		return
 
 	}
@@ -154,6 +162,9 @@ func (b *BlockConsumer) Send(msg string) {
 
 		b.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		b.Counter.IncrementSend(1)
 		return
 
 	}
@@ -208,6 +219,9 @@ func (b *BlockConsumer) SendData(data interface{}) bool {
 		return false
 	}
 
+	// Because we're writing to socket
+	b.Counter.IncrementSend(1)
+
 	return true
 
 }
@@ -238,7 +252,13 @@ func (b *BlockConsumer) Unsubscribe() {
 	defer b.ConnLock.Unlock()
 
 	if err := b.Connection.WriteJSON(resp); err != nil {
+
 		log.Printf("[!] Failed to deliver `block` unsubscription confirmation to client : %s\n", err.Error())
+		return
+
 	}
+
+	// Because we're writing to socket
+	b.Counter.IncrementSend(1)
 
 }

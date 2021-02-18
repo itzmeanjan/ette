@@ -175,6 +175,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 	}
 
 	router := gin.Default()
+	activeSubscriptions := d.ActiveSubscriptions{Count: 0}
 
 	// enabled cors
 	router.Use(cors.Default())
@@ -1107,11 +1108,26 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			})
 
 		})
+
+		// Returns how many clients are currently connected to
+		// `ette` over WS
+		grp.GET("/stat", func(c *gin.Context) {
+
+			c.JSON(http.StatusOK, gin.H{
+				"count": activeSubscriptions.Count,
+			})
+
+		})
+
 	}
 
-	upgrader := websocket.Upgrader{}
-
 	router.GET("/v1/ws", func(c *gin.Context) {
+
+		// Setting read & write buffer size
+		upgrader := websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		}
 
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
@@ -1129,12 +1145,30 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			return
 		}
 
+		// Increment active WS connection count
+		activeSubscriptions.Increment(1)
+		// Scheduling decrement to be invoked later
+		// when disconnecting client
+		defer activeSubscriptions.Decrement(1)
+
 		// To be used for concurrent safe access of
 		// underlying network socket
 		connLock := sync.Mutex{}
 		// To be used for concurrent safe access of subscribed
 		// topic's associative array
 		topicLock := sync.RWMutex{}
+
+		// Keeps track of how many read/ write ops performed
+		// on underlying socket during life time of one
+		// ws connection
+		sendReceiveCounter := d.SendReceiveCounter{Send: 0, Receive: 0}
+
+		// Log it when closing connection
+		defer func() {
+
+			log.Printf("[✅] Closing websocket connection [ Read : %d | Write : %d ]\n", sendReceiveCounter.Receive, sendReceiveCounter.Send)
+
+		}()
 
 		// All topic subscription/ unsubscription requests
 		// to handled by this higher layer abstraction
@@ -1146,6 +1180,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			DB:         _db,
 			ConnLock:   &connLock,
 			TopicLock:  &topicLock,
+			Counter:    &sendReceiveCounter,
 		}
 
 		// Unsubscribe from all pubsub topics ( 3 at max ) when returning from
@@ -1172,6 +1207,9 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 				break
 
 			}
+
+			// Reading from socket is performed only here
+			sendReceiveCounter.IncrementReceive(1)
 
 			// Validating client provided API key, if fails, we return
 			// failure message to client & close connection

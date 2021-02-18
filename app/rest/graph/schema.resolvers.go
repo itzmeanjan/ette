@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"strconv"
 	"strings"
@@ -52,12 +53,61 @@ func (r *queryResolver) BlocksByTimeRange(ctx context.Context, from string, to s
 	return getGraphQLCompatibleBlocks(ctx, _db.GetBlocksByTimeRange(db, _from, _to))
 }
 
+func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Transaction, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return nil, errors.New("Bad Transaction Hash")
+	}
+
+	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionByHash(db, common.HexToHash(hash)), true)
+}
+
+func (r *queryResolver) TransactionCountByBlockHash(ctx context.Context, hash string) (int, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return 0, errors.New("Bad Block Hash")
+	}
+
+	count := int(_db.GetTransactionCountByBlockHash(db, common.HexToHash(hash)))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
+}
+
 func (r *queryResolver) TransactionsByBlockHash(ctx context.Context, hash string) ([]*model.Transaction, error) {
 	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
 		return nil, errors.New("Bad Block Hash")
 	}
 
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsByBlockHash(db, common.HexToHash(hash)))
+}
+
+func (r *queryResolver) TransactionCountByBlockNumber(ctx context.Context, number string) (int, error) {
+	_number, err := strconv.ParseUint(number, 10, 64)
+	if err != nil {
+		return 0, errors.New("Bad Block Number")
+	}
+
+	count := int(_db.GetTransactionCountByBlockNumber(db, _number))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
 }
 
 func (r *queryResolver) TransactionsByBlockNumber(ctx context.Context, number string) ([]*model.Transaction, error) {
@@ -69,12 +119,29 @@ func (r *queryResolver) TransactionsByBlockNumber(ctx context.Context, number st
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsByBlockNumber(db, _number))
 }
 
-func (r *queryResolver) Transaction(ctx context.Context, hash string) (*model.Transaction, error) {
-	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
-		return nil, errors.New("Bad Transaction Hash")
+func (r *queryResolver) TransactionCountFromAccountByNumberRange(ctx context.Context, account string, from string, to string) (int, error) {
+	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
+		return 0, errors.New("Bad Account Address")
 	}
 
-	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionByHash(db, common.HexToHash(hash)), true)
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetBlockNumberRange())
+	if err != nil {
+		return 0, errors.New("Bad Block Number Range")
+	}
+
+	count := int(_db.GetTransactionCountFromAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
 }
 
 func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -90,6 +157,31 @@ func (r *queryResolver) TransactionsFromAccountByNumberRange(ctx context.Context
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsFromAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
 }
 
+func (r *queryResolver) TransactionCountFromAccountByTimeRange(ctx context.Context, account string, from string, to string) (int, error) {
+	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
+		return 0, errors.New("Bad Account Address")
+	}
+
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
+	if err != nil {
+		return 0, errors.New("Bad Block Timestamp Range")
+	}
+
+	count := int(_db.GetTransactionCountFromAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
+}
+
 func (r *queryResolver) TransactionsFromAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
 	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
 		return nil, errors.New("Bad Account Address")
@@ -101,6 +193,31 @@ func (r *queryResolver) TransactionsFromAccountByTimeRange(ctx context.Context, 
 	}
 
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsFromAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
+}
+
+func (r *queryResolver) TransactionCountToAccountByNumberRange(ctx context.Context, account string, from string, to string) (int, error) {
+	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
+		return 0, errors.New("Bad Account Address")
+	}
+
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetBlockNumberRange())
+	if err != nil {
+		return 0, errors.New("Bad Block Number Range")
+	}
+
+	count := int(_db.GetTransactionCountToAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
 }
 
 func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
@@ -116,6 +233,31 @@ func (r *queryResolver) TransactionsToAccountByNumberRange(ctx context.Context, 
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsToAccountByBlockNumberRange(db, common.HexToAddress(account), _from, _to))
 }
 
+func (r *queryResolver) TransactionCountToAccountByTimeRange(ctx context.Context, account string, from string, to string) (int, error) {
+	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
+		return 0, errors.New("Bad Account Address")
+	}
+
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
+	if err != nil {
+		return 0, errors.New("Bad Block Timestamp Range")
+	}
+
+	count := int(_db.GetTransactionCountToAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
+}
+
 func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, account string, from string, to string) ([]*model.Transaction, error) {
 	if !(strings.HasPrefix(account, "0x") && len(account) == 42) {
 		return nil, errors.New("Bad Account Address")
@@ -127,6 +269,35 @@ func (r *queryResolver) TransactionsToAccountByTimeRange(ctx context.Context, ac
 	}
 
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsToAccountByBlockTimeRange(db, common.HexToAddress(account), _from, _to))
+}
+
+func (r *queryResolver) TransactionCountBetweenAccountsByNumberRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) (int, error) {
+	if !(strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42) {
+		return 0, errors.New("Bad From Account Address")
+	}
+
+	if !(strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42) {
+		return 0, errors.New("Bad To Account Address")
+	}
+
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetBlockNumberRange())
+	if err != nil {
+		return 0, errors.New("Bad Block Number Range")
+	}
+
+	count := int(_db.GetTransactionCountBetweenAccountsByBlockNumberRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
 }
 
 func (r *queryResolver) TransactionsBetweenAccountsByNumberRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error) {
@@ -144,6 +315,35 @@ func (r *queryResolver) TransactionsBetweenAccountsByNumberRange(ctx context.Con
 	}
 
 	return getGraphQLCompatibleTransactions(ctx, _db.GetTransactionsBetweenAccountsByBlockNumberRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to))
+}
+
+func (r *queryResolver) TransactionCountBetweenAccountsByTimeRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) (int, error) {
+	if !(strings.HasPrefix(fromAccount, "0x") && len(fromAccount) == 42) {
+		return 0, errors.New("Bad From Account Address")
+	}
+
+	if !(strings.HasPrefix(toAccount, "0x") && len(toAccount) == 42) {
+		return 0, errors.New("Bad To Account Address")
+	}
+
+	_from, _to, err := cmn.RangeChecker(from, to, cfg.GetTimeRange())
+	if err != nil {
+		return 0, errors.New("Bad Block Timestamp Range")
+	}
+
+	count := int(_db.GetTransactionCountBetweenAccountsByBlockTimeRange(db, common.HexToAddress(fromAccount), common.HexToAddress(toAccount), _from, _to))
+
+	// Attempting to calculate byte form of number
+	// so that we can keep track of how much data was transferred
+	// to client
+	_count := make([]byte, 4)
+	binary.LittleEndian.PutUint32(_count, uint32(count))
+
+	if err := doBookKeeping(ctx, _count); err != nil {
+		return 0, errors.New("Book keeping failed")
+	}
+
+	return count, nil
 }
 
 func (r *queryResolver) TransactionsBetweenAccountsByTimeRange(ctx context.Context, fromAccount string, toAccount string, from string, to string) ([]*model.Transaction, error) {
@@ -313,3 +513,17 @@ func (r *queryResolver) EventByBlockNumberAndLogIndex(ctx context.Context, numbe
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *queryResolver) TransactionByHash(ctx context.Context, hash string) (*model.Transaction, error) {
+	if !(strings.HasPrefix(hash, "0x") && len(hash) == 66) {
+		return nil, errors.New("Bad Transaction Hash")
+	}
+
+	return getGraphQLCompatibleTransaction(ctx, _db.GetTransactionByHash(db, common.HexToHash(hash)), true)
+}

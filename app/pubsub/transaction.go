@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
+	"github.com/itzmeanjan/ette/app/data"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"gorm.io/gorm"
@@ -28,6 +29,7 @@ type TransactionConsumer struct {
 	DB         *gorm.DB
 	ConnLock   *sync.Mutex
 	TopicLock  *sync.RWMutex
+	Counter    *data.SendReceiveCounter
 }
 
 // Subscribe - Subscribe to `transaction` topic, under which all transaction related data to be published
@@ -174,6 +176,9 @@ func (t *TransactionConsumer) Send(msg string) {
 
 		t.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		t.Counter.IncrementSend(1)
 		return
 
 	}
@@ -195,6 +200,9 @@ func (t *TransactionConsumer) Send(msg string) {
 
 		t.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		t.Counter.IncrementSend(1)
 		return
 
 	}
@@ -218,6 +226,9 @@ func (t *TransactionConsumer) Send(msg string) {
 
 		t.ConnLock.Unlock()
 		// -- ends here
+
+		// Because we're writing to socket
+		t.Counter.IncrementSend(1)
 		return
 
 	}
@@ -245,6 +256,9 @@ func (t *TransactionConsumer) SendData(data interface{}) bool {
 		log.Printf("[!] Failed to deliver `transaction` data to client : %s\n", err.Error())
 		return false
 	}
+
+	// Because we're writing to socket
+	t.Counter.IncrementSend(1)
 
 	return true
 
@@ -276,7 +290,13 @@ func (t *TransactionConsumer) Unsubscribe() {
 	defer t.ConnLock.Unlock()
 
 	if err := t.Connection.WriteJSON(resp); err != nil {
+
 		log.Printf("[!] Failed to deliver `transaction` unsubscription confirmation to client : %s\n", err.Error())
+		return
+
 	}
+
+	// Because we're writing to socket
+	t.Counter.IncrementSend(1)
 
 }
