@@ -1158,6 +1158,11 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 		// topic's associative array
 		topicLock := sync.RWMutex{}
 
+		// Keeps track of how many read/ write ops performed
+		// on underlying socket during life time of one
+		// ws connection
+		sendReceiveCounter := d.SendReceiveCounter{Send: 0, Receive: 0}
+
 		// All topic subscription/ unsubscription requests
 		// to handled by this higher layer abstraction
 		pubsubManager := ps.SubscriptionManager{
@@ -1168,6 +1173,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			DB:         _db,
 			ConnLock:   &connLock,
 			TopicLock:  &topicLock,
+			Counter:    &sendReceiveCounter,
 		}
 
 		// Unsubscribe from all pubsub topics ( 3 at max ) when returning from

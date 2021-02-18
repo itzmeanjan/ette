@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
+	"github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
 )
 
@@ -33,6 +34,7 @@ type SubscriptionManager struct {
 	DB         *gorm.DB
 	ConnLock   *sync.Mutex
 	TopicLock  *sync.RWMutex
+	Counter    *data.SendReceiveCounter
 }
 
 // Subscribe - Websocket connection manager can reliably call
