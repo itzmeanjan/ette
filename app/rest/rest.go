@@ -1208,6 +1208,9 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 
 			}
 
+			// Reading from socket is performed only here
+			sendReceiveCounter.IncrementReceive(1)
+
 			// Validating client provided API key, if fails, we return
 			// failure message to client & close connection
 			user := req.GetUserFromAPIKey(_db)
