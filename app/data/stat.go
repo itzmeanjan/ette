@@ -17,3 +17,11 @@ func (a *ActiveSubscriptions) Increment(by uint64) {
 func (a *ActiveSubscriptions) Decrement(by uint64) {
 	atomic.AddUint64(&a.Count, ^uint64(by-1))
 }
+
+// SendReceiveCounter - Keeps track of how many read & write ops
+// were performed to & from socket during life time of one single
+// websocket connection
+type SendReceiveCounter struct {
+	Send    uint64
+	Receive uint64
+}
