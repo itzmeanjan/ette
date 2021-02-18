@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/itzmeanjan/ette/app/data"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"github.com/lib/pq"
@@ -29,6 +30,7 @@ type EventConsumer struct {
 	DB         *gorm.DB
 	ConnLock   *sync.Mutex
 	TopicLock  *sync.RWMutex
+	Counter    *data.SendReceiveCounter
 }
 
 // Subscribe - Event consumer is subscribing to `event` topic,

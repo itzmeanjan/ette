@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
+	"github.com/itzmeanjan/ette/app/data"
 	"gorm.io/gorm"
 )
 
@@ -20,7 +21,7 @@ type Consumer interface {
 // NewBlockConsumer - Creating one new block data consumer, which will subscribe to block
 // topic & listen for data being published on this channel, which will eventually be
 // delivered to client application over websocket connection
-func NewBlockConsumer(client *redis.Client, requests map[string]*SubscriptionRequest, conn *websocket.Conn, db *gorm.DB, connLock *sync.Mutex, topicLock *sync.RWMutex) *BlockConsumer {
+func NewBlockConsumer(client *redis.Client, requests map[string]*SubscriptionRequest, conn *websocket.Conn, db *gorm.DB, connLock *sync.Mutex, topicLock *sync.RWMutex, counter *data.SendReceiveCounter) *BlockConsumer {
 	consumer := BlockConsumer{
 		Client:     client,
 		Requests:   requests,
@@ -28,6 +29,7 @@ func NewBlockConsumer(client *redis.Client, requests map[string]*SubscriptionReq
 		DB:         db,
 		ConnLock:   connLock,
 		TopicLock:  topicLock,
+		Counter:    counter,
 	}
 
 	consumer.Subscribe()
@@ -40,7 +42,7 @@ func NewBlockConsumer(client *redis.Client, requests map[string]*SubscriptionReq
 // topic & listen for data being published on this channel & check whether received data
 // is what, client is interested in or not, which will eventually be
 // delivered to client application over websocket connection
-func NewTransactionConsumer(client *redis.Client, requests map[string]*SubscriptionRequest, conn *websocket.Conn, db *gorm.DB, connLock *sync.Mutex, topicLock *sync.RWMutex) *TransactionConsumer {
+func NewTransactionConsumer(client *redis.Client, requests map[string]*SubscriptionRequest, conn *websocket.Conn, db *gorm.DB, connLock *sync.Mutex, topicLock *sync.RWMutex, counter *data.SendReceiveCounter) *TransactionConsumer {
 	consumer := TransactionConsumer{
 		Client:     client,
 		Requests:   requests,
@@ -48,6 +50,7 @@ func NewTransactionConsumer(client *redis.Client, requests map[string]*Subscript
 		DB:         db,
 		ConnLock:   connLock,
 		TopicLock:  topicLock,
+		Counter:    counter,
 	}
 
 	consumer.Subscribe()
@@ -60,7 +63,7 @@ func NewTransactionConsumer(client *redis.Client, requests map[string]*Subscript
 // topic & listen for data being published on this channel & check whether received data
 // is what, client is interested in or not, which will eventually be
 // delivered to client application over websocket connection
-func NewEventConsumer(client *redis.Client, requests map[string]*SubscriptionRequest, conn *websocket.Conn, db *gorm.DB, connLock *sync.Mutex, topicLock *sync.RWMutex) *EventConsumer {
+func NewEventConsumer(client *redis.Client, requests map[string]*SubscriptionRequest, conn *websocket.Conn, db *gorm.DB, connLock *sync.Mutex, topicLock *sync.RWMutex, counter *data.SendReceiveCounter) *EventConsumer {
 	consumer := EventConsumer{
 		Client:     client,
 		Requests:   requests,
@@ -68,6 +71,7 @@ func NewEventConsumer(client *redis.Client, requests map[string]*SubscriptionReq
 		DB:         db,
 		ConnLock:   connLock,
 		TopicLock:  topicLock,
+		Counter:    counter,
 	}
 
 	consumer.Subscribe()

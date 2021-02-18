@@ -56,11 +56,11 @@ func (s *SubscriptionManager) Subscribe(req *SubscriptionRequest) {
 		switch req.Topic() {
 
 		case "block":
-			s.Consumers[req.Topic()] = NewBlockConsumer(s.Client, tmp, s.Connection, s.DB, s.ConnLock, s.TopicLock)
+			s.Consumers[req.Topic()] = NewBlockConsumer(s.Client, tmp, s.Connection, s.DB, s.ConnLock, s.TopicLock, s.Counter)
 		case "transaction":
-			s.Consumers[req.Topic()] = NewTransactionConsumer(s.Client, tmp, s.Connection, s.DB, s.ConnLock, s.TopicLock)
+			s.Consumers[req.Topic()] = NewTransactionConsumer(s.Client, tmp, s.Connection, s.DB, s.ConnLock, s.TopicLock, s.Counter)
 		case "event":
-			s.Consumers[req.Topic()] = NewEventConsumer(s.Client, tmp, s.Connection, s.DB, s.ConnLock, s.TopicLock)
+			s.Consumers[req.Topic()] = NewEventConsumer(s.Client, tmp, s.Connection, s.DB, s.ConnLock, s.TopicLock, s.Counter)
 		}
 
 		return

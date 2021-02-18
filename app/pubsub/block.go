@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 
+	"github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 )
 
@@ -24,6 +25,7 @@ type BlockConsumer struct {
 	DB         *gorm.DB
 	ConnLock   *sync.Mutex
 	TopicLock  *sync.RWMutex
+	Counter    *data.SendReceiveCounter
 }
 
 // Subscribe - Subscribe to `block` channel
