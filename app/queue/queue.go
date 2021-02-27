@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -67,7 +68,7 @@ func (b *BlockProcessorQueue) Enqueue(number uint64) bool {
 		IsProcessing:  true,
 		HasPublished:  false,
 		AttemptCount:  0,
-		LastAttempted: time.Now(),
+		LastAttempted: time.Now().UTC(),
 	}
 
 	return true
@@ -155,5 +156,45 @@ func (b *BlockProcessorQueue) Done(number uint64) error {
 	delete(b.Blocks, number)
 
 	return nil
+
+}
+
+// Next - Block processor go routine asks for next block it can process
+// and block which was attempted to be processed longest time ago
+// will be prioritized
+func (b *BlockProcessorQueue) Next() (uint64, error) {
+
+	b.Lock.RLock()
+	defer b.Lock.RUnlock()
+
+	if len(b.Blocks) == 0 {
+
+		return 0, errors.New("Nothing in queue")
+
+	}
+
+	var number uint64
+	var oldest time.Time = time.Now().UTC()
+
+	for k, v := range b.Blocks {
+
+		if !(v.AttemptCount > 0) {
+			continue
+		}
+
+		if v.IsProcessing {
+			continue
+		}
+
+		if oldest.Before(v.LastAttempted) {
+
+			number = k
+			oldest = v.LastAttempted
+
+		}
+
+	}
+
+	return number, nil
 
 }
