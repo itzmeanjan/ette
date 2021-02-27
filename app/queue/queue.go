@@ -19,7 +19,6 @@ type BlockProcessorQueue struct {
 // whether block data has been published on pubsub topic or not,
 // is block processing currently
 type Block struct {
-	Number        uint64
 	IsProcessing  bool
 	HasPublished  bool
 	AttemptCount  uint64
@@ -42,17 +41,35 @@ func NewQueue() *BlockProcessorQueue {
 //
 // Requester go routine is supposed to process this block
 // which is why `IsProcessing` state is set to `true`
-func (b *BlockProcessorQueue) Enqueue(number uint64) {
+func (b *BlockProcessorQueue) Enqueue(number uint64) bool {
+
+	// -- First attempt to check whether block is already in queue
+	// or not
+	// If yes, we don't need to add is again
+	// Some go routine will pick it up in sometime future
+	b.Lock.RLock()
+
+	_, v := b.Blocks[number]
+	if v {
+
+		b.Lock.RUnlock()
+		return false
+
+	}
+
+	b.Lock.RUnlock()
+	// -- Done with checking whether block exists or not
 
 	b.Lock.Lock()
 	defer b.Lock.Unlock()
 
 	b.Blocks[number] = &Block{
-		Number:        number,
 		IsProcessing:  true,
 		HasPublished:  false,
 		AttemptCount:  0,
 		LastAttempted: time.Now(),
 	}
+
+	return true
 
 }
