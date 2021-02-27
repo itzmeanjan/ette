@@ -25,3 +25,15 @@ type Block struct {
 	AttemptCount  uint64
 	LastAttempted time.Time
 }
+
+// NewQueue - Get a new instance of Block Processor Queue
+//
+// This needs to be called only single time, application wide
+func NewQueue() *BlockProcessorQueue {
+
+	return &BlockProcessorQueue{
+		Blocks: make(map[uint64]*Block),
+		Lock:   &sync.RWMutex{},
+	}
+
+}
