@@ -138,3 +138,22 @@ func (b *BlockProcessorQueue) SetFailed(number uint64) error {
 	return nil
 
 }
+
+// Done - When a block has been successfully processed
+// it'll be deleted from entry table
+func (b *BlockProcessorQueue) Done(number uint64) error {
+
+	b.Lock.Lock()
+	defer b.Lock.Unlock()
+
+	if _, ok := b.Blocks[number]; !ok {
+
+		return fmt.Errorf("Expected block %d to exist in queue", number)
+
+	}
+
+	delete(b.Blocks, number)
+
+	return nil
+
+}
