@@ -186,7 +186,7 @@ func (b *BlockProcessorQueue) Next() (uint64, error) {
 			continue
 		}
 
-		if oldest.Before(v.LastAttempted) {
+		if oldest.After(v.LastAttempted) {
 
 			number = k
 			oldest = v.LastAttempted
