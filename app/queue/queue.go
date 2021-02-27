@@ -37,3 +37,22 @@ func NewQueue() *BlockProcessorQueue {
 	}
 
 }
+
+// Enqueue - Add new block number in processing queue
+//
+// Requester go routine is supposed to process this block
+// which is why `IsProcessing` state is set to `true`
+func (b *BlockProcessorQueue) Enqueue(number uint64) {
+
+	b.Lock.Lock()
+	defer b.Lock.Unlock()
+
+	b.Blocks[number] = &Block{
+		Number:        number,
+		IsProcessing:  true,
+		HasPublished:  false,
+		AttemptCount:  0,
+		LastAttempted: time.Now(),
+	}
+
+}
