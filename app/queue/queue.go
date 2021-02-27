@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -88,5 +89,29 @@ func (b *BlockProcessorQueue) CanPublish(number uint64) bool {
 	}
 
 	return !v.HasPublished
+
+}
+
+// Published - When go routine has completed publishing
+// it on pubsub topic, it can mark this block published so
+// that even if this block is not completely processed in this
+// attempt, in next iteration it'll not be published again
+//
+// This function is supposed to prevent `> 1 time publishing`
+// of same block, scenario
+func (b *BlockProcessorQueue) Published(number uint64) error {
+
+	b.Lock.Lock()
+	defer b.Lock.Unlock()
+
+	v, ok := b.Blocks[number]
+	if !ok {
+
+		return fmt.Errorf("Expected block %d to exist in queue", number)
+
+	}
+
+	v.HasPublished = true
+	return nil
 
 }
