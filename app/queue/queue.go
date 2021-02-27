@@ -49,8 +49,7 @@ func (b *BlockProcessorQueue) Enqueue(number uint64) bool {
 	// Some go routine will pick it up in sometime future
 	b.Lock.RLock()
 
-	_, v := b.Blocks[number]
-	if v {
+	if _, ok := b.Blocks[number]; ok {
 
 		b.Lock.RUnlock()
 		return false
@@ -71,5 +70,23 @@ func (b *BlockProcessorQueue) Enqueue(number uint64) bool {
 	}
 
 	return true
+
+}
+
+// CanPublish - Some go routine might ask queue whether this block's data
+// was attempted to be published in some time past or not
+//
+// If already done, no need to republish data
+func (b *BlockProcessorQueue) CanPublish(number uint64) bool {
+
+	b.Lock.RLock()
+	defer b.Lock.RUnlock()
+
+	v, ok := b.Blocks[number]
+	if !ok {
+		return false
+	}
+
+	return !v.HasPublished
 
 }
