@@ -151,25 +151,14 @@ func IsUnderRateLimit(_db *gorm.DB, userAddress string) bool {
 // Before delivering any piece of data to client, rate limit to be checked for last 24 hours
 // not older than that
 //
-// This function can be invoked every 24 hours to clean up historical entries
+// @note This function can be invoked every 24 hours to clean up historical entries
 func DropOldDeliveryHistories(_db *gorm.DB) {
-
-	// Getting current local time of machine
-	now := time.Now()
-
-	// Segregating into parts required
-	var (
-		day   = now.Day()
-		month = now.Month()
-		year  = now.Year()
-	)
 
 	// Wrapping delete operation inside DB transaction to make it
 	// consistent to other parties attempting to read from same table
 	_db.Transaction(func(dbWtx *gorm.DB) error {
 
-		return dbWtx.Where("extract(day from delivery_history.ts) != ? and extract(month from delivery_history.ts) != ? and extract(year from delivery_history.ts) != ?",
-			day, month, year).Delete(&DeliveryHistory{}).Error
+		return dbWtx.Where("delivery_history.ts < now() - interval '24 hours'").Delete(&DeliveryHistory{}).Error
 
 	})
 
