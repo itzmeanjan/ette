@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -12,8 +13,59 @@ import (
 //
 // It's concurrent safe
 type BlockProcessorQueue struct {
-	Blocks map[uint64]*Block
-	Lock   *sync.RWMutex
+	Blocks        map[uint64]*Block
+	Lock          *sync.RWMutex
+	PutChan       chan uint64
+	PublishedChan chan uint64
+	FailedChan    chan uint64
+	DoneChan      chan uint64
+}
+
+func (b *BlockProcessorQueue) Start(ctx context.Context) {
+
+	for {
+		select {
+
+		case <-ctx.Done():
+			return
+
+		case num := <-b.PutChan:
+
+			b.Blocks[num] = &Block{
+				IsProcessing:  true,
+				HasPublished:  false,
+				Done:          false,
+				AttemptCount:  1,
+				LastAttempted: time.Now().UTC(),
+				Delay:         time.Duration(0) * time.Second,
+			}
+
+		case <-b.PublishedChan:
+		case <-b.FailedChan:
+		case <-b.DoneChan:
+		case <-time.After(time.Duration(1000) * time.Millisecond):
+			// Do clean up to free up some memory
+
+			buffer := make([]uint64, 0, len(b.Blocks))
+
+			// Finding out which blocks are done processing & we're good to
+			// clean those up
+			for k, v := range b.Blocks {
+
+				if v.Done {
+					buffer = append(buffer, k)
+				}
+
+			}
+
+			// Iterative clean up
+			for _, v := range buffer {
+				delete(b.Blocks, v)
+			}
+
+		}
+	}
+
 }
 
 // Block - Keeps track of single block i.e. how many
@@ -23,8 +75,10 @@ type BlockProcessorQueue struct {
 type Block struct {
 	IsProcessing  bool
 	HasPublished  bool
+	Done          bool
 	AttemptCount  uint64
 	LastAttempted time.Time
+	Delay         time.Duration
 }
 
 // NewQueue - Get a new instance of Block Processor Queue
@@ -108,7 +162,7 @@ func (b *BlockProcessorQueue) SetPublished(number uint64) error {
 	v, ok := b.Blocks[number]
 	if !ok {
 
-		return fmt.Errorf("Expected block %d to exist in queue", number)
+		return fmt.Errorf("expected block %d to exist in queue", number)
 
 	}
 
@@ -129,7 +183,7 @@ func (b *BlockProcessorQueue) SetFailed(number uint64) error {
 	v, ok := b.Blocks[number]
 	if !ok {
 
-		return fmt.Errorf("Expected block %d to exist in queue", number)
+		return fmt.Errorf("expected block %d to exist in queue", number)
 
 	}
 
@@ -149,7 +203,7 @@ func (b *BlockProcessorQueue) Done(number uint64) error {
 
 	if _, ok := b.Blocks[number]; !ok {
 
-		return fmt.Errorf("Expected block %d to exist in queue", number)
+		return fmt.Errorf("expected block %d to exist in queue", number)
 
 	}
 
@@ -169,7 +223,7 @@ func (b *BlockProcessorQueue) Next() (uint64, error) {
 
 	if len(b.Blocks) == 0 {
 
-		return 0, errors.New("Nothing in queue")
+		return 0, errors.New("nothing in queue")
 
 	}
 
