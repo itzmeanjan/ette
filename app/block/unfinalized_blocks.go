@@ -105,7 +105,7 @@ func GetUnfinalizedQueueLength(redis *data.RedisInfo) int64 {
 
 	blockCount, err := redis.Client.LLen(context.Background(), redis.UnfinalizedBlocksQueue).Result()
 	if err != nil {
-		log.Printf(color.Red.Sprintf("[!] Failed to determine non-final block queue length : %s", err.Error()))
+		log.Print(color.Red.Sprintf("[!] Failed to determine non-final block queue length : %s", err.Error()))
 	}
 
 	return blockCount
