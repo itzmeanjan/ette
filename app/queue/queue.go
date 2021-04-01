@@ -113,6 +113,50 @@ func (b *BlockProcessorQueue) Published(block uint64) bool {
 
 }
 
+// Failed - Client is letting queue know, this block processing attempt failed
+func (b *BlockProcessorQueue) Failed(block uint64) bool {
+
+	resp := make(chan bool)
+	req := Request{
+		BlockNumber:  block,
+		ResponseChan: resp,
+	}
+
+	b.FailedChan <- req
+	return <-resp
+
+}
+
+// Done - Block processed successfully
+func (b *BlockProcessorQueue) Done(block uint64) bool {
+
+	resp := make(chan bool)
+	req := Request{
+		BlockNumber:  block,
+		ResponseChan: resp,
+	}
+
+	b.DoneChan <- req
+	return <-resp
+
+}
+
+// Next - Asking queue for next block number that needs to be processed ( if any )
+func (b *BlockProcessorQueue) Next(block uint64) (uint64, bool) {
+
+	resp := make(chan struct {
+		Status bool
+		Number uint64
+	})
+	req := Next{ResponseChan: resp}
+
+	b.NextChan <- req
+
+	v := <-resp
+	return v.Number, v.Status
+
+}
+
 func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 	for {
