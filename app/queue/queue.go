@@ -29,6 +29,18 @@ type Request struct {
 	ResponseChan chan bool
 }
 
+// Next - Block to be processed next, asked
+// by sending this request & when receptor
+// detects so, will attempt to find out
+// what should be next processed & send that block
+// number is response over channel specified by client
+type Next struct {
+	ResponseChan chan struct {
+		Status bool
+		Number uint64
+	}
+}
+
 // BlockProcessorQueue - To be interacted with before attempting to
 // process any block
 //
@@ -40,6 +52,7 @@ type BlockProcessorQueue struct {
 	PublishedChan chan Request
 	FailedChan    chan Request
 	DoneChan      chan Request
+	NextChan      chan Next
 }
 
 func (b *BlockProcessorQueue) Start(ctx context.Context) {
@@ -122,6 +135,58 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			block.IsProcessing = false
 			block.Done = true
 			req.ResponseChan <- true
+
+		case nxt := <-b.NextChan:
+
+			// This is the block number which should be processed
+			// by requester client, which is attempted to be found
+			var selected uint64
+			// Whether we've found anything or not
+			var found bool
+
+			for k := range b.Blocks {
+
+				if b.Blocks[k].IsProcessing || b.Blocks[k].Done {
+					continue
+				}
+
+				if time.Now().UTC().After(b.Blocks[k].LastAttempted.Add(b.Blocks[k].Delay)) {
+					selected = k
+					found = true
+
+					break
+				}
+
+			}
+
+			if !found {
+
+				// As we've failed to find any block which can be processed
+				// now, we're asking client to come back sometime later
+				//
+				// When to come back is upto client
+				nxt.ResponseChan <- struct {
+					Status bool
+					Number uint64
+				}{
+					Status: false,
+				}
+				break
+
+			}
+
+			// Updated when last this block was attempted to be processed
+			b.Blocks[selected].LastAttempted = time.Now().UTC()
+			b.Blocks[selected].IsProcessing = true
+
+			// Asking client to proceed with processing of this block
+			nxt.ResponseChan <- struct {
+				Status bool
+				Number uint64
+			}{
+				Status: true,
+				Number: selected,
+			}
 
 		case <-time.After(time.Duration(1000) * time.Millisecond):
 			// Do clean up to free up some memory
