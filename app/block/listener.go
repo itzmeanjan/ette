@@ -75,11 +75,11 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// reorganization, we'll attempt to process this new block
 			if !first && !(header.Number.Uint64() == status.GetLatestBlockNumber()+1) {
 
-				log.Printf(color.Blue.Sprintf("[*] Received block %d again, expected %d, attempting to process", header.Number.Uint64(), status.GetLatestBlockNumber()+1))
+				log.Print(color.Blue.Sprintf("[*] Received block %d again, expected %d, attempting to process", header.Number.Uint64(), status.GetLatestBlockNumber()+1))
 
 			} else {
 
-				log.Printf(color.Blue.Sprintf("[*] Received block %d, attempting to process", header.Number.Uint64()))
+				log.Print(color.Blue.Sprintf("[*] Received block %d, attempting to process", header.Number.Uint64()))
 
 			}
 
@@ -93,7 +93,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 				// Starting go routine for fetching blocks `ette` failed to process in previous attempt
 				//
 				// Uses Redis backed queue for fetching pending block hash & retries
-				go RetryQueueManager(connection.RPC, _db, redis, status)
+				go RetryQueueManager(connection.RPC, _db, redis, queue, status)
 
 				// If historical data query features are enabled
 				// only then we need to sync to latest state of block chain

@@ -140,7 +140,7 @@ func (b *BlockProcessorQueue) Done(block uint64) bool {
 }
 
 // Next - Asking queue for next block number that needs to be processed ( if any )
-func (b *BlockProcessorQueue) Next(block uint64) (uint64, bool) {
+func (b *BlockProcessorQueue) Next() (uint64, bool) {
 
 	resp := make(chan struct {
 		Status bool

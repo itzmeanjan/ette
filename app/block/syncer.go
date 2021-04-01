@@ -11,7 +11,6 @@ import (
 	"github.com/gammazero/workerpool"
 	"github.com/gookit/color"
 	cfg "github.com/itzmeanjan/ette/app/config"
-	"github.com/itzmeanjan/ette/app/data"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	q "github.com/itzmeanjan/ette/app/queue"
@@ -47,7 +46,7 @@ func FindMissingBlocksInRange(found []uint64, from uint64, to uint64) []uint64 {
 // while running n workers concurrently, where n = number of cores this machine has
 //
 // Waits for all of them to complete
-func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, queue *q.BlockProcessorQueue, fromBlock uint64, toBlock uint64, status *d.StatusHolder, jd func(*workerpool.WorkerPool, *d.Job, *q.BlockProcessorQueue)) {
+func Syncer(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInfo, queue *q.BlockProcessorQueue, fromBlock uint64, toBlock uint64, status *d.StatusHolder, jd func(*workerpool.WorkerPool, *d.Job, *q.BlockProcessorQueue)) {
 	if !(fromBlock <= toBlock) {
 		log.Print(color.Red.Sprintf("[!] Bad block range for syncer"))
 		return
@@ -82,7 +81,7 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, queue
 		blocks := db.GetAllBlockNumbersInRange(_db, i, toShouldbe)
 
 		// No blocks present in DB, in queried range
-		if blocks == nil || len(blocks) == 0 {
+		if len(blocks) == 0 {
 
 			// So submitting all of them to job processor queue
 			for j := i; j <= toShouldbe; j++ {
@@ -114,7 +113,7 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, queue
 //
 // Range can be either ascending or descending, depending upon that proper arguments to be
 // passed to `Syncer` function during invokation
-func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, queue *q.BlockProcessorQueue, fromBlock uint64, toBlock uint64, status *d.StatusHolder) {
+func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInfo, queue *q.BlockProcessorQueue, fromBlock uint64, toBlock uint64, status *d.StatusHolder) {
 
 	// Job to be submitted and executed by each worker
 	//
@@ -170,7 +169,7 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *data.Redis
 
 // SyncMissingBlocksInDB - Checks with database for what blocks are present & what are not, fetches missing
 // blocks & related data iteratively
-func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *data.RedisInfo, queue *q.BlockProcessorQueue, status *d.StatusHolder) {
+func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInfo, queue *q.BlockProcessorQueue, status *d.StatusHolder) {
 
 	for {
 
