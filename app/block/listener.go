@@ -114,11 +114,6 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 					// So we've to take a look at those
 					to := status.MaxBlockNumberAtStartUp() - cfg.GetBlockConfirmations()
 
-					// block number can never be negative
-					if to < 0 {
-						to = 0
-					}
-
 					go SyncBlocksByRange(connection.RPC, _db, redis, queue, from, to, status)
 
 				}
