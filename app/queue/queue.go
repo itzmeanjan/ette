@@ -31,18 +31,58 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 		case num := <-b.PutChan:
 
+			// Once a block is inserted into processing queue, don't
+			// overwrite its history with some new request
+			if _, ok := b.Blocks[num]; !ok {
+				break
+			}
+
 			b.Blocks[num] = &Block{
 				IsProcessing:  true,
 				HasPublished:  false,
 				Done:          false,
 				AttemptCount:  1,
 				LastAttempted: time.Now().UTC(),
-				Delay:         time.Duration(0) * time.Second,
+				Delay:         time.Duration(1) * time.Second,
 			}
 
-		case <-b.PublishedChan:
-		case <-b.FailedChan:
-		case <-b.DoneChan:
+		case num := <-b.PublishedChan:
+			// Worker go rountine marks this block has been
+			// published i.e. doesn't denote it has been processed
+			// successfully
+			//
+			// If not, it'll be marked so & no future attempt
+			// should try to publish it again over Pub/Sub
+
+			block, ok := b.Blocks[num]
+			if !ok {
+				break
+			}
+
+			block.HasPublished = true
+
+		case num := <-b.FailedChan:
+
+			block, ok := b.Blocks[num]
+			if !ok {
+				break
+			}
+
+			block.IsProcessing = false
+			block.AttemptCount++
+
+		case num := <-b.DoneChan:
+			// Worker go routine lets us know it has successfully
+			// processed block
+
+			block, ok := b.Blocks[num]
+			if !ok {
+				break
+			}
+
+			block.IsProcessing = false
+			block.Done = true
+
 		case <-time.After(time.Duration(1000) * time.Millisecond):
 			// Do clean up to free up some memory
 
