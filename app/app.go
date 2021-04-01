@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -19,7 +20,8 @@ import (
 // Run - Application to be invoked from main runner using this function
 func Run(configFile, subscriptionPlansFile string) {
 
-	_connection, _redisClient, _redisInfo, _db, _status, _ := bootstrap(configFile, subscriptionPlansFile)
+	ctx, cancel := context.WithCancel(context.Background())
+	_connection, _redisClient, _redisInfo, _db, _status, _queue := bootstrap(configFile, subscriptionPlansFile)
 
 	// Attempting to listen to Ctrl+C signal
 	// and when received gracefully shutting down `ette`
@@ -31,6 +33,15 @@ func Run(configFile, subscriptionPlansFile string) {
 	go func() {
 
 		<-interruptChan
+
+		// This call should be received in all places
+		// where root context is passed along
+		//
+		// But only it's being used in block processor queue
+		// go routine, as of now
+		//
+		// @note This can ( needs to ) be improved
+		cancel()
 
 		sql, err := _db.DB()
 		if err != nil {
@@ -99,8 +110,10 @@ func Run(configFile, subscriptionPlansFile string) {
 
 	}
 
+	go _queue.Start(ctx)
+
 	// Pushing block header propagation listener to another thread of execution
-	go blk.SubscribeToNewBlocks(_connection, _db, _status, _redisInfo)
+	go blk.SubscribeToNewBlocks(_connection, _db, _status, _redisInfo, _queue)
 
 	// Periodic clean up job being started, to be run every 24 hours to clean up
 	// delivery history data, older than 24 hours
