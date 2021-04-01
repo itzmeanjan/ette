@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"math"
 	"sync"
 	"time"
 )
@@ -97,6 +98,15 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			block.IsProcessing = false
 			block.AttemptCount++
+
+			// New attempt to process this block can be
+			// performed only after current wall time has reached
+			// `lastAttempted` + `delay`
+			//
+			// delay is computed using fibonacci sequence & wrapped
+			// at 3600 seconds
+			block.Delay = time.Duration(int64(math.Round(block.Delay.Seconds()*(1.0+math.Sqrt(5.0))/2)) % 3600)
+
 			req.ResponseChan <- true
 
 		case req := <-b.DoneChan:
