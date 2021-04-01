@@ -3,7 +3,6 @@ package queue
 import (
 	"context"
 	"math"
-	"sync"
 	"time"
 )
 
@@ -46,7 +45,6 @@ type Next struct {
 // It's concurrent safe
 type BlockProcessorQueue struct {
 	Blocks         map[uint64]*Block
-	Lock           *sync.RWMutex
 	PutChan        chan Request
 	CanPublishChan chan Request
 	PublishedChan  chan Request
@@ -157,6 +155,9 @@ func (b *BlockProcessorQueue) Next(block uint64) (uint64, bool) {
 
 }
 
+// Start - You're supposed to be starting this method as an
+// independent go routine, with will listen on multiple channels
+// & respond back over provided channel ( by client )
 func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 	for {
