@@ -45,13 +45,72 @@ type Next struct {
 //
 // It's concurrent safe
 type BlockProcessorQueue struct {
-	Blocks        map[uint64]*Block
-	Lock          *sync.RWMutex
-	PutChan       chan Request
-	PublishedChan chan Request
-	FailedChan    chan Request
-	DoneChan      chan Request
-	NextChan      chan Next
+	Blocks         map[uint64]*Block
+	Lock           *sync.RWMutex
+	PutChan        chan Request
+	CanPublishChan chan Request
+	PublishedChan  chan Request
+	FailedChan     chan Request
+	DoneChan       chan Request
+	NextChan       chan Next
+}
+
+// Put - Client is supposed to be invoking this method
+// when it's interested in putting new block to processing queue
+//
+// If responded with `true`, they're good to go with execution of
+// processing of this block
+//
+// If this block is already put into queue, it'll ask client
+// to not proceed with this number
+func (b *BlockProcessorQueue) Put(block uint64) bool {
+
+	resp := make(chan bool)
+	req := Request{
+		BlockNumber:  block,
+		ResponseChan: resp,
+	}
+
+	b.PutChan <- req
+	return <-resp
+
+}
+
+// CanPublish - Before any client attempts to publish any block
+// on Pub/Sub topic, they're supposed to be invoking this method
+// to check whether they're eligible of publishing or not
+//
+// Actually if any other client has already published it, we'll
+// better avoid redoing it
+func (b *BlockProcessorQueue) CanPublish(block uint64) bool {
+
+	resp := make(chan bool)
+	req := Request{
+		BlockNumber:  block,
+		ResponseChan: resp,
+	}
+
+	b.CanPublishChan <- req
+	return <-resp
+
+}
+
+// Published - Asks queue manager to mark that this block has been
+// successfully published on Pub/Sub topic
+//
+// Future block processing attempts ( if any ), are supposed to be
+// avoiding doing this, if already done successfully
+func (b *BlockProcessorQueue) Published(block uint64) bool {
+
+	resp := make(chan bool)
+	req := Request{
+		BlockNumber:  block,
+		ResponseChan: resp,
+	}
+
+	b.PublishedChan <- req
+	return <-resp
+
 }
 
 func (b *BlockProcessorQueue) Start(ctx context.Context) {
@@ -66,7 +125,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			// Once a block is inserted into processing queue, don't
 			// overwrite its history with some new request
-			if _, ok := b.Blocks[req.BlockNumber]; !ok {
+			if _, ok := b.Blocks[req.BlockNumber]; ok {
 
 				req.ResponseChan <- false
 				break
@@ -81,6 +140,16 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 				Delay:         time.Duration(1) * time.Second,
 			}
 			req.ResponseChan <- true
+
+		case req := <-b.CanPublishChan:
+
+			block, ok := b.Blocks[req.BlockNumber]
+			if !ok {
+				req.ResponseChan <- false
+				break
+			}
+
+			req.ResponseChan <- block.HasPublished
 
 		case req := <-b.PublishedChan:
 			// Worker go rountine marks this block has been
