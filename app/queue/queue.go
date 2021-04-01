@@ -15,7 +15,6 @@ type Block struct {
 	IsProcessing  bool
 	HasPublished  bool
 	Done          bool
-	AttemptCount  uint64
 	LastAttempted time.Time
 	Delay         time.Duration
 }
@@ -78,7 +77,6 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 				IsProcessing:  true,
 				HasPublished:  false,
 				Done:          false,
-				AttemptCount:  1,
 				LastAttempted: time.Now().UTC(),
 				Delay:         time.Duration(1) * time.Second,
 			}
@@ -110,7 +108,6 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			}
 
 			block.IsProcessing = false
-			block.AttemptCount++
 
 			// New attempt to process this block can be
 			// performed only after current wall time has reached
@@ -189,23 +186,15 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			}
 
 		case <-time.After(time.Duration(1000) * time.Millisecond):
-			// Do clean up to free up some memory
-
-			buffer := make([]uint64, 0, len(b.Blocks))
 
 			// Finding out which blocks are done processing & we're good to
 			// clean those up
-			for k, v := range b.Blocks {
+			for k := range b.Blocks {
 
-				if v.Done {
-					buffer = append(buffer, k)
+				if b.Blocks[k].Done {
+					delete(b.Blocks, k)
 				}
 
-			}
-
-			// Iterative clean up
-			for _, v := range buffer {
-				delete(b.Blocks, v)
 			}
 
 		}
