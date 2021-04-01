@@ -119,7 +119,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 						to = 0
 					}
 
-					go SyncBlocksByRange(connection.RPC, _db, redis, from, to, status)
+					go SyncBlocksByRange(connection.RPC, _db, redis, queue, from, to, status)
 
 				}
 				// Making sure that when next latest block header is received, it'll not
@@ -138,7 +138,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			//
 			// Though it'll be picked up sometime in future ( by missing block finder ), but it can be safely handled now
 			// so that it gets processed immediately
-			func(blockHash common.Hash, blockNumber uint64) {
+			func(blockHash common.Hash, blockNumber uint64, _queue *q.BlockProcessorQueue) {
 
 				// When only processing blocks in real-time mode
 				// no need to check what's present in unfinalized block number queue
@@ -167,20 +167,26 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 							// iteration over queue elements, none of them get missed, becuase we're
 							// dealing with concurrent system, where previous `oldest` can be overwritten
 							// by new `oldest` & we end up missing a block
-							func(_oldestBlock uint64) {
+							func(_oldestBlock uint64, _queue *q.BlockProcessorQueue) {
 
 								wp.Submit(func() {
 
-									FetchBlockByNumber(connection.RPC,
-										_oldestBlock,
-										_db,
-										redis,
-										false,
-										status)
+									if !_queue.Put(_oldestBlock) {
+										return
+									}
+
+									if !FetchBlockByNumber(connection.RPC, _oldestBlock, _db, redis, false, queue, status) {
+
+										_queue.Failed(_oldestBlock)
+										return
+
+									}
+
+									_queue.Done(_oldestBlock)
 
 								})
 
-							}(oldest)
+							}(oldest, _queue)
 
 						} else {
 
@@ -200,16 +206,22 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 				wp.Submit(func() {
 
-					FetchBlockByHash(connection.RPC,
-						blockHash,
-						fmt.Sprintf("%d", blockNumber),
-						_db,
-						redis,
-						status)
+					if !_queue.Put(blockNumber) {
+						return
+					}
+
+					if !FetchBlockByHash(connection.RPC, blockHash, fmt.Sprintf("%d", blockNumber), _db, redis, queue, status) {
+
+						_queue.Failed(blockNumber)
+						return
+
+					}
+
+					_queue.Done(blockNumber)
 
 				})
 
-			}(header.Hash(), header.Number.Uint64())
+			}(header.Hash(), header.Number.Uint64(), queue)
 
 		}
 	}
