@@ -39,7 +39,7 @@ func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInf
 		}
 
 		stat := queue.Stat()
-		log.Print(color.Cyan.Sprintf("[~] Retrying block : %d [ In Progress : %d, Done : %d ]", block, stat.InProgress, stat.Done))
+		log.Print(color.Cyan.Sprintf("[~] Retrying block : %d [ In Progress : %d, Waiting : %d, Done : %d ]", block, stat.InProgress, stat.Waiting, stat.Done))
 
 		// Submitting block processor job into pool
 		// which will be picked up & processed

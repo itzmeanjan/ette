@@ -50,6 +50,7 @@ type Stat struct {
 type StatResponse struct {
 	Done       uint64
 	InProgress uint64
+	Waiting    uint64
 }
 
 // BlockProcessorQueue - To be interacted with before attempting to
@@ -272,7 +273,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			//
 			// delay is computed using fibonacci sequence & wrapped
 			// at 3600 seconds
-			block.Delay = time.Duration(int64(math.Round(block.Delay.Seconds()*(1.0+math.Sqrt(5.0))/2)) % 3600)
+			block.Delay = time.Duration(int64(math.Round(block.Delay.Seconds()*(1.0+math.Sqrt(5.0))/2))%3600) * time.Second
 
 			req.ResponseChan <- true
 
@@ -350,6 +351,11 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			for k := range b.Blocks {
 
+				if b.Blocks[k].Done == b.Blocks[k].IsProcessing {
+					stat.Waiting++
+					continue
+				}
+
 				if b.Blocks[k].Done {
 					stat.Done++
 					continue
@@ -363,7 +369,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			req.ResponseChan <- stat
 
-		case <-time.After(time.Duration(1) * time.Millisecond):
+		case <-time.After(time.Duration(100) * time.Millisecond):
 
 			// Finding out which blocks are done processing & we're good to
 			// clean those up
