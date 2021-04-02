@@ -42,7 +42,14 @@ type Next struct {
 // Stat - Clients can query how many blocks present
 // in queue currently
 type Stat struct {
-	ResponseChan chan uint64
+	ResponseChan chan StatResponse
+}
+
+// StatResponse - Statistics of queue to be
+// responded back to client in this form
+type StatResponse struct {
+	Done       uint64
+	InProgress uint64
 }
 
 // BlockProcessorQueue - To be interacted with before attempting to
@@ -181,9 +188,9 @@ func (b *BlockProcessorQueue) Next() (uint64, bool) {
 
 // Stat - Client's are supposed to be invoking this abstracted method
 // for checking queue status
-func (b *BlockProcessorQueue) Stat() uint64 {
+func (b *BlockProcessorQueue) Stat() StatResponse {
 
-	resp := make(chan uint64)
+	resp := make(chan StatResponse)
 	query := Stat{ResponseChan: resp}
 
 	b.StatChan <- query
@@ -338,10 +345,25 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 		case req := <-b.StatChan:
 
 			// Returning back how many blocks currently living
-			// in block processor queue
-			req.ResponseChan <- uint64(len(b.Blocks))
+			// in block processor queue & in what state
+			stat := StatResponse{Done: 0, InProgress: 0}
 
-		case <-time.After(time.Duration(1000) * time.Millisecond):
+			for k := range b.Blocks {
+
+				if b.Blocks[k].Done {
+					stat.Done++
+					continue
+				}
+
+				if b.Blocks[k].IsProcessing {
+					stat.InProgress++
+				}
+
+			}
+
+			req.ResponseChan <- stat
+
+		case <-time.After(time.Duration(1) * time.Millisecond):
 
 			// Finding out which blocks are done processing & we're good to
 			// clean those up
