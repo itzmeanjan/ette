@@ -238,7 +238,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 				break
 			}
 
-			req.ResponseChan <- block.HasPublished
+			req.ResponseChan <- !block.HasPublished
 
 		case req := <-b.PublishedChan:
 			// Worker go rountine marks this block has been

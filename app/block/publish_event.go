@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/gookit/color"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 )
@@ -52,7 +51,7 @@ func PublishEvent(blockNumber uint64, event *db.Events, redis *d.RedisInfo) bool
 
 	if err := redis.Client.Publish(context.Background(), "event", data).Err(); err != nil {
 
-		log.Print(color.Red.Sprintf("[!] Failed to publish event from block %d : %s", blockNumber, err.Error()))
+		log.Printf("❗️ Failed to publish event from block %d : %s\n", blockNumber, err.Error())
 		return false
 
 	}

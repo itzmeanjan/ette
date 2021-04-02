@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/gookit/color"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 )
@@ -32,8 +31,12 @@ func PublishTxs(blockNumber uint64, txs []*db.PackedTransaction, redis *d.RedisI
 
 	}
 
-	log.Print(color.LightMagenta.Sprintf("[*] Published %d transactions of block %d", len(txs), blockNumber))
-	log.Print(color.LightMagenta.Sprintf("[*] Published %d events of block %d", eventCount, blockNumber))
+	if !status {
+		return status
+	}
+
+	log.Printf("📎 Published %d transactions of block %d\n", len(txs), blockNumber)
+	log.Printf("📎 Published %d events of block %d\n", eventCount, blockNumber)
 
 	return status
 
@@ -83,7 +86,7 @@ func PublishTx(blockNumber uint64, tx *db.PackedTransaction, redis *d.RedisInfo)
 
 	if err := redis.Client.Publish(context.Background(), "transaction", pTx).Err(); err != nil {
 
-		log.Print(color.Red.Sprintf("[!] Failed to publish transaction from block %d : %s", blockNumber, err.Error()))
+		log.Printf("❗️ Failed to publish transaction from block %d : %s\n", blockNumber, err.Error())
 		return false
 
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/gookit/color"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 )
@@ -36,12 +35,12 @@ func PublishBlock(block *db.PackedBlock, redis *d.RedisInfo) bool {
 
 	if err := redis.Client.Publish(context.Background(), "block", _block).Err(); err != nil {
 
-		log.Print(color.Red.Sprintf("[!] Failed to publish block %d in channel : %s", block.Block.Number, err.Error()))
+		log.Printf("❗️ Failed to publish block %d : %s\n", block.Block.Number, err.Error())
 		return false
 
 	}
 
-	log.Print(color.LightMagenta.Sprintf("[*] Published block %d", block.Block.Number))
+	log.Printf("📎 Published block %d\n", block.Block.Number)
 
 	return PublishTxs(block.Block.Number, block.Transactions, redis)
 

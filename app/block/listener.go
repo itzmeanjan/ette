@@ -9,7 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/gammazero/workerpool"
-	"github.com/gookit/color"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	q "github.com/itzmeanjan/ette/app/queue"
@@ -24,7 +23,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 	subs, err := connection.Websocket.SubscribeNewHead(context.Background(), headerChan)
 	if err != nil {
-		log.Fatal(color.Red.Sprintf("[!] Failed to subscribe to block headers : %s", err.Error()))
+		log.Fatalf("❗️ Failed to subscribe to block headers : %s\n", err.Error())
 	}
 	// Scheduling unsubscribe, to be executed when end of this execution scope is reached
 	defer subs.Unsubscribe()
@@ -44,7 +43,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 		select {
 		case err := <-subs.Err():
 
-			log.Fatal(color.Red.Sprintf("[!] Listener stopped : %s", err.Error()))
+			log.Fatalf("❗️ Listener stopped : %s\n", err.Error())
 
 		case header := <-headerChan:
 
@@ -52,7 +51,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// should be greater than max block number obtained from DB
 			if first && !(header.Number.Uint64() > status.MaxBlockNumberAtStartUp()) {
 
-				log.Fatal(color.Red.Sprintf("[!] Bad block received : expected > `%d`\n", status.MaxBlockNumberAtStartUp()))
+				log.Fatalf("❗️ Bad block received : expected > `%d`\n", status.MaxBlockNumberAtStartUp())
 
 			}
 
@@ -66,7 +65,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// It can be improved.
 			if !first && header.Number.Uint64() > status.GetLatestBlockNumber()+1 {
 
-				log.Fatal(color.Red.Sprintf("[!] Bad block received %d, expected %d", header.Number.Uint64(), status.GetLatestBlockNumber()))
+				log.Fatalf("❗️ Bad block received %d, expected %d\n", header.Number.Uint64(), status.GetLatestBlockNumber())
 
 			}
 
@@ -75,11 +74,11 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// reorganization, we'll attempt to process this new block
 			if !first && !(header.Number.Uint64() == status.GetLatestBlockNumber()+1) {
 
-				log.Print(color.Blue.Sprintf("[*] Received block %d again, expected %d, attempting to process", header.Number.Uint64(), status.GetLatestBlockNumber()+1))
+				log.Printf("🔅 Received block %d again, expected %d\n", header.Number.Uint64(), status.GetLatestBlockNumber()+1)
 
 			} else {
 
-				log.Print(color.Blue.Sprintf("[*] Received block %d, attempting to process", header.Number.Uint64()))
+				log.Printf("🔆 Received block %d\n", header.Number.Uint64())
 
 			}
 
@@ -161,7 +160,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 							oldest := PopOldestBlockFromUnfinalizedQueue(redis)
 
-							log.Print(color.Yellow.Sprintf("[*] Attempting to process finalised block %d [ Latest Block : %d | In Queue : %d ]", oldest, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+							log.Printf("🔅 Processing finalised block %d [ Latest Block : %d | In Queue : %d ]\n", oldest, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis))
 
 							// Taking `oldest` variable's copy in local scope of closure, so that during
 							// iteration over queue elements, none of them get missed, becuase we're

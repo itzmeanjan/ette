@@ -124,7 +124,7 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInf
 
 			if !HasBlockFinalized(status, j.Block) {
 
-				log.Print(color.LightRed.Sprintf("[x] Non-final block %d [ Latest Block : %d | In Queue : %d ]", j.Block, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+				log.Printf("❕ Non-final block %d [ Latest Block : %d | In Queue : %d ]\n", j.Block, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis))
 
 				// Pushing into unfinalized block queue, to be picked up only when
 				// finality for this block has been achieved
@@ -147,7 +147,7 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInf
 		})
 	}
 
-	log.Printf("[*] Starting block syncer\n")
+	log.Printf("✅ Starting block syncer\n")
 
 	if fromBlock < toBlock {
 		Syncer(client, _db, redis, queue, fromBlock, toBlock, status, job)
@@ -155,7 +155,7 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInf
 		Syncer(client, _db, redis, queue, toBlock, fromBlock, status, job)
 	}
 
-	log.Printf("[+] Stopping block syncer\n")
+	log.Printf("✅ Stopping block syncer\n")
 
 	// Once completed first iteration of processing blocks upto last time where it left
 	// off, we're going to start worker to look at DB & decide which blocks are missing
@@ -173,7 +173,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *d.Redi
 
 	for {
 
-		log.Printf("[*] Starting missing block finder\n")
+		log.Printf("✅ Starting missing block finder\n")
 
 		currentBlockNumber := db.GetCurrentBlockNumber(_db)
 
@@ -183,7 +183,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *d.Redi
 		// If all blocks present in between 0 to latest block in network
 		// `ette` sleeps for 1 minute & again get to work
 		if currentBlockNumber+1 == blockCount {
-			log.Print(color.Green.Sprintf("[+] No missing blocks found"))
+			log.Printf("✅ No missing blocks found\n")
 
 			<-time.After(time.Duration(1) * time.Minute)
 			continue
@@ -198,7 +198,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *d.Redi
 
 				if !HasBlockFinalized(status, j.Block) {
 
-					log.Print(color.LightRed.Sprintf("[x] Non-final block %d [ Latest Block : %d | In Queue : %d ]", j.Block, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis)))
+					log.Printf("❕ Non-final block %d [ Latest Block : %d | In Queue : %d ]\n", j.Block, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis))
 
 					// Pushing into unfinalized block queue, to be picked up only when
 					// finality for this block has been achieved
@@ -230,7 +230,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *d.Redi
 
 		Syncer(client, _db, redis, queue, 0, currentBlockNumber, status, job)
 
-		log.Printf("[+] Stopping missing block finder\n")
+		log.Printf("✅ Stopping missing block finder\n")
 		<-time.After(time.Duration(1) * time.Minute)
 
 	}
