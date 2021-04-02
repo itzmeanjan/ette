@@ -7,7 +7,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gammazero/workerpool"
-	"github.com/gookit/color"
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	q "github.com/itzmeanjan/ette/app/queue"
@@ -39,7 +38,7 @@ func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInf
 		}
 
 		stat := queue.Stat()
-		log.Print(color.Cyan.Sprintf("[~] Retrying block : %d [ In Progress : %d, Waiting : %d, Done : %d ]", block, stat.InProgress, stat.Waiting, stat.Done))
+		log.Printf("ℹ️ Retrying block : %d [ In Progress : %d, Waiting : %d, Done : %d ]", block, stat.InProgress, stat.Waiting, stat.Done)
 
 		// Submitting block processor job into pool
 		// which will be picked up & processed

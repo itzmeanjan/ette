@@ -9,7 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/gookit/color"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	q "github.com/itzmeanjan/ette/app/queue"
@@ -25,7 +24,7 @@ func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 	block, err := client.BlockByHash(context.Background(), hash)
 	if err != nil {
 
-		log.Print(color.Red.Sprintf("[!] Failed to fetch block by hash [ block : %s] : %s", number, err.Error()))
+		log.Printf("❗️ Failed to fetch block %s : %s\n", number, err.Error())
 		return false
 
 	}
@@ -46,7 +45,7 @@ func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 	block, err := client.BlockByNumber(context.Background(), _num)
 	if err != nil {
 
-		log.Print(color.Red.Sprintf("[!] Failed to fetch block by number [ block : %d ] : %s", number, err))
+		log.Printf("❗️ Failed to fetch block %d : %s\n", number, err)
 		return false
 
 	}
@@ -62,7 +61,7 @@ func FetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 
 	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
 	if err != nil {
-		log.Print(color.Red.Sprintf("[!] Failed to fetch tx receipt [ block : %d ] : %s", block.NumberU64(), err.Error()))
+		log.Printf("❗️ Failed to fetch tx receipt [ block : %d ] : %s\n", block.NumberU64(), err.Error())
 
 		// Passing nil, to denote, failed to fetch all tx data
 		// from blockchain node
@@ -72,7 +71,7 @@ func FetchTransactionByHash(client *ethclient.Client, block *types.Block, tx *ty
 
 	sender, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
 	if err != nil {
-		log.Print(color.Red.Sprintf("[!] Failed to fetch tx sender [ block : %d ] : %s", block.NumberU64(), err.Error()))
+		log.Printf("❗️ Failed to fetch tx sender [ block : %d ] : %s\n", block.NumberU64(), err.Error())
 
 		// Passing nil, to denote, failed to fetch all tx data
 		// from blockchain node
