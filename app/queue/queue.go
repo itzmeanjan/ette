@@ -27,6 +27,8 @@ type Request struct {
 	ResponseChan chan bool
 }
 
+type Update Request
+
 // Next - Block to be processed next, asked
 // by sending this request & when receptor
 // detects so, will attempt to find out
@@ -59,6 +61,7 @@ type StatResponse struct {
 // It's concurrent safe
 type BlockProcessorQueue struct {
 	Blocks         map[uint64]*Block
+	LatestBlock    uint64
 	PutChan        chan Request
 	CanPublishChan chan Request
 	PublishedChan  chan Request
@@ -66,6 +69,7 @@ type BlockProcessorQueue struct {
 	DoneChan       chan Request
 	NextChan       chan Next
 	StatChan       chan Stat
+	LatestChan     chan Update
 }
 
 // New - Getting new instance of queue, to be
@@ -74,6 +78,7 @@ func New() *BlockProcessorQueue {
 
 	return &BlockProcessorQueue{
 		Blocks:         make(map[uint64]*Block),
+		LatestBlock:    0,
 		PutChan:        make(chan Request, 128),
 		CanPublishChan: make(chan Request, 128),
 		PublishedChan:  make(chan Request, 128),
@@ -81,6 +86,7 @@ func New() *BlockProcessorQueue {
 		DoneChan:       make(chan Request, 128),
 		NextChan:       make(chan Next, 128),
 		StatChan:       make(chan Stat, 128),
+		LatestChan:     make(chan Update, 1),
 	}
 
 }
@@ -192,9 +198,21 @@ func (b *BlockProcessorQueue) Next() (uint64, bool) {
 func (b *BlockProcessorQueue) Stat() StatResponse {
 
 	resp := make(chan StatResponse)
-	query := Stat{ResponseChan: resp}
+	req := Stat{ResponseChan: resp}
 
-	b.StatChan <- query
+	b.StatChan <- req
+	return <-resp
+
+}
+
+// Latest - Block head subscriber will update queue manager
+// that latest block seen is updated
+func (b *BlockProcessorQueue) Latest(num uint64) bool {
+
+	resp := make(chan bool)
+	udt := Update{BlockNumber: num, ResponseChan: resp}
+
+	b.LatestChan <- udt
 	return <-resp
 
 }
@@ -368,6 +386,13 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			}
 
 			req.ResponseChan <- stat
+
+		case udt := <-b.LatestChan:
+			// Latest block number seen by subscriber to
+			// sent to queue, to be used in when deciding whether some
+			// block is confirmed/ finalised or not
+			b.LatestBlock = udt.BlockNumber
+			udt.ResponseChan <- true
 
 		case <-time.After(time.Duration(100) * time.Millisecond):
 
