@@ -49,10 +49,6 @@ func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInf
 
 			wp.Submit(func() {
 
-				if !queue.Put(_blockNumber) {
-					return
-				}
-
 				if !FetchBlockByNumber(client, _blockNumber, _db, redis, true, queue, status) {
 
 					queue.Failed(_blockNumber)
