@@ -39,6 +39,12 @@ type Next struct {
 	}
 }
 
+// Stat - Clients can query how many blocks present
+// in queue currently
+type Stat struct {
+	ResponseChan chan uint64
+}
+
 // BlockProcessorQueue - To be interacted with before attempting to
 // process any block
 //
@@ -51,6 +57,7 @@ type BlockProcessorQueue struct {
 	FailedChan     chan Request
 	DoneChan       chan Request
 	NextChan       chan Next
+	StatChan       chan Stat
 }
 
 // Put - Client is supposed to be invoking this method
@@ -152,6 +159,18 @@ func (b *BlockProcessorQueue) Next() (uint64, bool) {
 
 	v := <-resp
 	return v.Number, v.Status
+
+}
+
+// Stat - Client's are supposed to be invoking this abstracted method
+// for checking queue status
+func (b *BlockProcessorQueue) Stat() uint64 {
+
+	resp := make(chan uint64)
+	query := Stat{ResponseChan: resp}
+
+	b.StatChan <- query
+	return <-resp
 
 }
 
@@ -298,6 +317,12 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 				Status: true,
 				Number: selected,
 			}
+
+		case req := <-b.StatChan:
+
+			// Returning back how many blocks currently living
+			// in block processor queue
+			req.ResponseChan <- uint64(len(b.Blocks))
 
 		case <-time.After(time.Duration(1000) * time.Millisecond):
 
