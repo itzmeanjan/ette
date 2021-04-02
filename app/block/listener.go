@@ -112,7 +112,12 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 					// some reorg, in the time duration, when `ette` was offline
 					//
 					// So we've to take a look at those
-					to := status.MaxBlockNumberAtStartUp() - cfg.GetBlockConfirmations()
+					var to uint64
+					if status.MaxBlockNumberAtStartUp() < cfg.GetBlockConfirmations() {
+						to = 0
+					} else {
+						to = status.MaxBlockNumberAtStartUp() - cfg.GetBlockConfirmations()
+					}
 
 					go SyncBlocksByRange(connection.RPC, _db, redis, queue, from, to, status)
 
