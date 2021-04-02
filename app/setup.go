@@ -68,19 +68,8 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 		UnfinalizedBlocksQueue: "unfinalized_blocks",
 	}
 
-	// Setting up resources for running queue, where
-	// new block processing requests can be submitted
-	// & reported for keeping track of whether done or not
-	// whether we need to attempt to retry or not
-	_queue := &q.BlockProcessorQueue{
-		Blocks:         make(map[uint64]*q.Block),
-		PutChan:        make(chan q.Request, 128),
-		CanPublishChan: make(chan q.Request, 128),
-		PublishedChan:  make(chan q.Request, 128),
-		FailedChan:     make(chan q.Request, 128),
-		DoneChan:       make(chan q.Request, 128),
-		NextChan:       make(chan q.Next, 128),
-	}
+	// This is block processor queue
+	_queue := q.New()
 
 	return _connection, _redisClient, _redisInfo, _db, _status, _queue
 

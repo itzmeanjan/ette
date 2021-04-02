@@ -60,6 +60,23 @@ type BlockProcessorQueue struct {
 	StatChan       chan Stat
 }
 
+// New - Getting new instance of queue, to be
+// invoked during setting up application
+func New() *BlockProcessorQueue {
+
+	return &BlockProcessorQueue{
+		Blocks:         make(map[uint64]*Block),
+		PutChan:        make(chan Request, 128),
+		CanPublishChan: make(chan Request, 128),
+		PublishedChan:  make(chan Request, 128),
+		FailedChan:     make(chan Request, 128),
+		DoneChan:       make(chan Request, 128),
+		NextChan:       make(chan Next, 128),
+		StatChan:       make(chan Stat, 128),
+	}
+
+}
+
 // Put - Client is supposed to be invoking this method
 // when it's interested in putting new block to processing queue
 //
