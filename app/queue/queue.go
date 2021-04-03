@@ -430,7 +430,11 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			for k := range b.Blocks {
 
-				if b.Blocks[k].ConfirmedDone || b.Blocks[k].ConfirmedProgress || b.Blocks[k].UnconfirmedDone || b.Blocks[k].UnconfirmedProgress {
+				if b.Blocks[k].ConfirmedDone || b.Blocks[k].ConfirmedProgress {
+					continue
+				}
+
+				if b.Blocks[k].UnconfirmedDone || b.Blocks[k].UnconfirmedProgress {
 					continue
 				}
 
@@ -464,6 +468,53 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			b.Blocks[selected].UnconfirmedProgress = true
 
 			// Asking client to proceed with processing of this block
+			nxt.ResponseChan <- struct {
+				Status bool
+				Number uint64
+			}{
+				Status: true,
+				Number: selected,
+			}
+
+		case nxt := <-b.ConfirmedNextChan:
+
+			var selected uint64
+			var found bool
+
+			for k := range b.Blocks {
+
+				if b.Blocks[k].ConfirmedDone || b.Blocks[k].ConfirmedProgress {
+					continue
+				}
+
+				if !b.Blocks[k].UnconfirmedDone {
+					continue
+				}
+
+				if b.Blocks[k].CanAttempt() {
+					selected = k
+					found = true
+
+					break
+				}
+
+			}
+
+			if !found {
+
+				nxt.ResponseChan <- struct {
+					Status bool
+					Number uint64
+				}{
+					Status: false,
+				}
+				break
+
+			}
+
+			b.Blocks[selected].SetLastAttempted()
+			b.Blocks[selected].ConfirmedProgress = true
+
 			nxt.ResponseChan <- struct {
 				Status bool
 				Number uint64
