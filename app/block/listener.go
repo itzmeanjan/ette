@@ -145,59 +145,32 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 				// real-time subscription mechanism
 				if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
 
-					// Attempting to submit all blocks to job processor queue
-					// if more blocks are present in non-final queue, than actually
-					// should be
-					for GetUnfinalizedQueueLength(redis) > int64(cfg.GetBlockConfirmations()) {
+					// Next block which can be attempted to be checked
+					// while finally considering it confirmed & put into DB
+					if nxt, ok := _queue.ConfirmedNext(); ok {
 
-						// Before submitting new block processing job
-						// checking whether there exists any block in unfinalized
-						// block queue or not
-						//
-						// If yes, we're attempting to process it, because it has now
-						// achieved enough confirmations
-						if CheckIfOldestBlockIsConfirmed(redis, status) {
+						log.Printf("🔅 Processing finalised block %d [ Latest Block : %d ]\n", nxt, status.GetLatestBlockNumber())
 
-							oldest := PopOldestBlockFromUnfinalizedQueue(redis)
+						// Taking `oldest` variable's copy in local scope of closure, so that during
+						// iteration over queue elements, none of them get missed, becuase we're
+						// dealing with concurrent system, where previous `oldest` can be overwritten
+						// by new `oldest` & we end up missing a block
+						func(_oldestBlock uint64, _queue *q.BlockProcessorQueue) {
 
-							log.Printf("🔅 Processing finalised block %d [ Latest Block : %d | In Queue : %d ]\n", oldest, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis))
+							wp.Submit(func() {
 
-							// Taking `oldest` variable's copy in local scope of closure, so that during
-							// iteration over queue elements, none of them get missed, becuase we're
-							// dealing with concurrent system, where previous `oldest` can be overwritten
-							// by new `oldest` & we end up missing a block
-							func(_oldestBlock uint64, _queue *q.BlockProcessorQueue) {
+								if !FetchBlockByNumber(connection.RPC, _oldestBlock, _db, redis, false, queue, status) {
 
-								wp.Submit(func() {
+									_queue.ConfirmedFailed(_oldestBlock)
+									return
 
-									if !_queue.Put(_oldestBlock) {
-										return
-									}
+								}
 
-									if !FetchBlockByNumber(connection.RPC, _oldestBlock, _db, redis, false, queue, status) {
+								_queue.ConfirmedDone(_oldestBlock)
 
-										_queue.UnconfirmedFailed(_oldestBlock)
-										return
+							})
 
-									}
-
-									_queue.UnconfirmedDone(_oldestBlock)
-
-								})
-
-							}(oldest, _queue)
-
-						} else {
-
-							// If left most block is not yet finalized, it'll attempt to
-							// reorganize that queue so that other blocks waiting to be processed
-							// can get that opportunity
-							//
-							// This situation generally occurs due to concurrent pattern implemented
-							// in block processor
-							MoveUnfinalizedOldestBlockToEnd(redis)
-
-						}
+						}(nxt, _queue)
 
 					}
 

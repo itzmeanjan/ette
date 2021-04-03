@@ -1,7 +1,6 @@
 package block
 
 import (
-	"fmt"
 	"log"
 	"runtime"
 	"time"
@@ -15,14 +14,6 @@ import (
 	q "github.com/itzmeanjan/ette/app/queue"
 	"gorm.io/gorm"
 )
-
-// HasBlockFinalized - Checking whether block under processing i.e. `number`
-// has `N` confirmations on top of it or not
-func HasBlockFinalized(status *d.StatusHolder, number uint64) bool {
-
-	return status.GetLatestBlockNumber()-cfg.GetBlockConfirmations() >= number
-
-}
 
 // ProcessBlockContent - Processes everything inside this block i.e. block data, tx data, event data
 func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, queue *q.BlockProcessorQueue, status *d.StatusHolder, startingAt time.Time) bool {
@@ -90,17 +81,6 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 			log.Printf("❗️ Failed to process block %d : %s\n", block.NumberU64(), err.Error())
 			return false
-
-		}
-
-		if !HasBlockFinalized(status, packedBlock.Block.Number) {
-
-			log.Printf("❕ Non-final block %d with 0 tx(s) [ Took : %s | Latest Block : %d | In Queue : %d ]\n", packedBlock.Block.Number, time.Now().UTC().Sub(startingAt), status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis))
-
-			// Pushing into unfinalized block queue, to be picked up only when
-			// finality for this block has been achieved
-			PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", packedBlock.Block.Number))
-			return true
 
 		}
 
@@ -208,17 +188,6 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 
 		log.Printf("❗️ Failed to process block %d : %s\n", block.NumberU64(), err.Error())
 		return false
-
-	}
-
-	if !HasBlockFinalized(status, packedBlock.Block.Number) {
-
-		log.Printf("❕ Non-final block %d with %d tx(s) [ Took : %s | Latest Block : %d | In Queue : %d ]\n", packedBlock.Block.Number, block.Transactions().Len(), time.Now().UTC().Sub(startingAt), status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis))
-
-		// Pushing into unfinalized block queue, to be picked up only when
-		// finality for this block has been achieved
-		PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", packedBlock.Block.Number))
-		return true
 
 	}
 

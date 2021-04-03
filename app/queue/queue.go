@@ -491,7 +491,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 					continue
 				}
 
-				if b.Blocks[k].CanAttempt() {
+				if b.Blocks[k].CanAttempt() && b.CanBeConfirmed(k) {
 					selected = k
 					found = true
 

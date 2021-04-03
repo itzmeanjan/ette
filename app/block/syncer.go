@@ -1,7 +1,6 @@
 package block
 
 import (
-	"fmt"
 	"log"
 	"runtime"
 	"sort"
@@ -122,17 +121,6 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInf
 
 		wp.Submit(func() {
 
-			if !HasBlockFinalized(status, j.Block) {
-
-				log.Printf("❕ Non-final block %d [ Latest Block : %d | In Queue : %d ]\n", j.Block, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis))
-
-				// Pushing into unfinalized block queue, to be picked up only when
-				// finality for this block has been achieved
-				PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", j.Block))
-				return
-
-			}
-
 			if !queue.Put(j.Block) {
 				return
 			}
@@ -195,17 +183,6 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *d.Redi
 		job := func(wp *workerpool.WorkerPool, j *d.Job, queue *q.BlockProcessorQueue) {
 
 			wp.Submit(func() {
-
-				if !HasBlockFinalized(status, j.Block) {
-
-					log.Printf("❕ Non-final block %d [ Latest Block : %d | In Queue : %d ]\n", j.Block, status.GetLatestBlockNumber(), GetUnfinalizedQueueLength(redis))
-
-					// Pushing into unfinalized block queue, to be picked up only when
-					// finality for this block has been achieved
-					PushBlockIntoUnfinalizedQueue(redis, fmt.Sprintf("%d", j.Block))
-					return
-
-				}
 
 				// Worker fetches block by number from local storage
 				block := db.GetBlock(j.DB, j.Block)
