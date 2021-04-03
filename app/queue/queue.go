@@ -13,12 +13,13 @@ import (
 // whether block data has been published on pubsub topic or not,
 // is block processing currently
 type Block struct {
-	IsProcessing  bool
-	HasPublished  bool
-	Done          bool
-	Confirmed     bool
-	LastAttempted time.Time
-	Delay         time.Duration
+	IsProcessing   bool
+	HasPublished   bool
+	Done           bool
+	BeingConfirmed bool
+	Confirmed      bool
+	LastAttempted  time.Time
+	Delay          time.Duration
 }
 
 // Request - Any request to be placed into
@@ -223,9 +224,10 @@ func (b *BlockProcessorQueue) Latest(num uint64) bool {
 
 }
 
-// IsConfirmed -Checking whether given block number has reached
-// finality as per given user set preference
-func (b *BlockProcessorQueue) IsConfirmed(num uint64) bool {
+// CanBeConfirmed -Checking whether given block number has reached
+// finality as per given user set preference, then it can be attempted
+// to be checked again
+func (b *BlockProcessorQueue) CanBeConfirmed(num uint64) bool {
 
 	if b.LatestBlock < config.GetBlockConfirmations() {
 		return false
@@ -258,12 +260,13 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			}
 
 			b.Blocks[req.BlockNumber] = &Block{
-				IsProcessing:  true,
-				HasPublished:  false,
-				Done:          false,
-				Confirmed:     false,
-				LastAttempted: time.Now().UTC(),
-				Delay:         time.Duration(1) * time.Second,
+				IsProcessing:   true,
+				HasPublished:   false,
+				Done:           false,
+				Confirmed:      false,
+				BeingConfirmed: false,
+				LastAttempted:  time.Now().UTC(),
+				Delay:          time.Duration(1) * time.Second,
 			}
 			req.ResponseChan <- true
 
@@ -326,7 +329,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			block.IsProcessing = false
 			block.Done = true
-			block.Confirmed = b.IsConfirmed(req.BlockNumber)
+			block.Confirmed = b.CanBeConfirmed(req.BlockNumber)
 
 			req.ResponseChan <- true
 
@@ -418,6 +421,49 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			b.LatestBlock = udt.BlockNumber
 			udt.ResponseChan <- true
 
+		case nxt := <-b.ConfirmChan:
+			// Client asking queue what's new block number eligible
+			// to be checked & marked confirmed, as that time has arrived
+
+			var selected uint64
+			var found bool
+
+			for k := range b.Blocks {
+
+				if b.Blocks[k].Confirmed || b.Blocks[k].BeingConfirmed || !b.Blocks[k].Done {
+					continue
+				}
+
+				if b.CanBeConfirmed(k) {
+					selected = k
+					found = true
+
+					break
+				}
+
+			}
+
+			if !found {
+				// Asking client to come back sometime later
+				// we don't anything as of now
+
+				nxt.ResponseChan <- struct {
+					Status bool
+					Number uint64
+				}{
+					Status: false,
+				}
+				break
+
+			}
+
+			b.Blocks[selected].BeingConfirmed = true
+
+			nxt.ResponseChan <- struct {
+				Status bool
+				Number uint64
+			}{Status: true, Number: selected}
+
 		case req := <-b.ConfirmedChan:
 			// Client who attempted to get latest
 			// data from chain & check whether previously
@@ -436,7 +482,9 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 				break
 			}
 
+			block.BeingConfirmed = false
 			block.Confirmed = true
+
 			req.ResponseChan <- true
 
 		case <-time.After(time.Duration(100) * time.Millisecond):
