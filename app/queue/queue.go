@@ -53,9 +53,10 @@ type Stat struct {
 // StatResponse - Statistics of queue to be
 // responded back to client in this form
 type StatResponse struct {
-	Done       uint64
+	Done       uint64 // but not confirmed yet
 	InProgress uint64
 	Waiting    uint64
+	Confirmed  uint64 // final stage reached
 }
 
 // BlockProcessorQueue - To be interacted with before attempting to
@@ -260,6 +261,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 				IsProcessing:  true,
 				HasPublished:  false,
 				Done:          false,
+				Confirmed:     false,
 				LastAttempted: time.Now().UTC(),
 				Delay:         time.Duration(1) * time.Second,
 			}
@@ -324,6 +326,8 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			block.IsProcessing = false
 			block.Done = true
+			block.Confirmed = b.IsConfirmed(req.BlockNumber)
+
 			req.ResponseChan <- true
 
 		case nxt := <-b.NextChan:
@@ -336,7 +340,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			for k := range b.Blocks {
 
-				if b.Blocks[k].IsProcessing || b.Blocks[k].Done {
+				if b.Blocks[k].Confirmed || b.Blocks[k].Done || b.Blocks[k].IsProcessing {
 					continue
 				}
 
@@ -382,23 +386,26 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			// Returning back how many blocks currently living
 			// in block processor queue & in what state
-			stat := StatResponse{Done: 0, InProgress: 0}
+			var stat StatResponse
 
 			for k := range b.Blocks {
+
+				if b.Blocks[k].Confirmed == b.Blocks[k].Done {
+					stat.Confirmed++
+					continue
+				}
+
+				if b.Blocks[k].Confirmed != b.Blocks[k].Done {
+					stat.Done++
+					continue
+				}
 
 				if b.Blocks[k].Done == b.Blocks[k].IsProcessing {
 					stat.Waiting++
 					continue
 				}
 
-				if b.Blocks[k].Done {
-					stat.Done++
-					continue
-				}
-
-				if b.Blocks[k].IsProcessing {
-					stat.InProgress++
-				}
+				stat.InProgress++
 
 			}
 
@@ -434,11 +441,11 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 		case <-time.After(time.Duration(100) * time.Millisecond):
 
-			// Finding out which blocks are done processing & we're good to
+			// Finding out which blocks are confirmed & we're good to
 			// clean those up
 			for k := range b.Blocks {
 
-				if b.Blocks[k].Done {
+				if b.Blocks[k].Confirmed {
 					delete(b.Blocks, k)
 				}
 
