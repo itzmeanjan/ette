@@ -4,6 +4,8 @@ import (
 	"context"
 	"math"
 	"time"
+
+	"github.com/itzmeanjan/ette/app/config"
 )
 
 // Block - Keeps track of single block i.e. how many
@@ -14,6 +16,7 @@ type Block struct {
 	IsProcessing  bool
 	HasPublished  bool
 	Done          bool
+	Confirmed     bool
 	LastAttempted time.Time
 	Delay         time.Duration
 }
@@ -70,6 +73,8 @@ type BlockProcessorQueue struct {
 	NextChan       chan Next
 	StatChan       chan Stat
 	LatestChan     chan Update
+	ConfirmChan    chan Next
+	ConfirmedChan  chan Request
 }
 
 // New - Getting new instance of queue, to be
@@ -214,6 +219,18 @@ func (b *BlockProcessorQueue) Latest(num uint64) bool {
 
 	b.LatestChan <- udt
 	return <-resp
+
+}
+
+// IsConfirmed -Checking whether given block number has reached
+// finality as per given user set preference
+func (b *BlockProcessorQueue) IsConfirmed(num uint64) bool {
+
+	if b.LatestBlock < config.GetBlockConfirmations() {
+		return false
+	}
+
+	return b.LatestBlock-config.GetBlockConfirmations() >= num
 
 }
 
@@ -393,6 +410,27 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			// block is confirmed/ finalised or not
 			b.LatestBlock = udt.BlockNumber
 			udt.ResponseChan <- true
+
+		case req := <-b.ConfirmedChan:
+			// Client who attempted to get latest
+			// data from chain & check whether previously
+			// obtained piece of details regarding block
+			// is as same as what obtained this time, is
+			// reporting back yes it found (dis-)similarity
+			// & incorporated changes into local storage
+			//
+			// This block can now be removed from queue i.e.
+			// only `done` being positive doesn't denote it's
+			// final, confirmed needs to be made final explicitly
+
+			block, ok := b.Blocks[req.BlockNumber]
+			if !ok {
+				req.ResponseChan <- false
+				break
+			}
+
+			block.Confirmed = true
+			req.ResponseChan <- true
 
 		case <-time.After(time.Duration(100) * time.Millisecond):
 
