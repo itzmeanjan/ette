@@ -84,7 +84,7 @@ func PublishTx(blockNumber uint64, tx *db.PackedTransaction, redis *d.RedisInfo)
 		}
 	}
 
-	if err := redis.Client.Publish(context.Background(), "transaction", pTx).Err(); err != nil {
+	if err := redis.Client.Publish(context.Background(), redis.TxPublishTopic, pTx).Err(); err != nil {
 
 		log.Printf("❗️ Failed to publish transaction from block %d : %s\n", blockNumber, err.Error())
 		return false

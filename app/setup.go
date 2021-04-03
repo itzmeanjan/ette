@@ -62,10 +62,10 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 	}
 
 	_redisInfo := &d.RedisInfo{
-		Client:                 _redisClient,
-		BlockRetryQueue:        "blocks_in_retry_queue",
-		BlockRetryCountTable:   "attempt_count_tracker_table",
-		UnfinalizedBlocksQueue: "unfinalized_blocks",
+		Client:            _redisClient,
+		BlockPublishTopic: "block",
+		TxPublishTopic:    "transaction",
+		EventPublishTopic: "event",
 	}
 
 	// This is block processor queue
