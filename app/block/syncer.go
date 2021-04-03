@@ -138,11 +138,11 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInf
 			}
 
 			if !FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, queue, j.Status) {
-				queue.Failed(j.Block)
+				queue.UnconfirmedFailed(j.Block)
 				return
 			}
 
-			queue.Done(j.Block)
+			queue.UnconfirmedDone(j.Block)
 
 		})
 	}
@@ -218,11 +218,11 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *d.Redi
 				}
 
 				if !FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, queue, j.Status) {
-					queue.Failed(j.Block)
+					queue.UnconfirmedFailed(j.Block)
 					return
 				}
 
-				queue.Done(j.Block)
+				queue.UnconfirmedDone(j.Block)
 
 			})
 

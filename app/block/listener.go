@@ -176,12 +176,12 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 									if !FetchBlockByNumber(connection.RPC, _oldestBlock, _db, redis, false, queue, status) {
 
-										_queue.Failed(_oldestBlock)
+										_queue.UnconfirmedFailed(_oldestBlock)
 										return
 
 									}
 
-									_queue.Done(_oldestBlock)
+									_queue.UnconfirmedDone(_oldestBlock)
 
 								})
 
@@ -211,12 +211,12 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 					if !FetchBlockByHash(connection.RPC, blockHash, fmt.Sprintf("%d", blockNumber), _db, redis, queue, status) {
 
-						_queue.Failed(blockNumber)
+						_queue.UnconfirmedFailed(blockNumber)
 						return
 
 					}
 
-					_queue.Done(blockNumber)
+					_queue.UnconfirmedDone(blockNumber)
 
 				})
 

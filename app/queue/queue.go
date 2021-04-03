@@ -79,7 +79,6 @@ type Stat struct {
 type StatResponse struct {
 	UnconfirmedProgress uint64
 	UnconfirmedWaiting  uint64
-	UnconfirmedDone     uint64
 	ConfirmedProgress   uint64
 	ConfirmedWaiting    uint64
 	ConfirmedDone       uint64
@@ -241,6 +240,30 @@ func (b *BlockProcessorQueue) ConfirmedDone(block uint64) bool {
 
 }
 
+// Stat - Client's are supposed to be invoking this abstracted method
+// for checking queue status
+func (b *BlockProcessorQueue) Stat() StatResponse {
+
+	resp := make(chan StatResponse)
+	req := Stat{ResponseChan: resp}
+
+	b.StatChan <- req
+	return <-resp
+
+}
+
+// Latest - Block head subscriber will update queue manager
+// that latest block seen is updated
+func (b *BlockProcessorQueue) Latest(num uint64) bool {
+
+	resp := make(chan bool)
+	udt := Update{BlockNumber: num, ResponseChan: resp}
+
+	b.LatestChan <- udt
+	return <-resp
+
+}
+
 // UnconfirmedNext - Next block that can be processed, present in unconfirmed block queue
 func (b *BlockProcessorQueue) UnconfirmedNext() (uint64, bool) {
 
@@ -273,33 +296,9 @@ func (b *BlockProcessorQueue) ConfirmedNext() (uint64, bool) {
 
 }
 
-// Stat - Client's are supposed to be invoking this abstracted method
-// for checking queue status
-func (b *BlockProcessorQueue) Stat() StatResponse {
-
-	resp := make(chan StatResponse)
-	req := Stat{ResponseChan: resp}
-
-	b.StatChan <- req
-	return <-resp
-
-}
-
-// Latest - Block head subscriber will update queue manager
-// that latest block seen is updated
-func (b *BlockProcessorQueue) Latest(num uint64) bool {
-
-	resp := make(chan bool)
-	udt := Update{BlockNumber: num, ResponseChan: resp}
-
-	b.LatestChan <- udt
-	return <-resp
-
-}
-
 // CanBeConfirmed -Checking whether given block number has reached
 // finality as per given user set preference, then it can be attempted
-// to be checked again
+// to be checked again & finally entered into storage
 func (b *BlockProcessorQueue) CanBeConfirmed(num uint64) bool {
 
 	if b.LatestBlock < config.GetBlockConfirmations() {
@@ -366,7 +365,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			block.Published = true
 			req.ResponseChan <- true
 
-		case req := <-b.FailedChan:
+		case req := <-b.UnconfirmedFailedChan:
 
 			block, ok := b.Blocks[req.BlockNumber]
 			if !ok {
@@ -379,9 +378,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			req.ResponseChan <- true
 
-		case req := <-b.DoneChan:
-			// Worker go routine lets us know it has successfully
-			// processed block
+		case req := <-b.UnconfirmedDoneChan:
 
 			block, ok := b.Blocks[req.BlockNumber]
 			if !ok {
@@ -397,7 +394,33 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			req.ResponseChan <- true
 
-		case nxt := <-b.NextChan:
+		case req := <-b.ConfirmedFailedChan:
+
+			block, ok := b.Blocks[req.BlockNumber]
+			if !ok {
+				req.ResponseChan <- false
+				break
+			}
+
+			block.ConfirmedProgress = false
+			block.SetDelay()
+
+			req.ResponseChan <- true
+
+		case req := <-b.ConfirmedDoneChan:
+
+			block, ok := b.Blocks[req.BlockNumber]
+			if !ok {
+				req.ResponseChan <- false
+				break
+			}
+
+			block.ConfirmedProgress = false
+			block.ConfirmedDone = true
+
+			req.ResponseChan <- true
+
+		case nxt := <-b.UnconfirmedNextChan:
 
 			// This is the block number which should be processed
 			// by requester client, which is attempted to be found
@@ -458,26 +481,29 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			for k := range b.Blocks {
 
 				if b.Blocks[k].UnconfirmedProgress {
-					stat.InProgress++
+					stat.UnconfirmedProgress++
 					continue
 				}
 
-				if b.Blocks[k].ConfirmedDone == b.Blocks[k].UnconfirmedDone {
-					stat.Confirmed++
+				if b.Blocks[k].UnconfirmedProgress == b.Blocks[k].UnconfirmedDone {
+					stat.UnconfirmedWaiting++
 					continue
 				}
 
-				if b.Blocks[k].Confirmed != b.Blocks[k].Done {
-					stat.Done++
+				if b.Blocks[k].ConfirmedProgress {
+					stat.ConfirmedProgress++
 					continue
 				}
 
-				if b.Blocks[k].Done == b.Blocks[k].IsProcessing {
-					stat.Waiting++
+				if b.Blocks[k].ConfirmedProgress == b.Blocks[k].ConfirmedDone {
+					stat.ConfirmedWaiting++
 					continue
 				}
 
-				stat.InProgress++
+				if b.Blocks[k].ConfirmedDone {
+					stat.ConfirmedDone++
+					continue
+				}
 
 			}
 
@@ -490,79 +516,13 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			b.LatestBlock = udt.BlockNumber
 			udt.ResponseChan <- true
 
-		case nxt := <-b.ConfirmChan:
-			// Client asking queue what's new block number eligible
-			// to be checked & marked confirmed, as that time has arrived
-
-			var selected uint64
-			var found bool
-
-			for k := range b.Blocks {
-
-				if b.Blocks[k].Confirmed || b.Blocks[k].BeingConfirmed || !b.Blocks[k].Done {
-					continue
-				}
-
-				if b.CanBeConfirmed(k) {
-					selected = k
-					found = true
-
-					break
-				}
-
-			}
-
-			if !found {
-				// Asking client to come back sometime later
-				// we don't anything as of now
-
-				nxt.ResponseChan <- struct {
-					Status bool
-					Number uint64
-				}{
-					Status: false,
-				}
-				break
-
-			}
-
-			b.Blocks[selected].BeingConfirmed = true
-
-			nxt.ResponseChan <- struct {
-				Status bool
-				Number uint64
-			}{Status: true, Number: selected}
-
-		case req := <-b.ConfirmedChan:
-			// Client who attempted to get latest
-			// data from chain & check whether previously
-			// obtained piece of details regarding block
-			// is as same as what obtained this time, is
-			// reporting back yes it found (dis-)similarity
-			// & incorporated changes into local storage
-			//
-			// This block can now be removed from queue i.e.
-			// only `done` being positive doesn't denote it's
-			// final, confirmed needs to be made final explicitly
-
-			block, ok := b.Blocks[req.BlockNumber]
-			if !ok {
-				req.ResponseChan <- false
-				break
-			}
-
-			block.BeingConfirmed = false
-			block.Confirmed = true
-
-			req.ResponseChan <- true
-
 		case <-time.After(time.Duration(100) * time.Millisecond):
 
 			// Finding out which blocks are confirmed & we're good to
 			// clean those up
 			for k := range b.Blocks {
 
-				if b.Blocks[k].Confirmed {
+				if b.Blocks[k].ConfirmedDone {
 					delete(b.Blocks, k)
 				}
 
