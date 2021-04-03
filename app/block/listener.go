@@ -83,6 +83,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			}
 
 			status.SetLatestBlockNumber(header.Number.Uint64())
+			queue.Latest(header.Number.Uint64())
 
 			if first {
 

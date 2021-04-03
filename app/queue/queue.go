@@ -81,7 +81,6 @@ type StatResponse struct {
 	UnconfirmedWaiting  uint64
 	ConfirmedProgress   uint64
 	ConfirmedWaiting    uint64
-	ConfirmedDone       uint64
 }
 
 // BlockProcessorQueue - To be interacted with before attempting to
@@ -548,11 +547,6 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 				if b.Blocks[k].ConfirmedProgress == b.Blocks[k].ConfirmedDone {
 					stat.ConfirmedWaiting++
-					continue
-				}
-
-				if b.Blocks[k].ConfirmedDone {
-					stat.ConfirmedDone++
 					continue
 				}
 
