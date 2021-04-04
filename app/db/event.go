@@ -17,7 +17,7 @@ import (
 func UpsertEvent(dbWTx *gorm.DB, event *Events) error {
 
 	if event == nil {
-		return errors.New("Empty event received while attempting to persist")
+		return errors.New("empty event received while attempting to persist")
 	}
 
 	return dbWTx.Clauses(clause.OnConflict{UpdateAll: true}).Create(event).Error
