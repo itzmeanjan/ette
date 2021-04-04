@@ -56,7 +56,7 @@ func (b *Blocks) SimilarTo(_b *Blocks) bool {
 		b.UncleHash == _b.UncleHash &&
 		b.TransactionRootHash == _b.TransactionRootHash &&
 		b.ReceiptRootHash == _b.ReceiptRootHash &&
-		bytes.Compare(b.ExtraData, _b.ExtraData) == 0
+		bytes.Equal(b.ExtraData, _b.ExtraData)
 }
 
 // Transactions - Blockchain transaction holder table model

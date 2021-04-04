@@ -5,6 +5,7 @@ import (
 	"log"
 
 	d "github.com/itzmeanjan/ette/app/data"
+	q "github.com/itzmeanjan/ette/app/queue"
 	"gorm.io/gorm"
 )
 
@@ -20,10 +21,10 @@ import (
 //
 // 👆 gives us performance improvement, also taste of atomic db operation
 // i.e. either whole block data is written or nothing is written
-func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) error {
+func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder, queue *q.BlockProcessorQueue) error {
 
 	if block == nil {
-		return errors.New("Empty block received while attempting to persist")
+		return errors.New("empty block received while attempting to persist")
 	}
 
 	// -- Starting DB transaction
@@ -97,8 +98,9 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder) err
 
 		// During 👆 flow, if we've really inserted a new block into database,
 		// count will get updated
-		if blockInserted && status != nil {
-			status.IncrementBlocksInserted()
+		if blockInserted && status != nil && queue != nil {
+			status.IncrementBlocksInserted() // @note This is to be removed
+			queue.Inserted(block.Block.Number)
 		}
 
 		return nil

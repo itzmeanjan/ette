@@ -17,7 +17,7 @@ import (
 func UpsertTransaction(dbWTx *gorm.DB, tx *Transactions) error {
 
 	if tx == nil {
-		return errors.New("Empty transaction received while attempting to persist")
+		return errors.New("empty transaction received while attempting to persist")
 	}
 
 	return dbWTx.Clauses(clause.OnConflict{UpdateAll: true}).Create(tx).Error
