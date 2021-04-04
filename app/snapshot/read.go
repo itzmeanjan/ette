@@ -136,7 +136,7 @@ func ProcessBlock(db *gorm.DB, data []byte, control chan bool) {
 	// easily used for persisting whole block data into DB
 	_block := ProtoBufToBlock(block)
 
-	if err := _db.StoreBlock(db, _block, nil); err != nil {
+	if err := _db.StoreBlock(db, _block, nil, nil); err != nil {
 
 		log.Printf("[!] Failed to restore block : %s\n", err.Error())
 

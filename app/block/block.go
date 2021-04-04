@@ -77,7 +77,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		}
 
 		// If block doesn't contain any tx, we'll attempt to persist only block
-		if err := db.StoreBlock(_db, packedBlock, status); err != nil {
+		if err := db.StoreBlock(_db, packedBlock, status, queue); err != nil {
 
 			log.Printf("❗️ Failed to process block %d : %s\n", block.NumberU64(), err.Error())
 			return false
@@ -184,7 +184,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	}
 
 	// If block doesn't contain any tx, we'll attempt to persist only block
-	if err := db.StoreBlock(_db, packedBlock, status); err != nil {
+	if err := db.StoreBlock(_db, packedBlock, status, queue); err != nil {
 
 		log.Printf("❗️ Failed to process block %d : %s\n", block.NumberU64(), err.Error())
 		return false

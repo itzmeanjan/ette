@@ -90,11 +90,14 @@ type StatResponse struct {
 // It's concurrent safe
 type BlockProcessorQueue struct {
 	Blocks                map[uint64]*Block
+	StartedWith           uint64
+	TotalInserted         uint64
 	LatestBlock           uint64
 	Total                 uint64
 	PutChan               chan Request
 	CanPublishChan        chan Request
 	PublishedChan         chan Request
+	InsertedChan          chan Request
 	UnconfirmedFailedChan chan Request
 	UnconfirmedDoneChan   chan Request
 	ConfirmedFailedChan   chan Request
@@ -107,15 +110,18 @@ type BlockProcessorQueue struct {
 
 // New - Getting new instance of queue, to be
 // invoked during setting up application
-func New() *BlockProcessorQueue {
+func New(startingWith uint64) *BlockProcessorQueue {
 
 	return &BlockProcessorQueue{
 		Blocks:                make(map[uint64]*Block),
+		StartedWith:           startingWith,
+		TotalInserted:         0,
 		LatestBlock:           0,
 		Total:                 0,
 		PutChan:               make(chan Request, 128),
 		CanPublishChan:        make(chan Request, 128),
 		PublishedChan:         make(chan Request, 128),
+		InsertedChan:          make(chan Request, 128),
 		UnconfirmedFailedChan: make(chan Request, 128),
 		UnconfirmedDoneChan:   make(chan Request, 128),
 		ConfirmedFailedChan:   make(chan Request, 128),
@@ -182,6 +188,20 @@ func (b *BlockProcessorQueue) Published(block uint64) bool {
 	}
 
 	b.PublishedChan <- req
+	return <-resp
+
+}
+
+// Inserted - Marking this block has been inserted into DB ( not updation, it's insertion )
+func (b *BlockProcessorQueue) Inserted(block uint64) bool {
+
+	resp := make(chan bool)
+	req := Request{
+		BlockNumber:  block,
+		ResponseChan: resp,
+	}
+
+	b.InsertedChan <- req
 	return <-resp
 
 }
@@ -367,6 +387,17 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			block.Published = true
 			req.ResponseChan <- true
 
+		case req := <-b.InsertedChan:
+			// Increments how many blocks were inserted into DB
+
+			if _, ok := b.Blocks[req.BlockNumber]; !ok {
+				req.ResponseChan <- false
+				break
+			}
+
+			b.TotalInserted++
+			req.ResponseChan <- true
+
 		case req := <-b.UnconfirmedFailedChan:
 
 			block, ok := b.Blocks[req.BlockNumber]
@@ -397,7 +428,6 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 				block.ConfirmedDone = true // No need to attain this, because we're not putting anything in DB
 			}
 
-			block.ConfirmedDone = b.CanBeConfirmed(req.BlockNumber)
 			block.ResetDelay()
 			block.SetLastAttempted()
 

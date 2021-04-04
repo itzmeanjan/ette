@@ -69,7 +69,7 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 	}
 
 	// This is block processor queue
-	_queue := q.New()
+	_queue := q.New(db.GetCurrentBlockNumber(_db))
 
 	return _connection, _redisClient, _redisInfo, _db, _status, _queue
 
