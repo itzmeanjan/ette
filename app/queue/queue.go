@@ -81,6 +81,7 @@ type StatResponse struct {
 	UnconfirmedWaiting  uint64
 	ConfirmedProgress   uint64
 	ConfirmedWaiting    uint64
+	Total               uint64
 }
 
 // BlockProcessorQueue - To be interacted with before attempting to
@@ -90,6 +91,7 @@ type StatResponse struct {
 type BlockProcessorQueue struct {
 	Blocks                map[uint64]*Block
 	LatestBlock           uint64
+	Total                 uint64
 	PutChan               chan Request
 	CanPublishChan        chan Request
 	PublishedChan         chan Request
@@ -110,6 +112,7 @@ func New() *BlockProcessorQueue {
 	return &BlockProcessorQueue{
 		Blocks:                make(map[uint64]*Block),
 		LatestBlock:           0,
+		Total:                 0,
 		PutChan:               make(chan Request, 128),
 		CanPublishChan:        make(chan Request, 128),
 		PublishedChan:         make(chan Request, 128),
@@ -559,6 +562,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 			}
 
+			stat.Total = b.Total
 			req.ResponseChan <- stat
 
 		case udt := <-b.LatestChan:
@@ -576,6 +580,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 
 				if b.Blocks[k].ConfirmedDone {
 					delete(b.Blocks, k)
+					b.Total++ // Successfully processed #-of blocks
 				}
 
 			}
