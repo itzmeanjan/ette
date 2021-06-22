@@ -66,7 +66,7 @@ func Run(configFile, subscriptionPlansFile string) {
 	}()
 
 	// User has requested `ette` to take a snapshot of current database state
-	if cfg.Get("EtteMode") == "4" {
+	if cfg.Get("EtteMode") == "WRITE_SNAPSHOT" {
 
 		// checking if there's anything to snapshot or not
 		if _status.BlockCountInDB() == 0 {
@@ -95,7 +95,7 @@ func Run(configFile, subscriptionPlansFile string) {
 	// User has asked `ette` to attempt to restore from snapshotted data
 	// where data file is `snapshot.bin` in current working directory,
 	// if nothing specified for `SnapshotFile` variable in `.env`
-	if cfg.Get("EtteMode") == "5" {
+	if cfg.Get("EtteMode") == "READ_SNAPSHOT" {
 
 		_snapshotFile := cfg.GetSnapshotFile()
 		_start := time.Now().UTC()

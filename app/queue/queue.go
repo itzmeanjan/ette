@@ -422,7 +422,7 @@ func (b *BlockProcessorQueue) Start(ctx context.Context) {
 			block.UnconfirmedProgress = false
 			block.UnconfirmedDone = true
 
-			if config.Get("EtteMode") == "1" || config.Get("EtteMode") == "3" {
+			if config.Get("EtteMode") == "HISTORICAL" || config.Get("EtteMode") == "HISTORICAL_AND_REALTIME" {
 				block.ConfirmedDone = b.CanBeConfirmed(req.BlockNumber)
 			} else {
 				block.ConfirmedDone = true // No need to attain this, because we're not putting anything in DB

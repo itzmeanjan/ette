@@ -97,7 +97,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 
 				// If historical data query features are enabled
 				// only then we need to sync to latest state of block chain
-				if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
+				if cfg.Get("EtteMode") == "HISTORICAL" || cfg.Get("EtteMode") == "HISTORICAL_AND_REALTIME" {
 
 					// Starting syncer in another thread, where it'll keep fetching
 					// blocks from highest block number it fetched last time to current network block number
@@ -144,7 +144,7 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 				// no need to check what's present in unfinalized block number queue
 				// because no finality feature is provided for blocks on websocket based
 				// real-time subscription mechanism
-				if cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3" {
+				if cfg.Get("EtteMode") == "HISTORICAL" || cfg.Get("EtteMode") == "HISTORICAL_AND_REALTIME" {
 
 					// Next block which can be attempted to be checked
 					// while finally considering it confirmed & put into DB
