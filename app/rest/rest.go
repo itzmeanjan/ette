@@ -137,7 +137,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 	// Checking whether this `ette` instance support
 	// historical data query or not
 	checkEtteHistoricalMode := func(c *gin.Context) {
-		if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+		if !(cfg.Get("EtteMode") == "HISTORICAL" || cfg.Get("EtteMode") == "HISTORICAL_AND_REALTIME") {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"msg": "Disabled Feature",
 			})
@@ -151,7 +151,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 	// real-time data delivery or not, if not letting client know
 	// about it & closing connection
 	checkEtteRealTimeMode := func(conn *websocket.Conn) bool {
-		if !(cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3") {
+		if !(cfg.Get("EtteMode") == "REALTIME" || cfg.Get("EtteMode") == "HISTORICAL_AND_REALTIME") {
 			if err := conn.WriteJSON(&ps.SubscriptionResponse{Code: 0, Message: "Disabled Feature"}); err != nil {
 				log.Printf("[!] Failed to write message : %s\n", err.Error())
 			}
@@ -418,7 +418,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			remaining := (currentBlockNumber + 1) - blockCountInDB
 			elapsed := _status.ElapsedTime()
 
-			if cfg.Get("EtteMode") == "2" {
+			if cfg.Get("EtteMode") == "REALTIME" {
 				c.JSON(http.StatusOK, gin.H{
 					"processed": _status.Done(),
 					"elapsed":   elapsed.String(),

@@ -112,13 +112,13 @@ cd ette
 
     ---
 
-    EtteMode | Interpretation
-    --- | ---
-    1 | Only Historical Data Query Allowed
-    2 | Only Real-time Subscription Allowed
-    3 | Both Historical Data Query & Real-time Subscription Allowed
-    4 | Attempt to take snapshot from data in backing DB
-    5 | Attempt to restore data from snapshot file
+    EtteMode                | Interpretation
+    ---                     | ---
+    HISTORICAL              | Only Historical Data Query Allowed
+    REALTIME                | Only Real-time Subscription Allowed
+    HISTORICAL_AND_REALTIME | Both Historical Data Query & Real-time Subscription Allowed
+    WRITE_SNAPSHOT          | Attempt to take snapshot from data in backing DB
+    READ_SNAPSHOT           | Attempt to restore data from snapshot file
 
     ---
 

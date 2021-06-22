@@ -23,7 +23,7 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
 	}
 
-	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3" || cfg.Get("EtteMode") == "4" || cfg.Get("EtteMode") == "5") {
+	if !(cfg.Get("EtteMode") == "HISTORICAL" || cfg.Get("EtteMode") == "REALTIME" || cfg.Get("EtteMode") == "HISTORICAL_AND_REALTIME" || cfg.Get("EtteMode") == "WRITE_SNAPSHOT" || cfg.Get("EtteMode") == "READ_SNAPSHOT") {
 		log.Fatalf("[!] Failed to find `EtteMode` in configuration file\n")
 	}
 

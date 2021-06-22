@@ -29,7 +29,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		//
 		// Attempting to publish whole block data to redis pubsub channel
 		// when eligible `EtteMode` is set
-		if publishable && (cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3") {
+		if publishable && (cfg.Get("EtteMode") == "REALTIME" || cfg.Get("EtteMode") == "HISTORICAL_AND_REALTIME") {
 
 			// 1. Asking queue whether we need to publish block or not
 			if !queue.CanPublish(block.NumberU64()) {
@@ -67,7 +67,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 		// pubsub channel, no need to persist data
 		//
 		// We simply publish & return from execution scope
-		if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+		if !(cfg.Get("EtteMode") == "HISTORICAL" || cfg.Get("EtteMode") == "HISTORICAL_AND_REALTIME") {
 
 			log.Printf("✅ Block %d with 0 tx(s) [ Took : %s ]\n", block.NumberU64(), time.Now().UTC().Sub(startingAt))
 			status.IncrementBlocksProcessed()
@@ -174,7 +174,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 	// pubsub channel, no need to persist data
 	//
 	// We simply publish & return from execution scope
-	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "3") {
+	if !(cfg.Get("EtteMode") == "HISTORICAL" || cfg.Get("EtteMode") == "HISTORICAL_AND_REALTIME") {
 
 		log.Printf("✅ Block %d with %d tx(s) [ Took : %s ]\n", block.NumberU64(), block.Transactions().Len(), time.Now().UTC().Sub(startingAt))
 		status.IncrementBlocksProcessed()
