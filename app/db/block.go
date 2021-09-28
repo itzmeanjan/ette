@@ -45,21 +45,16 @@ func StoreBlock(dbWOTx *gorm.DB, block *PackedBlock, status *d.StatusHolder, que
 
 			log.Printf("[!] Block %d already present in DB, similar ❌\n", block.Block.Number)
 
-			// -- If block is going to be updated, it's better
-			// we also remove associated entries for that block
-			// i.e. transactions, events
-			if err := RemoveEventsByBlockHash(dbWTx, persistedBlock.Hash); err != nil {
+			// cascaded deletion !
+			if err := DeleteBlock(dbWTx, block.Block.Number); err != nil {
 				return err
 			}
 
-			if err := RemoveTransactionsByBlockHash(dbWTx, persistedBlock.Hash); err != nil {
+			if err := PutBlock(dbWTx, block.Block); err != nil {
 				return err
 			}
-			// -- block data clean up ends here
 
-			if err := UpdateBlock(dbWTx, block.Block); err != nil {
-				return err
-			}
+			blockInserted = true
 
 		} else {
 
@@ -126,6 +121,12 @@ func PutBlock(dbWTx *gorm.DB, block *Blocks) error {
 
 	return dbWTx.Create(block).Error
 
+}
+
+// DeleteBlock - Delete block entry, identified by block number, while
+// cascading all dependent entries ( i.e. in transactions/ events table )
+func DeleteBlock(dbWTx *gorm.DB, number uint64) error {
+	return dbWTx.Where("number = ?", number).Delete(&Blocks{}).Error
 }
 
 // UpdateBlock - Updating already existing block
