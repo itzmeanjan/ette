@@ -31,8 +31,8 @@ type Blocks struct {
 	TransactionRootHash string       `gorm:"column:txroothash;type:char(66);not null"`
 	ReceiptRootHash     string       `gorm:"column:receiptroothash;type:char(66);not null"`
 	ExtraData           []byte       `gorm:"column:extradata;type:bytea"`
-	Transactions        Transactions `gorm:"foreignKey:blockhash"`
-	Events              Events       `gorm:"foreignKey:blockhash"`
+	Transactions        Transactions `gorm:"foreignKey:blockhash;constraint:OnDelete:CASCADE;"`
+	Events              Events       `gorm:"foreignKey:blockhash;constraint:OnDelete:CASCADE;"`
 }
 
 // TableName - Overriding default table name
@@ -73,7 +73,7 @@ type Transactions struct {
 	Nonce     uint64 `gorm:"column:nonce;type:bigint;not null;index"`
 	State     uint64 `gorm:"column:state;type:smallint;not null"`
 	BlockHash string `gorm:"column:blockhash;type:char(66);not null;index"`
-	Events    Events `gorm:"foreignKey:txhash"`
+	Events    Events `gorm:"foreignKey:txhash;constraint:OnDelete:CASCADE;"`
 }
 
 // TableName - Overriding default table name
