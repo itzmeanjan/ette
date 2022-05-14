@@ -18,3 +18,5 @@ ette
 node_modules
 .plans.json
 snapshot.bin
+
+/.idea
