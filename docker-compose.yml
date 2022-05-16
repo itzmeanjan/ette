@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=ette-db
+      - POSTGRES_PASSWORD=ette-db
+    ports:
+      - '5432:5432'
+    volumes:
+      - db:/var/lib/postgresql/data
+  cache:
+    image: redis:6.0.6-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning
+  
+  parity:
+    image: openethereum/openethereum:latest
+    command: --config dev --unsafe-expose --jsonrpc-cors all
+    ports:
+      - 8545:8545
+      - 8546:8546
+      - 30303:30303
+    tty: true
+
+volumes:
+  db:
+    driver: local
