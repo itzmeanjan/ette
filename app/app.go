@@ -59,6 +59,11 @@ func Run(configFile, subscriptionPlansFile string) {
 			return
 		}
 
+		if err := _kafkaWriter.Close(); err != nil {
+			log.Print(color.Red.Sprintf("[!] Failed to close connection to Redis : %s", err.Error()))
+			return
+		}
+
 		// Stopping process
 		log.Print(color.Magenta.Sprintf("\n[+] Gracefully shut down `ette`"))
 		os.Exit(0)
