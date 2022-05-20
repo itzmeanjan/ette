@@ -9,14 +9,16 @@ import (
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
+	k "github.com/itzmeanjan/ette/app/kafka"
 	q "github.com/itzmeanjan/ette/app/queue"
 	"github.com/itzmeanjan/ette/app/rest/graph"
+	kafka "github.com/segmentio/kafka-go"
 	"gorm.io/gorm"
 )
 
 // Setting ground up i.e. acquiring resources required & determining with
 // some basic checks whether we can proceed to next step or not
-func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConnection, *redis.Client, *d.RedisInfo, *gorm.DB, *d.StatusHolder, *q.BlockProcessorQueue) {
+func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConnection, *redis.Client, *d.RedisInfo, *gorm.DB, *d.StatusHolder, *q.BlockProcessorQueue, *kafka.Writer) {
 
 	err := cfg.Read(configFile)
 	if err != nil {
@@ -71,6 +73,8 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 	// This is block processor queue
 	_queue := q.New(db.GetCurrentBlockNumber(_db))
 
-	return _connection, _redisClient, _redisInfo, _db, _status, _queue
+	_kafkaWriter := k.Connect()
+
+	return _connection, _redisClient, _redisInfo, _db, _status, _queue, _kafkaWriter
 
 }

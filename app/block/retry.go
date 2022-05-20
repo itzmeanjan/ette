@@ -10,6 +10,7 @@ import (
 	cfg "github.com/itzmeanjan/ette/app/config"
 	d "github.com/itzmeanjan/ette/app/data"
 	q "github.com/itzmeanjan/ette/app/queue"
+	"github.com/segmentio/kafka-go"
 	"gorm.io/gorm"
 )
 
@@ -19,7 +20,7 @@ import (
 // Sleeps for 1000 milliseconds
 //
 // Keeps repeating
-func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInfo, queue *q.BlockProcessorQueue, status *d.StatusHolder) {
+func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInfo, queue *q.BlockProcessorQueue, status *d.StatusHolder, _kafkaWriter *kafka.Writer) {
 	sleep := func() {
 		time.Sleep(time.Duration(512) * time.Millisecond)
 	}
@@ -48,7 +49,7 @@ func RetryQueueManager(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInf
 
 			wp.Submit(func() {
 
-				if !FetchBlockByNumber(client, _blockNumber, _db, redis, true, queue, status) {
+				if !FetchBlockByNumber(client, _blockNumber, _db, redis, true, queue, status, _kafkaWriter) {
 
 					queue.UnconfirmedFailed(_blockNumber)
 					return

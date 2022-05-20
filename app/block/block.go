@@ -12,11 +12,12 @@ import (
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	q "github.com/itzmeanjan/ette/app/queue"
+	"github.com/segmentio/kafka-go"
 	"gorm.io/gorm"
 )
 
 // ProcessBlockContent - Processes everything inside this block i.e. block data, tx data, event data
-func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, queue *q.BlockProcessorQueue, status *d.StatusHolder, startingAt time.Time) bool {
+func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm.DB, redis *d.RedisInfo, publishable bool, queue *q.BlockProcessorQueue, status *d.StatusHolder, startingAt time.Time, _kafkaWriter *kafka.Writer) bool {
 
 	// Closure managing publishing whole block data i.e. block header, txn(s), event logs
 	// on redis pubsub channel
@@ -37,7 +38,7 @@ func ProcessBlockContent(client *ethclient.Client, block *types.Block, _db *gorm
 			}
 
 			// 2. Attempting to publish block on Pub/Sub topic
-			if !PublishBlock(packedBlock, redis) {
+			if !PublishBlock(packedBlock, redis, _kafkaWriter) {
 				return nil, false
 			}
 

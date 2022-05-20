@@ -12,11 +12,12 @@ import (
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	q "github.com/itzmeanjan/ette/app/queue"
+	"github.com/segmentio/kafka-go"
 	"gorm.io/gorm"
 )
 
 // FetchBlockByHash - Fetching block content using blockHash
-func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redis *d.RedisInfo, queue *q.BlockProcessorQueue, _status *d.StatusHolder) bool {
+func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string, _db *gorm.DB, redis *d.RedisInfo, queue *q.BlockProcessorQueue, _status *d.StatusHolder, _kafkaWriter *kafka.Writer) bool {
 
 	// Starting block processing at
 	startingAt := time.Now().UTC()
@@ -29,12 +30,12 @@ func FetchBlockByHash(client *ethclient.Client, hash common.Hash, number string,
 
 	}
 
-	return ProcessBlockContent(client, block, _db, redis, true, queue, _status, startingAt)
+	return ProcessBlockContent(client, block, _db, redis, true, queue, _status, startingAt, _kafkaWriter)
 
 }
 
 // FetchBlockByNumber - Fetching block content using block number
-func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redis *d.RedisInfo, publishable bool, queue *q.BlockProcessorQueue, _status *d.StatusHolder) bool {
+func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, redis *d.RedisInfo, publishable bool, queue *q.BlockProcessorQueue, _status *d.StatusHolder, _kafkaWriter *kafka.Writer) bool {
 
 	// Starting block processing at
 	startingAt := time.Now().UTC()
@@ -50,7 +51,7 @@ func FetchBlockByNumber(client *ethclient.Client, number uint64, _db *gorm.DB, r
 
 	}
 
-	return ProcessBlockContent(client, block, _db, redis, publishable, queue, _status, startingAt)
+	return ProcessBlockContent(client, block, _db, redis, publishable, queue, _status, startingAt, _kafkaWriter)
 
 }
 

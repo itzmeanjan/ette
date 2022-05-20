@@ -21,7 +21,7 @@ import (
 func Run(configFile, subscriptionPlansFile string) {
 
 	ctx, cancel := context.WithCancel(context.Background())
-	_connection, _redisClient, _redisInfo, _db, _status, _queue := bootstrap(configFile, subscriptionPlansFile)
+	_connection, _redisClient, _redisInfo, _db, _status, _queue, _kafkaWriter := bootstrap(configFile, subscriptionPlansFile)
 
 	// Attempting to listen to Ctrl+C signal
 	// and when received gracefully shutting down `ette`
@@ -113,7 +113,7 @@ func Run(configFile, subscriptionPlansFile string) {
 	go _queue.Start(ctx)
 
 	// Pushing block header propagation listener to another thread of execution
-	go blk.SubscribeToNewBlocks(_connection, _db, _status, _redisInfo, _queue)
+	go blk.SubscribeToNewBlocks(_connection, _db, _status, _redisInfo, _queue, _kafkaWriter)
 
 	// Periodic clean up job being started, to be run every 24 hours to clean up
 	// delivery history data, older than 24 hours

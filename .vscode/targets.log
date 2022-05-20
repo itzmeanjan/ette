@@ -6,11 +6,8 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # PARTICULAR PURPOSE.
 
 # This program built for i386-apple-darwin11.3.0
- 
-make: *** No rule to make target `all'.  Stop.
 
-
-# Make data base, printed on Thu May 19 13:21:01 2022
+# Make data base, printed on Fri May 20 09:38:23 2022
 
 # Variables
 
@@ -32,7 +29,6 @@ VSCODE_LOG_NATIVE = false
 CURDIR := /Users/mohamedtaha/Desktop/work/marhaba-defi/ette
 # makefile (from `Makefile', line 1)
 SHELL := /bin/bash
- 
 # environment
 VSCODE_NLS_CONFIG = {"locale":"en-gb","availableLanguages":{},"_languagePackSupport":true}
 # environment
@@ -48,7 +44,7 @@ VSCODE_VERBOSE_LOGGING = true
 # environment
 __CFBundleIdentifier = com.microsoft.VSCode
 # environment
-VSCODE_IPC_HOOK_EXTHOST = /var/folders/wr/_3k_h19n5njck_xk4hjlwwrm0000gn/T/vscode-ipc-3d11ad22-2fb7-46e4-bcd2-7d20e05c49b7.sock
+VSCODE_IPC_HOOK_EXTHOST = /var/folders/wr/_3k_h19n5njck_xk4hjlwwrm0000gn/T/vscode-ipc-7445de66-e936-4520-9be7-994cb8057647.sock
 # environment
 VSCODE_CWD = /
 # environment
@@ -62,7 +58,7 @@ THREE_SCALE_USER_TOKEN = 207c527cfc2a6b8dcf4fa43ad7a976da
 # environment
 GOPATH = /Users/mohamedtaha/go
 # environment
-LaunchInstanceID = 1D040E84-C5DD-4FCA-AC46-7BD8C1AB8D4C
+LaunchInstanceID = 101048F7-3F32-4EA5-93A0-8FFC0A1EBE7F
 # environment
 VSCODE_LOG_STACK = false
 # environment
@@ -72,7 +68,7 @@ ELECTRON_RUN_AS_NODE = 1
 # environment
 UUID = 109cad12-b955-4099-9320-84d6ccaf6ffe
 # environment
-SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.3hH8wyrvRf/Listeners
+SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.1eVPito6zO/Listeners
 # automatic
 %F = $(notdir $%)
 # environment
@@ -92,7 +88,7 @@ VSCODE_CODE_CACHE_PATH = /Users/mohamedtaha/Library/Application Support/Code/Cac
 # environment
 LOGNAME = mohamedtaha
 # environment
-APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
 # environment
 TELEMETRY_ID = 6e18a688-0f39-4462-b48c-55777c53023c
 # environment
@@ -152,7 +148,7 @@ MAKEFILES :=
 # environment
 LC_ALL = C
 # environment
-SECURITYSESSIONID = 186a4
+SECURITYSESSIONID = 186a3
 # automatic
 ^F = $(notdir $^)
 # default
@@ -164,7 +160,7 @@ MAKELEVEL := 0
 # environment
 LANG = C
 # environment
-VSCODE_PID = 388
+VSCODE_PID = 401
 # variable set hash-table stats:
 # Load=75/1024=7%, Rehash=0, Collisions=3/100=3%
 
@@ -174,7 +170,7 @@ VSCODE_PID = 388
 
 # Directories
 
-# . (device 16777221, inode 4761033): 23 files, no impossibilities.
+# . (device 16777224, inode 4761033): 23 files, no impossibilities.
 
 # 23 files, no impossibilities in 1 directories.
 
@@ -207,7 +203,6 @@ graphql_gen:
 #  Modification time never checked.
 #  File has not been updated.
 
- 
 # Not a target:
 Makefile:
 #  Implicit rule search has been done.
@@ -269,6 +264,8 @@ run: build
 # strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
 # strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
 
-# Finished Make data base on Thu May 19 13:21:01 2022
+# Finished Make data base on Fri May 20 09:38:23 2022
 
  
+make: *** No rule to make target `all'.  Stop.
+

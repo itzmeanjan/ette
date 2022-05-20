@@ -6,10 +6,11 @@ import (
 
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
+	"github.com/segmentio/kafka-go"
 )
 
 // PublishBlock - Attempts to publish block data to Redis pubsub channel
-func PublishBlock(block *db.PackedBlock, redis *d.RedisInfo) bool {
+func PublishBlock(block *db.PackedBlock, redis *d.RedisInfo, _kafkaWriter *kafka.Writer) bool {
 
 	if block == nil {
 		return false
@@ -42,6 +43,6 @@ func PublishBlock(block *db.PackedBlock, redis *d.RedisInfo) bool {
 
 	log.Printf("📎 Published block %d\n", block.Block.Number)
 
-	return PublishTxs(block.Block.Number, block.Transactions, redis)
+	return PublishTxs(block.Block.Number, block.Transactions, redis, _kafkaWriter)
 
 }
