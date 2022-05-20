@@ -16,7 +16,7 @@ func newKafkaWriter(kafkaURL, topic string) *kafka.Writer {
 
 func Connect() *kafka.Writer {
 	_writer := newKafkaWriter("localhost:29092", "events")
-	defer _writer.Close()
+	// defer _writer.Close()
 	fmt.Println("start producing ... !!")
 
 	return _writer

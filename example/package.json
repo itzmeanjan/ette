@@ -9,6 +9,7 @@
   "author": "Anjan Roy <anjanroy@yandex.com>",
   "license": "CC0-1.0",
   "dependencies": {
+    "kafkajs": "^2.0.0",
     "websocket": "^1.0.33"
   }
 }
