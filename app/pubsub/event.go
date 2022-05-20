@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -12,6 +13,7 @@ import (
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	"github.com/lib/pq"
+	"github.com/segmentio/kafka-go"
 	"gorm.io/gorm"
 
 	"github.com/go-redis/redis/v8"
@@ -23,14 +25,15 @@ import (
 // of information, which is to be required when delivering data & checking whether this connection
 // has really requested notification for this event or not
 type EventConsumer struct {
-	Client     *redis.Client
-	Requests   map[string]*SubscriptionRequest
-	Connection *websocket.Conn
-	PubSub     *redis.PubSub
-	DB         *gorm.DB
-	ConnLock   *sync.Mutex
-	TopicLock  *sync.RWMutex
-	Counter    *data.SendReceiveCounter
+	Client      *redis.Client
+	Requests    map[string]*SubscriptionRequest
+	Connection  *websocket.Conn
+	PubSub      *redis.PubSub
+	DB          *gorm.DB
+	ConnLock    *sync.Mutex
+	TopicLock   *sync.RWMutex
+	Counter     *data.SendReceiveCounter
+	KafkaWriter *kafka.Writer
 }
 
 // Subscribe - Event consumer is subscribing to `event` topic,
@@ -216,6 +219,15 @@ func (e *EventConsumer) Send(msg string) {
 
 	if e.SendData(&event) {
 		db.PutDataDeliveryInfo(e.DB, user.Address, "/v1/ws/event", uint64(len(msg)))
+	}
+
+	err = e.KafkaWriter.WriteMessages(context.Background(), kafka.Message{
+		Value: _event.ToJSON(),
+	})
+	if err != nil {
+		fmt.Println("kafka error", err)
+	} else {
+		fmt.Println("produced")
 	}
 
 }

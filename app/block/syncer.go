@@ -13,7 +13,6 @@ import (
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
 	q "github.com/itzmeanjan/ette/app/queue"
-	"github.com/segmentio/kafka-go"
 	"gorm.io/gorm"
 )
 
@@ -113,7 +112,7 @@ func Syncer(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInfo, queue *q
 //
 // Range can be either ascending or descending, depending upon that proper arguments to be
 // passed to `Syncer` function during invokation
-func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInfo, queue *q.BlockProcessorQueue, fromBlock uint64, toBlock uint64, status *d.StatusHolder, _kafkaWriter *kafka.Writer) {
+func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInfo, queue *q.BlockProcessorQueue, fromBlock uint64, toBlock uint64, status *d.StatusHolder) {
 
 	// Job to be submitted and executed by each worker
 	//
@@ -126,7 +125,7 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInf
 				return
 			}
 
-			if !FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, queue, j.Status, _kafkaWriter) {
+			if !FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, queue, j.Status) {
 				queue.UnconfirmedFailed(j.Block)
 				return
 			}
@@ -152,13 +151,13 @@ func SyncBlocksByRange(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInf
 	//
 	// And this will itself run as a infinite job, completes one iteration &
 	// takes break for 1 min, then repeats
-	go SyncMissingBlocksInDB(client, _db, redis, queue, status, _kafkaWriter)
+	go SyncMissingBlocksInDB(client, _db, redis, queue, status)
 
 }
 
 // SyncMissingBlocksInDB - Checks with database for what blocks are present & what are not, fetches missing
 // blocks & related data iteratively
-func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInfo, queue *q.BlockProcessorQueue, status *d.StatusHolder, _kafkaWriter *kafka.Writer) {
+func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *d.RedisInfo, queue *q.BlockProcessorQueue, status *d.StatusHolder) {
 
 	for {
 
@@ -195,7 +194,7 @@ func SyncMissingBlocksInDB(client *ethclient.Client, _db *gorm.DB, redis *d.Redi
 					return
 				}
 
-				if !FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, queue, j.Status, _kafkaWriter) {
+				if !FetchBlockByNumber(j.Client, j.Block, j.DB, j.Redis, false, queue, j.Status) {
 					queue.UnconfirmedFailed(j.Block)
 					return
 				}

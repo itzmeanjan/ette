@@ -1,0 +1,87 @@
+{{define "head"}}
+<style>
+    html {
+        background: linear-gradient(to right, #669999 0%, #666699 100%);
+    }
+
+    .centered {
+        border-radius: 15px;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        -webkit-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+        width: 12vmin;
+        user-select: none;
+        font-size: 18px;
+        background-color: #00ff99;
+    }
+
+    .centered:hover {
+        background-color: #00ff33;
+    }
+
+    div {
+        padding: 20px;
+        color: black;
+        text-align: center;
+    }
+</style>
+{{end}}
+
+
+{{define "content"}}
+<div class="centered" onclick="{ 
+        if (typeof ethereum !== 'undefined') {
+            ethereum.request({method: 'eth_requestAccounts'}).then(accounts => {
+                if(accounts.length !== 0) {
+                    const from = accounts[0]
+                    const msg = {
+                        address: from,
+                        timestamp: Math.round(Date.now() / 1000)
+                    }
+                    ethereum.request({
+                        method: 'personal_sign',
+                        params: [JSON.stringify(msg), from]
+                    }).then(signature => {
+                        fetch('/v1/login', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({message: msg, signature})
+                        })
+                        .then(async resp => {
+                            try {
+                                const v = await resp.json()
+                                if (resp.status !== 200) {
+                                    alert(v.msg)
+                                    return
+                                }
+                                window.location.pathname = '/v1/dashboard'
+                            } catch(_) {
+                                alert('Authentication Failed !')
+                            }
+                        })
+                        .catch(_ => alert('Authentication Failed !'))
+                    }).catch(_ => alert('Metamask failed to sign message !'))
+                } else {
+                    alert('Metamask access required !')
+                }
+            }).catch(_ => alert('Metamask access required !'))
+        } else {
+            alert('Metamask needs to be installed !')
+        } }">Login</div>
+
+<script>
+    // Stopping metamask from reloading page, when
+    // when is changed, as we're not really concerned about
+    // which network the user is in
+    //
+    // We're interested in making user sign message of certain format
+    if (typeof ethereum !== undefined) {
+        ethereum.autoRefreshOnNetworkChange = false
+    }
+</script>
+{{end}}

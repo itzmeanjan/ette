@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/itzmeanjan/ette/app/data"
+	"github.com/segmentio/kafka-go"
 	"gorm.io/gorm"
 )
 
@@ -40,7 +41,7 @@ type SubscriptionManager struct {
 // Subscribe - Websocket connection manager can reliably call
 // this function when ever it receives one valid subscription request
 // with out worrying about how will it be handled
-func (s *SubscriptionManager) Subscribe(req *SubscriptionRequest) {
+func (s *SubscriptionManager) Subscribe(req *SubscriptionRequest, _kafkaWriter *kafka.Writer) {
 
 	s.TopicLock.Lock()
 	defer s.TopicLock.Unlock()
@@ -60,7 +61,7 @@ func (s *SubscriptionManager) Subscribe(req *SubscriptionRequest) {
 		case "transaction":
 			s.Consumers[req.Topic()] = NewTransactionConsumer(s.Client, tmp, s.Connection, s.DB, s.ConnLock, s.TopicLock, s.Counter)
 		case "event":
-			s.Consumers[req.Topic()] = NewEventConsumer(s.Client, tmp, s.Connection, s.DB, s.ConnLock, s.TopicLock, s.Counter)
+			s.Consumers[req.Topic()] = NewEventConsumer(s.Client, tmp, s.Connection, s.DB, s.ConnLock, s.TopicLock, s.Counter, _kafkaWriter)
 		}
 
 		return

@@ -6,12 +6,11 @@ import (
 
 	d "github.com/itzmeanjan/ette/app/data"
 	"github.com/itzmeanjan/ette/app/db"
-	"github.com/segmentio/kafka-go"
 )
 
 // PublishTxs - Publishes all transactions in a block to redis pubsub
 // channel
-func PublishTxs(blockNumber uint64, txs []*db.PackedTransaction, redis *d.RedisInfo, _kafkaWriter *kafka.Writer) bool {
+func PublishTxs(blockNumber uint64, txs []*db.PackedTransaction, redis *d.RedisInfo) bool {
 
 	if txs == nil {
 		return false
@@ -22,7 +21,7 @@ func PublishTxs(blockNumber uint64, txs []*db.PackedTransaction, redis *d.RedisI
 
 	for _, t := range txs {
 
-		status = PublishTx(blockNumber, t, redis, _kafkaWriter)
+		status = PublishTx(blockNumber, t, redis)
 		if !status {
 			break
 		}
@@ -45,7 +44,7 @@ func PublishTxs(blockNumber uint64, txs []*db.PackedTransaction, redis *d.RedisI
 
 // PublishTx - Publishes tx & events in tx, related data to respective
 // Redis pubsub channel
-func PublishTx(blockNumber uint64, tx *db.PackedTransaction, redis *d.RedisInfo, _kafkaWriter *kafka.Writer) bool {
+func PublishTx(blockNumber uint64, tx *db.PackedTransaction, redis *d.RedisInfo) bool {
 
 	if tx == nil {
 		return false
@@ -92,6 +91,6 @@ func PublishTx(blockNumber uint64, tx *db.PackedTransaction, redis *d.RedisInfo,
 
 	}
 
-	return PublishEvents(blockNumber, tx.Events, redis, _kafkaWriter)
+	return PublishEvents(blockNumber, tx.Events, redis)
 
 }

@@ -113,7 +113,7 @@ func Run(configFile, subscriptionPlansFile string) {
 	go _queue.Start(ctx)
 
 	// Pushing block header propagation listener to another thread of execution
-	go blk.SubscribeToNewBlocks(_connection, _db, _status, _redisInfo, _queue, _kafkaWriter)
+	go blk.SubscribeToNewBlocks(_connection, _db, _status, _redisInfo, _queue)
 
 	// Periodic clean up job being started, to be run every 24 hours to clean up
 	// delivery history data, older than 24 hours
@@ -122,6 +122,6 @@ func Run(configFile, subscriptionPlansFile string) {
 	// go srv.DeliveryHistoryCleanUpService(_db)
 
 	// Starting http server on main thread
-	rest.RunHTTPServer(_db, _status, _redisClient)
+	rest.RunHTTPServer(_db, _status, _redisClient, _kafkaWriter)
 
 }

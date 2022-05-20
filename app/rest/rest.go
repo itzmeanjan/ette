@@ -14,6 +14,7 @@ import (
 	"github.com/foolin/goview"
 	"github.com/foolin/goview/supports/ginview"
 	"github.com/gin-contrib/cors"
+	"github.com/segmentio/kafka-go"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
@@ -33,7 +34,7 @@ import (
 )
 
 // RunHTTPServer - Holds definition for all REST API(s) to be exposed
-func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Client) {
+func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Client, _kafkaWriter *kafka.Writer) {
 
 	respondWithJSON := func(data []byte, c *gin.Context) {
 
@@ -1283,7 +1284,7 @@ func RunHTTPServer(_db *gorm.DB, _status *d.StatusHolder, _redisClient *redis.Cl
 			switch req.Type {
 
 			case "subscribe":
-				pubsubManager.Subscribe(&req)
+				pubsubManager.Subscribe(&req, _kafkaWriter)
 			case "unsubscribe":
 				pubsubManager.Unsubscribe(&req)
 			}

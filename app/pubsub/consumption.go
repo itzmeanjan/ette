@@ -6,6 +6,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/itzmeanjan/ette/app/data"
+	"github.com/segmentio/kafka-go"
 	"gorm.io/gorm"
 )
 
@@ -63,15 +64,16 @@ func NewTransactionConsumer(client *redis.Client, requests map[string]*Subscript
 // topic & listen for data being published on this channel & check whether received data
 // is what, client is interested in or not, which will eventually be
 // delivered to client application over websocket connection
-func NewEventConsumer(client *redis.Client, requests map[string]*SubscriptionRequest, conn *websocket.Conn, db *gorm.DB, connLock *sync.Mutex, topicLock *sync.RWMutex, counter *data.SendReceiveCounter) *EventConsumer {
+func NewEventConsumer(client *redis.Client, requests map[string]*SubscriptionRequest, conn *websocket.Conn, db *gorm.DB, connLock *sync.Mutex, topicLock *sync.RWMutex, counter *data.SendReceiveCounter, _kafkaWriter *kafka.Writer) *EventConsumer {
 	consumer := EventConsumer{
-		Client:     client,
-		Requests:   requests,
-		Connection: conn,
-		DB:         db,
-		ConnLock:   connLock,
-		TopicLock:  topicLock,
-		Counter:    counter,
+		Client:      client,
+		Requests:    requests,
+		Connection:  conn,
+		DB:          db,
+		ConnLock:    connLock,
+		TopicLock:   topicLock,
+		Counter:     counter,
+		KafkaWriter: _kafkaWriter,
 	}
 
 	consumer.Subscribe()
