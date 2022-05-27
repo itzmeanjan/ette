@@ -18,9 +18,9 @@ import (
 
 // Setting ground up i.e. acquiring resources required & determining with
 // some basic checks whether we can proceed to next step or not
-func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConnection, *redis.Client, *d.RedisInfo, *gorm.DB, *d.StatusHolder, *q.BlockProcessorQueue, *kafka.Writer) {
+func bootstrap(p Params) (*d.BlockChainNodeConnection, *redis.Client, *d.RedisInfo, *gorm.DB, *d.StatusHolder, *q.BlockProcessorQueue, *kafka.Writer) {
 
-	err := cfg.Read(configFile)
+	err := cfg.Read(p.configFile)
 	if err != nil {
 		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
 	}
@@ -28,13 +28,15 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 	if !(cfg.Get("EtteMode") == "1" || cfg.Get("EtteMode") == "2" || cfg.Get("EtteMode") == "3" || cfg.Get("EtteMode") == "4" || cfg.Get("EtteMode") == "5") {
 		log.Fatalf("[!] Failed to find `EtteMode` in configuration file\n")
 	}
-
+	var rpc int = 0
+	if p.down {
+		rpc = 1
+	}
 	// Maintaining both HTTP & Websocket based connection to blockchain
 	_connection := &d.BlockChainNodeConnection{
-		RPC:       getClient(true),
-		Websocket: getClient(false),
+		RPC:       getClient(rpc),
+		Websocket: getClient(2),
 	}
-
 	_redisClient := getRedisClient()
 
 	if _redisClient == nil {
@@ -49,7 +51,7 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 
 	// Populating subscription plans from `.plans.json` into
 	// database table, at application start up
-	db.PersistAllSubscriptionPlans(_db, subscriptionPlansFile)
+	db.PersistAllSubscriptionPlans(_db, p.subscriptionPlansFile)
 
 	// Passing db handle, to graph package, so that it can be used
 	// for resolving graphQL queries

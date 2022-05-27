@@ -18,7 +18,7 @@ import (
 // SubscribeToNewBlocks - Listen for event when new block header is
 // available, then fetch block content ( including all transactions )
 // in different worker
-func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, status *d.StatusHolder, redis *d.RedisInfo, queue *q.BlockProcessorQueue) {
+func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, status *d.StatusHolder, redis *d.RedisInfo, queue *q.BlockProcessorQueue, rpc_down chan bool) {
 	headerChan := make(chan *types.Header)
 
 	subs, err := connection.Websocket.SubscribeNewHead(context.Background(), headerChan)
@@ -50,8 +50,10 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// At very beginning iteration, newly mined block number
 			// should be greater than max block number obtained from DB
 			if first && !(header.Number.Uint64() > status.MaxBlockNumberAtStartUp()) {
-
-				log.Fatalf("❗️ Bad block received : expected > `%d`\n", status.MaxBlockNumberAtStartUp())
+				log.Print("Moving to backup RPC ❗️🔆❗️🔆❗️🔆❗️ ")
+				rpc_down <- true
+				return
+				// log.Fatalf("❗️ Bad block received : expected > `%d`\n", status.MaxBlockNumberAtStartUp())
 
 			}
 
@@ -64,8 +66,10 @@ func SubscribeToNewBlocks(connection *d.BlockChainNodeConnection, _db *gorm.DB, 
 			// @note This is not the state-of-the art solution, but this is it, as of now
 			// It can be improved.
 			if !first && header.Number.Uint64() > status.GetLatestBlockNumber()+1 {
-
-				log.Fatalf("❗️ Bad block received %d, expected %d\n", header.Number.Uint64(), status.GetLatestBlockNumber())
+				log.Print("Moving to backup RPC ❗️🔆❗️🔆❗️🔆❗️ ")
+				rpc_down <- true
+				return
+				// log.Fatalf("❗️ Bad block received %d, expected %d\n", header.Number.Uint64(), status.GetLatestBlockNumber())
 
 			}
 
