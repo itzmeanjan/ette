@@ -122,6 +122,10 @@ func Run(configFile, subscriptionPlansFile string) {
 	// go srv.DeliveryHistoryCleanUpService(_db)
 
 	// Starting http server on main thread
-	rest.RunHTTPServer(_db, _status, _redisClient)
+	if cfg.Get("EtteHttpServer") == "yes" {
+		rest.RunHTTPServer(_db, _status, _redisClient)
+	} else {
+		select {}
+	}
 
 }

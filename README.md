@@ -123,6 +123,7 @@ cd ette
     ---
 
     - For testing historical data query using browser based GraphQL Playground in `ette`, you can set `EtteGraphQLPlayGround` to `yes` in config file
+    - For exposing `ette`'s REST API set `EtteHttpServer` to `yes`.
     - For processing block(s)/ tx(s) concurrently, it'll create `ConcurrencyFactor * #-of CPUs on machine` workers, who will pick up jobs submitted to them.
     - If nothing is specified, it defaults to 1 & assuming you're running `ette` on machine with 4 CPUs, it'll spawn worker pool of size 4. But more number of jobs can be submitted, only 4 can be running at max.
     - 👆 being done for controlling concurrency level, by putting more control on user's hand.
@@ -149,6 +150,7 @@ Domain=localhost
 Production=yes
 EtteMode=3
 EtteGraphQLPlayGround=yes
+EtteHttpServer=yes
 ConcurrencyFactor=5
 BlockConfirmations=200
 BlockRange=1000
