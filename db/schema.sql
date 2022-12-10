@@ -25,8 +25,8 @@ create index on blocks(time asc);
 
 create table transactions (
     hash char(66) primary key,
-    from char(42) not null,
-    to char(42),
+    "from" char(42) not null,
+    "to" char(42),
     contract char(42),
     value varchar,
     data bytea,
@@ -39,8 +39,8 @@ create table transactions (
     foreign key (blockhash) references blocks(hash) on delete cascade
 );
 
-create index on transactions(from);
-create index on transactions(to);
+create index on transactions("from");
+create index on transactions("to");
 create index on transactions(contract);
 create index on transactions(nonce);
 create index on transactions(blockhash);
