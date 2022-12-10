@@ -18,3 +18,7 @@ ette
 node_modules
 .plans.json
 snapshot.bin
+
+# IDE
+.idea
+.vscode
