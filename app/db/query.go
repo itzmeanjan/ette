@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"math"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -14,21 +15,13 @@ import (
 func GetAllBlockNumbersInRange(db *gorm.DB, from uint64, to uint64) []uint64 {
 
 	var blocks []uint64
+	rangeFrom := math.Min(float64(from), float64(to))
+	rangeTo := math.Max(float64(from), float64(to))
+	if err := db.Model(&Blocks{}).Where("number >= ? and number <= ?", rangeFrom, rangeTo).Order("number asc").Select("number").Find(&blocks).Error; err != nil {
 
-	if from < to {
-		if err := db.Model(&Blocks{}).Where("number >= ? and number <= ?", from, to).Order("number asc").Select("number").Find(&blocks).Error; err != nil {
+		log.Printf("[!] Failed to fetch block numbers by range : %s\n", err.Error())
+		return nil
 
-			log.Printf("[!] Failed to fetch block numbers by range : %s\n", err.Error())
-			return nil
-
-		}
-	} else {
-		if err := db.Model(&Blocks{}).Where("number >= ? and number <= ?", to, from).Order("number asc").Select("number").Find(&blocks).Error; err != nil {
-
-			log.Printf("[!] Failed to fetch block numbers by range : %s\n", err.Error())
-			return nil
-
-		}
 	}
 
 	return blocks
