@@ -1,6 +1,7 @@
 package data
 
 import (
+	"github.com/itzmeanjan/ette/app/client"
 	"sync"
 	"time"
 
@@ -162,6 +163,5 @@ type Job struct {
 // Use `RPC` i.e. HTTP based connection, for querying blockchain for data
 // Use `Websocket` for real-time listening of events in blockchain
 type BlockChainNodeConnection struct {
-	RPC       *ethclient.Client
-	Websocket *ethclient.Client
+	ClientPool *client.Pool
 }

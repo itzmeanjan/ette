@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"github.com/itzmeanjan/ette/app/client"
 	"log"
 	"sync"
 
@@ -29,8 +30,7 @@ func bootstrap(configFile, subscriptionPlansFile string) (*d.BlockChainNodeConne
 
 	// Maintaining both HTTP & Websocket based connection to blockchain
 	_connection := &d.BlockChainNodeConnection{
-		RPC:       getClient(true),
-		Websocket: getClient(false),
+		ClientPool: client.NewClientPool(),
 	}
 
 	_redisClient := getRedisClient()
