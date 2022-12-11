@@ -134,8 +134,8 @@ cd ette
     - If you're attempting to take snapshot/ restore from binary snapshot file, you can set `SnapshotFile` in `.env` file, to set sink/ source file name, respectively. Default file name `echo $(echo $(pwd)/snapshot.bin)` in i.e. from where `ette` gets invoked. Consider setting `EtteMode` correctly, depending upon what you want to attain.
 
 ```
-RPCUrl=https://<domain-name>
-WebsocketUrl=wss://<domain-name>
+RPCUrls=https://<domain-name>,https://<other-domain-name>
+WebsocketUrls=wss://<domain-name>,wss://<other-domain-name>
 PORT=7000
 DB_USER=user
 DB_PASSWORD=password
