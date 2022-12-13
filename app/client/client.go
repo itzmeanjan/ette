@@ -18,10 +18,11 @@ type Client struct {
 }
 
 func (c *Client) isAvailable() bool {
-	if c.err != nil || time.Now().Before(c.availableAt) {
-		return false
+	if c.err == nil || time.Now().After(c.availableAt) {
+		c.err = nil
+		return true
 	}
-	return true
+	return false
 }
 
 func (c *Client) setError(err error, availableAt time.Time) {
