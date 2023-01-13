@@ -1,3 +1,5 @@
+> **Warning** **I've stopped maintaining `ette`.**
+
 # ette
 
 EVM-based Blockchain Indexer, with historical data query & real-time notification support 😎
